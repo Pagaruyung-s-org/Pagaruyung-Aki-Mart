@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Plus, Trash2, Calculator } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { InputCurrency } from '@/components/ui/InputCurrency'
 import { Select } from '@/components/ui/Select'
 import { Card, CardBody, CardFooter, CardHeader } from '@/components/ui/Card'
 import { formatRupiah, hitungHargaModalUnit, toInputDate } from '@/lib/utils'
@@ -241,13 +242,12 @@ export function FormPembelian({
                     required
                     placeholder="0"
                   />
-                  <Input
+                  <InputCurrency
                     label="Nominal (Rp)"
                     id={`nominal-${idx}`}
-                    type="number"
                     min="0"
-                    value={item.nominal || ''}
-                    onChange={(e) => updateItem(idx, 'nominal', Number(e.target.value))}
+                    value={item.nominal === 0 ? '' : item.nominal}
+                    onChange={(val) => updateItem(idx, 'nominal', val === '' ? 0 : Number(val))}
                     required
                     placeholder="Total harga"
                   />

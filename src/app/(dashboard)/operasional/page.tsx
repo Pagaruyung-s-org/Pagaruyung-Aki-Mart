@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
-import { FormOperasional } from '@/components/forms/FormOperasional'
+import { OperasionalClient } from './OperasionalClient'
 import { formatRupiah, formatDate } from '@/lib/utils'
 import { StatusBadge } from '@/components/ui/Badge'
 import { getUserRole } from '@/actions/users'
@@ -25,7 +25,7 @@ export default async function OperasionalPage() {
       <Header title="Biaya Operasional" subtitle="Kelola pengeluaran operasional usaha" />
       <div className="p-6 space-y-6">
         {role !== 'OWNER' && (
-          <FormOperasional categories={categories ?? []} employees={employees ?? []} />
+          <OperasionalClient categories={categories ?? []} employees={employees ?? []} />
         )}
 
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">

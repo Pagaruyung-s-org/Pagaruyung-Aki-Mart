@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { Plus, Search, Pencil, Trash2, Users } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { InputCurrency } from '@/components/ui/InputCurrency'
 import { Modal } from '@/components/ui/Modal'
 import { formatRupiah } from '@/lib/utils'
 import { createEmployee, updateEmployee, deleteEmployee } from '@/actions/master'
@@ -24,8 +25,9 @@ export function KaryawanTable({ initial, role }: KaryawanTableProps) {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [editItem, setEditItem] = useState<Employee | null>(null)
   const [itemToDelete, setItemToDelete] = useState<Employee | null>(null)
-  const [error, setError] = useState('')
+  const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
+  const [gaji, setGaji] = useState<number | ''>('')
 
   const filtered = initial.filter(e =>
     e.nama_karyawan.toLowerCase().includes(search.toLowerCase()) ||
@@ -44,8 +46,18 @@ export function KaryawanTable({ initial, role }: KaryawanTableProps) {
     goToPrevPage
   } = usePagination(filtered, 10)
 
-  function openCreate() { setEditItem(null); setError(''); setModalOpen(true) }
-  function openEdit(e: Employee) { setEditItem(e); setError(''); setModalOpen(true) }
+  function openCreate() { 
+    setEditItem(null); 
+    setGaji('');
+    setError(''); 
+    setModalOpen(true) 
+  }
+  function openEdit(e: Employee) { 
+    setEditItem(e); 
+    setGaji(e.gaji);
+    setError(''); 
+    setModalOpen(true) 
+  }
   function openDelete(e: Employee) { setItemToDelete(e); setError(''); setDeleteModalOpen(true) }
 
   async function handleSubmit(formData: FormData) {
@@ -155,7 +167,7 @@ export function KaryawanTable({ initial, role }: KaryawanTableProps) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Input label="Jabatan" name="jabatan" id="jabatan" defaultValue={editItem?.jabatan ?? ''} placeholder="mis: Kasir" />
-            <Input label="Gaji (Rp)" name="gaji" id="gaji" type="number" min="0" defaultValue={editItem?.gaji} required placeholder="0" />
+            <InputCurrency label="Gaji (Rp)" name="gaji" id="gaji" min="0" value={gaji} onChange={(val) => setGaji(val)} required placeholder="0" />
           </div>
           {editItem && <input type="hidden" name="status" value={editItem.status ? 'true' : 'false'} />}
           <div className="flex gap-2 pt-2">

@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react'
 import { Plus, Search, Pencil, ToggleLeft, ToggleRight, Package, Info } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { InputCurrency } from '@/components/ui/InputCurrency'
 import { Modal } from '@/components/ui/Modal'
 import { formatRupiah, getStokStatus, formatDate } from '@/lib/utils'
 import { createProduct, updateProduct, toggleProductStatus } from '@/actions/master'
@@ -31,6 +32,9 @@ export function ProdukTable({ products, role, isAirAki }: ProdukTableProps) {
   const [search, setSearch] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editProduct, setEditProduct] = useState<Product | null>(null)
+  const [toastMsg, setToastMsg] = useState<{type: 'success'|'error', msg: string} | null>(null)
+  const [hargaJual, setHargaJual] = useState<number | ''>('')
+  const [kategori, setKategori] = useState('')
   const [error, setError] = useState('')
   const [isPending, startTransition] = useTransition()
 
@@ -53,16 +57,19 @@ export function ProdukTable({ products, role, isAirAki }: ProdukTableProps) {
     goToPrevPage
   } = usePagination(filtered, 10)
 
-  function openCreate() {
-    setEditProduct(null)
-    setError('')
-    setModalOpen(true)
+  function openCreate() { 
+    setEditProduct(null); 
+    setError(''); 
+    setKategori('Aki Mobil'); 
+    setHargaJual('');
+    setModalOpen(true); 
   }
-
-  function openEdit(p: Product) {
-    setEditProduct(p)
-    setError('')
-    setModalOpen(true)
+  function openEdit(p: Product) { 
+    setEditProduct(p); 
+    setError(''); 
+    setKategori(p.kategori); 
+    setHargaJual(p.harga_jual);
+    setModalOpen(true); 
   }
 
   async function handleSubmit(formData: FormData) {
@@ -287,13 +294,13 @@ export function ProdukTable({ products, role, isAirAki }: ProdukTableProps) {
           {isAirAki && (
             <input type="hidden" name="kapasitas_ah" value="0" />
           )}
-          <Input
+          <InputCurrency
             label="Harga Jual (Rp)"
             name="harga_jual"
             id="harga_jual"
-            type="number"
             min="0"
-            defaultValue={editProduct?.harga_jual}
+            value={hargaJual}
+            onChange={(val) => setHargaJual(val)}
             required
             placeholder="mis: 750000"
           />

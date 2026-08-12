@@ -38,7 +38,7 @@ export function Pagination({
               setPageSize(Number(e.target.value))
               setCurrentPage(1)
             }}
-            className="border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 border p-1 text-gray-900 bg-white"
+            className="border-gray-300 rounded-md text-sm focus:ring-blue-500 focus:border-blue-500 border p-1 text-gray-900 bg-white cursor-pointer"
           >
             <option value={10}>10</option>
             <option value={25}>25</option>
@@ -58,7 +58,7 @@ export function Pagination({
             <button
               onClick={goToPrevPage}
               disabled={currentPage === 1}
-              className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               <span className="sr-only">Previous</span>
               <ChevronLeft className="h-5 w-5" aria-hidden="true" />
@@ -69,7 +69,7 @@ export function Pagination({
             <button
               onClick={goToNextPage}
               disabled={currentPage === totalPages}
-              className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
               <span className="sr-only">Next</span>
               <ChevronRight className="h-5 w-5" aria-hidden="true" />

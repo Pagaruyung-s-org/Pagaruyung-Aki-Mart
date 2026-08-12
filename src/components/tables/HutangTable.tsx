@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { Search, CreditCard, X, Save, AlertCircle, CheckCircle } from 'lucide-react'
 import { formatRupiah, formatDate } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { InputCurrency } from '@/components/ui/InputCurrency'
 import { Select } from '@/components/ui/Select'
 import { createSupplierPayment } from '@/actions/transactions'
 import { useRouter } from 'next/navigation'
@@ -29,10 +30,12 @@ interface HutangTableProps {
 
 export function HutangTable({ data }: HutangTableProps) {
   const router = useRouter()
+  const [isPending, startTransition] = useTransition()
   const [search, setSearch] = useState('')
   const [selectedHutang, setSelectedHutang] = useState<HutangItem | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
+  const [nominalBayar, setNominalBayar] = useState<number | ''>('')
 
   // Filter
   const filteredData = data.filter(item => 
@@ -63,7 +66,7 @@ export function HutangTable({ data }: HutangTableProps) {
       supplier_id: selectedHutang.supplier_id,
       purchase_id: selectedHutang.id,
       tanggal: formData.get('tanggal') as string,
-      nominal: Number(formData.get('nominal')),
+      nominal: Number(nominalBayar),
       payment_method: formData.get('payment_method') as any,
       keterangan: formData.get('keterangan') as string,
     }
@@ -187,7 +190,7 @@ export function HutangTable({ data }: HutangTableProps) {
               <h3 className="font-semibold text-gray-900">Bayar Hutang</h3>
               <button 
                 onClick={() => setSelectedHutang(null)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -222,13 +225,12 @@ export function HutangTable({ data }: HutangTableProps) {
                   required
                 />
                 
-                <Input
+                <InputCurrency
                   label="Nominal Dibayar (Rp)"
-                  type="number"
-                  name="nominal"
+                  id="nominal"
                   min="1"
-                  max={selectedHutang.sisa_hutang}
-                  defaultValue={selectedHutang.sisa_hutang}
+                  value={nominalBayar}
+                  onChange={(val) => setNominalBayar(val)}
                   required
                 />
 

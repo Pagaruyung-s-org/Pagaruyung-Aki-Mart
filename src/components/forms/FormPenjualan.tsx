@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Plus, Trash2, ShoppingBag } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { InputCurrency } from '@/components/ui/InputCurrency'
 import { Select } from '@/components/ui/Select'
 import { Card, CardBody, CardFooter, CardHeader } from '@/components/ui/Card'
 import { formatRupiah } from '@/lib/utils'
@@ -169,15 +170,14 @@ export function FormPenjualan({
                       />
                     </div>
                     <Input label="QTY" id={`qty-${idx}`} type="number" min="1" value={item.qty || ''} onChange={(e) => updateItem(idx, 'qty', Number(e.target.value))} required hint={product ? `Stok: ${product.qty_stok} unit` : undefined} placeholder="0" />
-                    <Input label="Harga Jual" id={`harga-${idx}`} type="number" min="0" value={item.harga_jual || ''} onChange={(e) => updateItem(idx, 'harga_jual', Number(e.target.value))} required disabled />
+                    <InputCurrency label="Harga Jual" id={`harga-${idx}`} min="0" value={item.harga_jual || ''} onChange={(val) => updateItem(idx, 'harga_jual', val === '' ? 0 : Number(val))} required disabled />
                     
-                      <Input 
+                      <InputCurrency 
                         label="Bayar" 
                         id={`bayar-${idx}`} 
-                        type="number" 
                         min="0" 
-                        value={subtotal || ''} 
-                        onChange={(e) => updateItem(idx, 'discount', (item.qty * item.harga_jual) - Number(e.target.value))} 
+                        value={subtotal === 0 ? '' : subtotal} 
+                        onChange={(val) => updateItem(idx, 'discount', (item.qty * item.harga_jual) - (val === '' ? 0 : Number(val)))} 
                         required 
                         hint={item.discount > 0 ? `Diskon: ${formatRupiah(item.discount)}` : undefined}
                         placeholder="0"
