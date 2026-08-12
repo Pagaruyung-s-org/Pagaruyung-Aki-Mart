@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { Card, CardBody, CardFooter, CardHeader } from '@/components/ui/Card'
-import { formatRupiah, hitungPajak, hitungHargaModalUnit, toInputDate } from '@/lib/utils'
+import { formatRupiah, hitungHargaModalUnit, toInputDate } from '@/lib/utils'
 import { createPurchase } from '@/actions/transactions'
 import { useToast } from '@/components/ui/Toast'
 
@@ -74,7 +74,7 @@ export function FormPembelian({
   }
 
   const totalNominal = items.reduce((s, i) => s + (i.nominal || 0), 0)
-  const pajak = isAirAki ? 0 : hitungPajak(totalNominal)
+  const pajak = 0 // Pajak ditiadakan
   const total = totalNominal + pajak
 
   async function handleSubmit(e: React.FormEvent) {
@@ -249,7 +249,7 @@ export function FormPembelian({
                     value={item.nominal || ''}
                     onChange={(e) => updateItem(idx, 'nominal', Number(e.target.value))}
                     required
-                    placeholder={isAirAki ? "Total harga" : "Total harga sebelum pajak"}
+                    placeholder="Total harga"
                   />
                   <div className="flex flex-col gap-1">
                     <label className="text-sm font-medium text-gray-700">Harga Modal/Unit</label>
@@ -276,12 +276,6 @@ export function FormPembelian({
               <p className="text-sm text-gray-500">Total Nominal</p>
               <p className="text-xl font-bold text-gray-900">{formatRupiah(totalNominal)}</p>
             </div>
-            {!isAirAki && (
-              <div className="text-right space-y-1">
-                <p className="text-sm text-gray-500">Pajak (11%)</p>
-                <p className="text-xl font-bold text-orange-600">{formatRupiah(pajak)}</p>
-              </div>
-            )}
             <div className="text-right space-y-1 bg-blue-50 border border-blue-200 rounded-xl px-5 py-3">
               <p className="text-sm text-blue-600 font-medium flex items-center gap-1.5">
                 <Calculator className="h-3.5 w-3.5" /> Total Bayar

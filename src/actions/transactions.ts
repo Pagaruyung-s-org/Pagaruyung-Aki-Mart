@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
-import { hitungHargaModalUnit, hitungPajak } from '@/lib/utils'
+import { hitungHargaModalUnit } from '@/lib/utils'
 import { calculateFifo, applyFifoAllocations } from '@/lib/fifo'
 import type { CreatePurchaseInput, CreateSaleInput, CreateExpenseInput, CreateSupplierPaymentInput } from '@/types/database'
 
@@ -105,7 +105,7 @@ export async function createPurchase(input: CreatePurchaseInput): Promise<Action
 
   // Hitung nominal, pajak, total
   const totalNominal = data.items.reduce((sum, i) => sum + i.nominal, 0)
-  const pajak = isAllAirAki ? 0 : hitungPajak(totalNominal)
+  const pajak = 0 // Pajak ditiadakan sesuai permintaan user
   const total = totalNominal + pajak
 
   // Generate kode pembelian dari database function

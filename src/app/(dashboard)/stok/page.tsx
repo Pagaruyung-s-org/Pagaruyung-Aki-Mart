@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
 import { StokPageClient } from './StokPageClient'
+import { getUserRole } from '@/actions/users'
 
 export default async function StokPage() {
   const supabase = await createClient()
@@ -12,6 +13,8 @@ export default async function StokPage() {
     .eq('status', true)
     .order('merk')
     .order('kategori')
+
+  const role = await getUserRole()
 
   // Untuk setiap produk, ambil batch tersedia
   const productIds = (products ?? []).map(p => p.id)
@@ -35,6 +38,7 @@ export default async function StokPage() {
         <StokPageClient
           products={products ?? []}
           batchByProduct={batchByProduct as any}
+          role={role}
         />
       </div>
     </div>

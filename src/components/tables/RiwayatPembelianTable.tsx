@@ -31,7 +31,6 @@ export function RiwayatPembelianTable({ purchases }: { purchases: any[] }) {
               <th className="text-left px-4 py-3 font-medium text-gray-600">Produk</th>
               <th className="text-center px-4 py-3 font-medium text-gray-600">QTY</th>
               <th className="text-right px-4 py-3 font-medium text-gray-600">Nominal</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-600">Pajak (11%)</th>
               <th className="text-right px-4 py-3 font-medium text-gray-600">Total</th>
               <th className="text-center px-4 py-3 font-medium text-gray-600">Pembayaran</th>
             </tr>
@@ -57,7 +56,6 @@ export function RiwayatPembelianTable({ purchases }: { purchases: any[] }) {
                   {p.purchase_items?.reduce((sum: number, item: any) => sum + (item.qty || 0), 0) || 0}
                 </td>
                 <td className="px-4 py-3 text-right text-gray-700">{formatRupiah(p.nominal)}</td>
-                <td className="px-4 py-3 text-right text-gray-500">{formatRupiah(p.pajak)}</td>
                 <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatRupiah(p.total)}</td>
                 <td className="px-4 py-3 text-center">
                   <StatusBadge status={p.status_pembayaran} />

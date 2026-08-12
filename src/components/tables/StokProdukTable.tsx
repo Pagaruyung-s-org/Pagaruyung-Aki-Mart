@@ -27,9 +27,10 @@ interface StokProdukTableProps {
   products: Product[]
   batchByProduct: Record<string, Batch[]>
   isAirAki?: boolean
+  role?: string
 }
 
-export function StokProdukTable({ products, batchByProduct, isAirAki }: StokProdukTableProps) {
+export function StokProdukTable({ products, batchByProduct, isAirAki, role }: StokProdukTableProps) {
   if (!products || products.length === 0) {
     return (
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
@@ -53,6 +54,8 @@ export function StokProdukTable({ products, batchByProduct, isAirAki }: StokProd
     goToPrevPage
   } = usePagination(products, 10)
 
+  const showModal = role !== 'ADMIN'
+
   return (
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden flex flex-col">
       <div className="overflow-x-auto">
@@ -66,7 +69,7 @@ export function StokProdukTable({ products, batchByProduct, isAirAki }: StokProd
               {!isAirAki && <th className="text-center px-4 py-3 font-medium text-gray-600">Kapasitas (AH)</th>}
               <th className="text-right px-4 py-3 font-medium text-gray-600">Harga Jual</th>
               <th className="text-center px-4 py-3 font-medium text-gray-600">Stok</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-600">Modal</th>
+              {showModal && <th className="text-right px-4 py-3 font-medium text-gray-600">Modal</th>}
             </tr>
           </thead>
           <tbody>
@@ -86,20 +89,22 @@ export function StokProdukTable({ products, batchByProduct, isAirAki }: StokProd
                     <span className={`font-bold ${stok.color}`}>{p.qty_stok}</span>
                     <span className={`text-xs ml-1 ${stok.color}`}>({stok.label})</span>
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    {productBatches.length === 0 ? (
-                      <span className="text-gray-400 text-xs">—</span>
-                    ) : (
-                      <div className="flex flex-col gap-1 text-right">
-                        {productBatches.map((b: any) => (
-                          <div key={b.id} className="flex justify-end gap-2 items-center text-xs">
-                            <span className="text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{b.qty_tersedia} pcs</span>
-                            <span className="font-medium text-gray-900 w-20">{formatRupiah(b.harga_modal_unit)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </td>
+                  {showModal && (
+                    <td className="px-4 py-3 text-right">
+                      {productBatches.length === 0 ? (
+                        <span className="text-gray-400 text-xs">—</span>
+                      ) : (
+                        <div className="flex flex-col gap-1 text-right">
+                          {productBatches.map((b: any) => (
+                            <div key={b.id} className="flex justify-end gap-2 items-center text-xs">
+                              <span className="text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{b.qty_tersedia} pcs</span>
+                              <span className="font-medium text-gray-900 w-20">{formatRupiah(b.harga_modal_unit)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                  )}
                 </tr>
               )
             })}

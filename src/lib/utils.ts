@@ -68,19 +68,7 @@ export function toInputDate(dateStr?: string): string {
 // KALKULASI BISNIS
 // ============================================================
 
-// Hitung pajak pembelian 11%
-export function hitungPajak(nominal: number): number {
-  return Math.round(nominal * 0.11)
-}
 
-// Hitung total pembelian (nominal + pajak)
-export function hitungTotalPembelian(nominal: number): {
-  pajak: number
-  total: number
-} {
-  const pajak = hitungPajak(nominal)
-  return { pajak, total: nominal + pajak }
-}
 
 // Hitung harga modal per unit
 export function hitungHargaModalUnit(nominal: number, qty: number): number {

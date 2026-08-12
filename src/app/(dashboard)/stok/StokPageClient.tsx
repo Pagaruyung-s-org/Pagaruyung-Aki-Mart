@@ -7,6 +7,7 @@ import { Boxes, Droplets } from 'lucide-react'
 interface StokPageClientProps {
   products: any[]
   batchByProduct: Record<string, any[]>
+  role?: string
 }
 
 const tabs = [
@@ -14,7 +15,7 @@ const tabs = [
   { id: 'air-aki', label: 'Stok Air Aki', icon: <Droplets className="h-4 w-4" /> },
 ]
 
-export function StokPageClient({ products, batchByProduct }: StokPageClientProps) {
+export function StokPageClient({ products, batchByProduct, role }: StokPageClientProps) {
   const productsAki = products.filter(p => p.kategori !== 'Air Aki')
   const productsAirAki = products.filter(p => p.kategori === 'Air Aki')
 
@@ -23,8 +24,8 @@ export function StokPageClient({ products, batchByProduct }: StokPageClientProps
       tabs={tabs} 
       defaultTab="produk"
       contents={{
-        'produk': <StokProdukTable products={productsAki} batchByProduct={batchByProduct} />,
-        'air-aki': <StokProdukTable products={productsAirAki} batchByProduct={batchByProduct} isAirAki={true} />
+        'produk': <StokProdukTable products={productsAki} batchByProduct={batchByProduct} role={role} />,
+        'air-aki': <StokProdukTable products={productsAirAki} batchByProduct={batchByProduct} role={role} isAirAki={true} />
       }}
     />
   )
