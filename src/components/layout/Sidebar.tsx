@@ -91,6 +91,7 @@ const navItems: NavItem[] = [
     icon: <Settings className="h-4 w-4" />,
     children: [
       { label: 'User Management', href: '/users', icon: <Users className="h-4 w-4" /> },
+      { label: 'Log Aktivitas', href: '/activity-log', icon: <FileText className="h-4 w-4" /> },
     ],
   },
 ]
@@ -160,9 +161,18 @@ function NavLink({ item, depth = 0 }: { item: NavItem; depth?: number }) {
 }
 
 export function Sidebar({ role }: { role: 'SUPER_ADMIN' | 'ADMIN' | 'OWNER' | null }) {
-  const filteredNavItems = navItems.filter(item => {
-    // Only show User Management for Super Admin
-    if (item.label === 'Pengaturan') return role === 'SUPER_ADMIN'
+  const filteredNavItems = navItems.map(item => {
+    if (item.label === 'Pengaturan') {
+      const filteredChildren = item.children?.filter(child => {
+        if (child.label === 'User Management') return role === 'SUPER_ADMIN'
+        if (child.label === 'Log Aktivitas') return role === 'SUPER_ADMIN' || role === 'OWNER'
+        return true
+      })
+      return { ...item, children: filteredChildren }
+    }
+    return item
+  }).filter(item => {
+    if (item.label === 'Pengaturan' && (!item.children || item.children.length === 0)) return false
     return true
   })
 

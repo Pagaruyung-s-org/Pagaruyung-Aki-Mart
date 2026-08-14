@@ -20,6 +20,7 @@ export default async function PembelianPage() {
         suppliers(nama_supplier),
         purchase_items(
           qty, 
+          nominal,
           product_id,
           products(merk, kategori, type, kode_baterai, kapasitas_ah)
         )

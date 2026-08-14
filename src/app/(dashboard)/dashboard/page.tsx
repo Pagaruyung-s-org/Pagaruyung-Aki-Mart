@@ -51,10 +51,12 @@ async function getDashboardStats() {
     .eq('status', true)
 
   // Produk stok rendah (< 3) - User requested warning if below 3
+  // Exclude "Air Aki" since it has its own separate table
   const { data: stokRendah } = await supabase
     .from('products')
     .select('id, merk, kategori, kode_baterai, kapasitas_ah, qty_stok')
     .eq('status', true)
+    .neq('kategori', 'Air Aki')
     .lt('qty_stok', 3)
     .order('qty_stok', { ascending: true })
 
@@ -215,7 +217,6 @@ export default async function DashboardPage() {
                     <tr>
                       <th className="px-6 py-3 font-medium text-left">Merk</th>
                       <th className="px-6 py-3 font-medium text-center">Stok</th>
-                      <th className="px-6 py-3 font-medium text-center">Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
@@ -234,19 +235,6 @@ export default async function DashboardPage() {
                             <td className="px-6 py-3 font-medium text-gray-900">{p.merk}</td>
                             <td className="px-6 py-3 text-center">
                               <span className={`font-bold ${isKritis ? 'text-red-600' : 'text-gray-900'}`}>{qty}</span>
-                            </td>
-                            <td className="px-6 py-3 text-center">
-                              {isKritis ? (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-red-600"></span>
-                                  Kritis
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-green-600"></span>
-                                  Aman
-                                </span>
-                              )}
                             </td>
                           </tr>
                         )

@@ -49,7 +49,19 @@ export async function createProduct(formData: FormData) {
 
   if (error) return { success: false, error: error.message }
 
+  const { error: logError } = await supabase.from('activity_log').insert({
+    user_id: user.id,
+    action: 'tambah_produk',
+    entity_type: 'products',
+    entity_id: raw.kode_produk,
+    new_value: raw,
+    reason: 'Menambahkan produk baru di Master Data'
+  })
+  
+  if (logError) console.error("Activity Log Error:", logError)
+
   revalidatePath('/produk')
+  revalidatePath('/activity-log')
   return { success: true, message: 'Produk berhasil ditambahkan' }
 }
 
@@ -84,7 +96,22 @@ export async function updateProduct(id: string, formData: FormData) {
 
   if (error) return { success: false, error: error.message }
 
+  // Coba ambil kode_produk untuk keperluan log agar lebih rapi dari sekadar UUID
+  const { data: prodData } = await supabase.from('products').select('kode_produk').eq('id', id).single()
+
+  const { error: logError } = await supabase.from('activity_log').insert({
+    user_id: user.id,
+    action: 'edit_produk',
+    entity_type: 'products',
+    entity_id: prodData?.kode_produk || id,
+    new_value: raw,
+    reason: 'Mengubah data produk di Master Data'
+  })
+
+  if (logError) console.error("Activity Log Error:", logError)
+
   revalidatePath('/produk')
+  revalidatePath('/activity-log')
   return { success: true, message: 'Produk berhasil diperbarui' }
 }
 

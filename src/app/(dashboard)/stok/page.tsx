@@ -38,7 +38,7 @@ export default async function StokPage() {
         <StokPageClient
           products={products ?? []}
           batchByProduct={batchByProduct as any}
-          role={role}
+          role={role ?? undefined}
         />
       </div>
     </div>

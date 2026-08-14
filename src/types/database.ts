@@ -209,6 +209,10 @@ export interface SupplierPayment {
   nominal: number
   payment_method: PaymentMethod
   keterangan: string | null
+  status_transaksi: 'PAID' | 'VOID' | 'REVERSAL'
+  void_reason?: string | null
+  void_by?: string | null
+  void_at?: string | null
   created_by: string | null
   created_at: string
   // Joined

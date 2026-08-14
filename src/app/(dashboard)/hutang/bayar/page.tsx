@@ -3,24 +3,38 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
 import { HutangTable, HutangItem } from '@/components/tables/HutangTable'
+import { RiwayatPembayaranHutangTable } from '@/components/tables/RiwayatPembayaranHutangTable'
+import { getUserRole } from '@/actions/users'
 
 export default async function BayarHutangPage() {
   const supabase = await createClient()
 
-  const { data: purchases } = await supabase
-    .from('purchase_transactions')
-    .select(`
-      id,
-      kode_pembelian,
-      tanggal,
-      supplier_id,
-      total,
-      status_pembayaran,
-      suppliers ( nama_supplier ),
-      supplier_payments ( nominal )
-    `)
-    .in('status_pembayaran', ['HUTANG', 'PARSIAL'])
-    .order('tanggal', { ascending: false })
+  const [role, { data: purchases }, { data: paymentsHistory }] = await Promise.all([
+    getUserRole(),
+    supabase
+      .from('purchase_transactions')
+      .select(`
+        id,
+        kode_pembelian,
+        tanggal,
+        supplier_id,
+        total,
+        status_pembayaran,
+        suppliers ( nama_supplier ),
+        supplier_payments ( nominal )
+      `)
+      .in('status_pembayaran', ['HUTANG', 'PARSIAL'])
+      .order('tanggal', { ascending: false }),
+    supabase
+      .from('supplier_payments')
+      .select(`
+        *,
+        suppliers ( nama_supplier ),
+        purchase_transactions ( kode_pembelian )
+      `)
+      .order('tanggal', { ascending: false })
+      .limit(50)
+  ])
 
   const mappedData: HutangItem[] = (purchases || []).map((p: any) => {
     // Hitung total yang sudah dibayar
@@ -51,6 +65,8 @@ export default async function BayarHutangPage() {
       />
       <div className="flex-1 p-6">
         <HutangTable data={finalData} />
+        
+        <RiwayatPembayaranHutangTable payments={paymentsHistory || []} role={role ?? null} />
       </div>
     </div>
   )

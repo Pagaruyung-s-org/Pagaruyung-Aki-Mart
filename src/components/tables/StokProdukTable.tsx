@@ -31,17 +31,6 @@ interface StokProdukTableProps {
 }
 
 export function StokProdukTable({ products, batchByProduct, isAirAki, role }: StokProdukTableProps) {
-  if (!products || products.length === 0) {
-    return (
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-          <Boxes className="h-12 w-12 mb-3 opacity-30" />
-          <p className="text-sm">Belum ada produk</p>
-        </div>
-      </div>
-    )
-  }
-
   const {
     currentPage,
     setCurrentPage,
@@ -52,7 +41,18 @@ export function StokProdukTable({ products, batchByProduct, isAirAki, role }: St
     totalItems,
     goToNextPage,
     goToPrevPage
-  } = usePagination(products, 10)
+  } = usePagination(products || [], 10)
+
+  if (!products || products.length === 0) {
+    return (
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+          <Boxes className="h-12 w-12 mb-3 opacity-30" />
+          <p className="text-sm">Belum ada produk</p>
+        </div>
+      </div>
+    )
+  }
 
   const showModal = role !== 'ADMIN'
 

@@ -26,10 +26,10 @@ export function InputCurrency({ value, onChange, ...props }: InputCurrencyProps)
         setDisplayValue(formatted)
       }
     }
-  }, [value])
+  }, [value, displayValue])
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    let rawValue = e.target.value
+    const rawValue = e.target.value
 
     // Remove all non-digit characters
     const digitsOnly = rawValue.replace(/\D/g, '')

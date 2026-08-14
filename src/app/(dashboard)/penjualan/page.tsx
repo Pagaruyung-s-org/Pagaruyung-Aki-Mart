@@ -17,7 +17,14 @@ export default async function PenjualanPage() {
       .from('sales')
       .select(`
         *,
-        sale_items(subtotal, hpp_fifo, laba_kotor, qty)
+        sale_items(
+          qty,
+          harga_jual,
+          subtotal,
+          hpp_fifo,
+          laba_kotor,
+          products(*)
+        )
       `)
       .order('tanggal', { ascending: false })
       .limit(200),
