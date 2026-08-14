@@ -11,6 +11,7 @@ import { createSupplierPayment } from '@/actions/transactions'
 import { useRouter } from 'next/navigation'
 import { Pagination } from '@/components/ui/Pagination'
 import { usePagination } from '@/hooks/usePagination'
+import { useToast } from '@/components/ui/Toast'
 
 export interface HutangItem {
   id: string
@@ -34,7 +35,7 @@ export function HutangTable({ data }: HutangTableProps) {
   const [search, setSearch] = useState('')
   const [selectedHutang, setSelectedHutang] = useState<HutangItem | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
+  const { showToast } = useToast()
   const [nominalBayar, setNominalBayar] = useState<number | ''>('')
 
   // Filter
@@ -71,10 +72,8 @@ export function HutangTable({ data }: HutangTableProps) {
       keterangan: formData.get('keterangan') as string,
     }
 
-    setToastMsg(null)
-
     if (payload.nominal > selectedHutang.sisa_hutang) {
-      setToastMsg({ type: 'error', msg: 'Nominal tidak boleh melebihi sisa hutang!' })
+      showToast('error', 'Nominal tidak boleh melebihi sisa hutang!')
       setIsSubmitting(false)
       return
     }
@@ -82,16 +81,14 @@ export function HutangTable({ data }: HutangTableProps) {
     try {
       const res = await createSupplierPayment(payload)
       if (res.success) {
-        setToastMsg({ type: 'success', msg: res.message })
-        setTimeout(() => {
-          setSelectedHutang(null)
-          router.refresh()
-        }, 1500)
+        showToast('success', `Pembayaran ke ${selectedHutang.supplier_name} (Tgl: ${formatDate(payload.tanggal)}) berhasil!`)
+        setSelectedHutang(null)
+        router.refresh()
       } else {
-        setToastMsg({ type: 'error', msg: res.error })
+        showToast('error', res.error)
       }
     } catch (err: any) {
-      setToastMsg({ type: 'error', msg: err.message || 'Terjadi kesalahan' })
+      showToast('error', err.message || 'Terjadi kesalahan')
     } finally {
       setIsSubmitting(false)
     }
@@ -157,7 +154,10 @@ export function HutangTable({ data }: HutangTableProps) {
                   <td className="px-6 py-4 text-right">
                     <Button
                       size="sm"
-                      onClick={() => setSelectedHutang(item)}
+                      onClick={() => {
+                        setSelectedHutang(item)
+                        setNominalBayar('')
+                      }}
                       className="gap-1.5"
                     >
                       <CreditCard className="h-4 w-4" />
@@ -197,14 +197,6 @@ export function HutangTable({ data }: HutangTableProps) {
             </div>
             
             <form onSubmit={handleBayar} className="p-5 overflow-y-auto">
-              {toastMsg && (
-                <div className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium mb-4 ${
-                  toastMsg.type === 'success' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200'
-                }`}>
-                  {toastMsg.type === 'success' ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-                  {toastMsg.msg}
-                </div>
-              )}
 
               <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-lg">
                 <div className="text-sm text-red-800 mb-1">Total Sisa Hutang:</div>
@@ -225,14 +217,22 @@ export function HutangTable({ data }: HutangTableProps) {
                   required
                 />
                 
-                <InputCurrency
-                  label="Nominal Dibayar (Rp)"
-                  id="nominal"
-                  min="1"
-                  value={nominalBayar}
-                  onChange={(val) => setNominalBayar(val)}
-                  required
-                />
+                <div>
+                  <InputCurrency
+                    label="Nominal Dibayar (Rp)"
+                    id="nominal"
+                    min="1"
+                    value={nominalBayar}
+                    onChange={(val) => setNominalBayar(val)}
+                    required
+                  />
+                  {Number(nominalBayar) > selectedHutang.sisa_hutang && (
+                    <p className="text-xs text-red-600 mt-1.5 flex items-center gap-1 font-medium">
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      Nominal melebihi sisa hutang! (Maks: {formatRupiah(selectedHutang.sisa_hutang)})
+                    </p>
+                  )}
+                </div>
 
                 <Select
                   label="Metode Pembayaran"

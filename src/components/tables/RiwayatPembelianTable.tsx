@@ -121,7 +121,7 @@ export function RiwayatPembelianTable({ purchases }: { purchases: any[] }) {
       <Modal isOpen={!!selectedPurchase} onClose={() => setSelectedPurchase(null)} title="Detail Pembelian" size="lg">
         {selectedPurchase && (
           <div className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
               <div>
                 <p className="text-xs text-gray-500 mb-1">Kode Faktur</p>
                 <p className="font-mono text-sm font-medium text-gray-900">{selectedPurchase.kode_pembelian}</p>
@@ -130,7 +130,7 @@ export function RiwayatPembelianTable({ purchases }: { purchases: any[] }) {
                 <p className="text-xs text-gray-500 mb-1">Tanggal</p>
                 <p className="text-sm font-medium text-gray-900">{formatDateTime(selectedPurchase.tanggal)}</p>
               </div>
-              <div className="col-span-2">
+              <div>
                 <p className="text-xs text-gray-500 mb-1">Supplier</p>
                 <p className="text-sm font-medium text-gray-900">{(selectedPurchase.suppliers as any)?.nama_supplier || '—'}</p>
               </div>

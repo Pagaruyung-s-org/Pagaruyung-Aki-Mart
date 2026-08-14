@@ -33,7 +33,7 @@ export async function createProduct(formData: FormData) {
     kode_baterai: formData.get('kode_baterai') as string || undefined,
     kapasitas_ah: Number(formData.get('kapasitas_ah')),
     harga_jual: Number(formData.get('harga_jual')),
-    status: formData.get('status') === 'true',
+    status: formData.has('status') ? formData.get('status') === 'true' : true,
   }
 
   const parsed = ProductSchema.safeParse(raw)

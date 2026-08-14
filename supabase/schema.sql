@@ -86,7 +86,10 @@ CREATE TABLE IF NOT EXISTS purchase_transactions (
     status_transaksi    TEXT NOT NULL DEFAULT 'DRAFT' CHECK (status_transaksi IN ('DRAFT','POSTED','CANCELLED')),
     keterangan          TEXT,
     created_by          UUID REFERENCES auth.users(id),
-    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    void_reason         TEXT,
+    void_by             UUID REFERENCES auth.users(id),
+    void_at             TIMESTAMPTZ
 );
 
 CREATE INDEX idx_purchase_tanggal ON purchase_transactions(tanggal);
@@ -100,8 +103,8 @@ CREATE TABLE IF NOT EXISTS purchase_items (
     id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     purchase_id      UUID NOT NULL REFERENCES purchase_transactions(id) ON DELETE CASCADE,
     product_id       UUID NOT NULL REFERENCES products(id),
-    qty              NUMERIC(10,2) NOT NULL CHECK (qty > 0),
-    nominal          NUMERIC(15,2) NOT NULL CHECK (nominal > 0),  -- total harga sebelum pajak untuk item ini
+    qty              NUMERIC(10,2) NOT NULL,
+    nominal          NUMERIC(15,2) NOT NULL,  -- total harga sebelum pajak untuk item ini
     harga_modal_unit NUMERIC(15,2) NOT NULL,                       -- nominal / qty
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -117,7 +120,7 @@ CREATE TABLE IF NOT EXISTS inventory_batches (
     product_id       UUID NOT NULL REFERENCES products(id),
     purchase_item_id UUID NOT NULL REFERENCES purchase_items(id),
     tanggal_masuk    DATE NOT NULL,
-    qty_awal         NUMERIC(10,2) NOT NULL CHECK (qty_awal > 0),
+    qty_awal         NUMERIC(10,2) NOT NULL,
     qty_tersedia     NUMERIC(10,2) NOT NULL CHECK (qty_tersedia >= 0),
     harga_modal_unit NUMERIC(15,2) NOT NULL,
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -165,7 +168,15 @@ CREATE TABLE IF NOT EXISTS sales (
     status_transaksi TEXT NOT NULL DEFAULT 'PAID' CHECK (status_transaksi IN ('DRAFT','PAID','CANCELLED')),
     keterangan       TEXT,
     created_by       UUID REFERENCES auth.users(id),
-    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    include_air_aki     BOOLEAN DEFAULT FALSE,
+    jumlah_air_aki      INTEGER DEFAULT 0,
+    harga_jual_air_aki  NUMERIC(15,2) DEFAULT 0,
+    hpp_air_aki         NUMERIC(15,2) DEFAULT 0,
+    laba_air_aki        NUMERIC(15,2) DEFAULT 0,
+    void_reason         TEXT,
+    void_by             UUID REFERENCES auth.users(id),
+    void_at             TIMESTAMPTZ
 );
 
 CREATE INDEX idx_sales_tanggal ON sales(tanggal);
@@ -178,7 +189,7 @@ CREATE TABLE IF NOT EXISTS sale_items (
     id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     sale_id          UUID NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
     product_id       UUID NOT NULL REFERENCES products(id),
-    qty              NUMERIC(10,2) NOT NULL CHECK (qty > 0),
+    qty              NUMERIC(10,2) NOT NULL,
     harga_jual       NUMERIC(15,2) NOT NULL,    -- harga saat transaksi (snapshot)
     subtotal         NUMERIC(15,2) NOT NULL,    -- qty × harga_jual
     hpp_fifo         NUMERIC(15,2) NOT NULL DEFAULT 0,  -- HPP dari alokasi FIFO
@@ -196,7 +207,7 @@ CREATE TABLE IF NOT EXISTS sale_batch_allocations (
     id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     sale_item_id     UUID NOT NULL REFERENCES sale_items(id) ON DELETE CASCADE,
     batch_id         UUID NOT NULL REFERENCES inventory_batches(id),
-    qty_used         NUMERIC(10,2) NOT NULL CHECK (qty_used > 0),
+    qty_used         NUMERIC(10,2) NOT NULL,
     harga_modal_unit NUMERIC(15,2) NOT NULL,
     subtotal_hpp     NUMERIC(15,2) NOT NULL,  -- qty_used × harga_modal_unit
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -215,11 +226,14 @@ CREATE TABLE IF NOT EXISTS expenses (
     category_id      UUID NOT NULL REFERENCES expense_categories(id),
     employee_id      UUID REFERENCES employees(id),
     keterangan       TEXT,
-    nominal          NUMERIC(15,2) NOT NULL CHECK (nominal > 0),
+    nominal          NUMERIC(15,2) NOT NULL,
     payment_method   TEXT NOT NULL DEFAULT 'CASH' CHECK (payment_method IN ('CASH','TRANSFER','QRIS')),
     status_transaksi TEXT NOT NULL DEFAULT 'POSTED' CHECK (status_transaksi IN ('DRAFT','POSTED','CANCELLED')),
     created_by       UUID REFERENCES auth.users(id),
-    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    void_reason         TEXT,
+    void_by             UUID REFERENCES auth.users(id),
+    void_at             TIMESTAMPTZ
 );
 
 CREATE INDEX idx_expenses_tanggal ON expenses(tanggal);
@@ -234,15 +248,59 @@ CREATE TABLE IF NOT EXISTS supplier_payments (
     supplier_id      UUID NOT NULL REFERENCES suppliers(id),
     purchase_id      UUID REFERENCES purchase_transactions(id),
     tanggal          DATE NOT NULL,
-    nominal          NUMERIC(15,2) NOT NULL CHECK (nominal > 0),
+    nominal          NUMERIC(15,2) NOT NULL,
     payment_method   TEXT NOT NULL DEFAULT 'CASH' CHECK (payment_method IN ('CASH','TRANSFER','QRIS')),
     keterangan       TEXT,
     created_by       UUID REFERENCES auth.users(id),
-    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    status_transaksi TEXT NOT NULL DEFAULT 'PAID' CHECK (status_transaksi IN ('PAID', 'VOID', 'REVERSAL')),
+    void_reason      TEXT,
+    void_by          UUID REFERENCES auth.users(id),
+    void_at          TIMESTAMPTZ
 );
 
 CREATE INDEX idx_supplier_payments_supplier ON supplier_payments(supplier_id);
 CREATE INDEX idx_supplier_payments_tanggal ON supplier_payments(tanggal);
+
+
+-- ============================================================
+-- AIR AKI TRANSACTIONS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS air_aki_purchases (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  kode_pembelian text NOT NULL UNIQUE,
+  tanggal date NOT NULL,
+  supplier_id uuid REFERENCES suppliers(id),
+  jumlah_botol integer NOT NULL,
+  harga_per_botol numeric NOT NULL,
+  total numeric DEFAULT ((jumlah_botol)::numeric * harga_per_botol),
+  keterangan text,
+  created_by uuid REFERENCES auth.users(id),
+  created_at timestamp with time zone DEFAULT now(),
+  PRIMARY KEY (id)
+);
+
+CREATE TABLE IF NOT EXISTS air_aki_batches (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  purchase_id uuid REFERENCES air_aki_purchases(id),
+  tanggal_masuk date NOT NULL,
+  jumlah_awal integer NOT NULL,
+  jumlah_sisa integer NOT NULL,
+  harga_per_botol numeric NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  PRIMARY KEY (id)
+);
+
+CREATE TABLE IF NOT EXISTS air_aki_sale_allocations (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  sale_id uuid REFERENCES sales(id),
+  batch_id uuid REFERENCES air_aki_batches(id),
+  jumlah_dipakai integer NOT NULL,
+  harga_per_botol numeric NOT NULL,
+  subtotal_hpp numeric NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  PRIMARY KEY (id)
+);
 
 -- ============================================================
 -- 14. CASH_TRANSACTIONS — Kas/Bank
@@ -455,3 +513,28 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER trg_products_updated_at BEFORE UPDATE ON products FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER trg_suppliers_updated_at BEFORE UPDATE ON suppliers FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER trg_employees_updated_at BEFORE UPDATE ON employees FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TABLE public.activity_log (
+    id SERIAL PRIMARY KEY,
+    user_id UUID NOT NULL REFERENCES auth.users(id),
+    action VARCHAR(50) NOT NULL,
+    entity_type VARCHAR(50) NOT NULL,
+    entity_id VARCHAR(50) NOT NULL,
+    old_value JSONB NULL,
+    new_value JSONB NULL,
+    reason TEXT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_activity_log_user ON activity_log(user_id);
+CREATE INDEX idx_activity_log_entity ON activity_log(entity_type, entity_id);
+CREATE INDEX idx_activity_log_created ON activity_log(created_at);
+
+-- Mengaktifkan RLS
+CREATE POLICY "Authenticated users can delete" ON suppliers FOR DELETE TO authenticated USING (true);
+CREATE POLICY "Authenticated users can delete" ON employees FOR DELETE TO authenticated USING (true);
+CREATE POLICY "Authenticated users can delete" ON expense_categories FOR DELETE TO authenticated USING (true);
+
+ALTER TABLE activity_log ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow select for owner and super admin" ON activity_log FOR SELECT USING (true);
+CREATE POLICY "Allow insert for authenticated users" ON activity_log FOR INSERT WITH CHECK (auth.uid() = user_id);
+
