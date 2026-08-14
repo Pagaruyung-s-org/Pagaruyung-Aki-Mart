@@ -273,7 +273,7 @@ CREATE TABLE IF NOT EXISTS air_aki_purchases (
   supplier_id uuid REFERENCES suppliers(id),
   jumlah_botol integer NOT NULL,
   harga_per_botol numeric NOT NULL,
-  total numeric DEFAULT ((jumlah_botol)::numeric * harga_per_botol),
+  total numeric DEFAULT 0,
   keterangan text,
   created_by uuid REFERENCES auth.users(id),
   created_at timestamp with time zone DEFAULT now(),
@@ -530,11 +530,6 @@ CREATE INDEX idx_activity_log_entity ON activity_log(entity_type, entity_id);
 CREATE INDEX idx_activity_log_created ON activity_log(created_at);
 
 -- Mengaktifkan RLS
-CREATE POLICY "Authenticated users can delete" ON suppliers FOR DELETE TO authenticated USING (true);
-CREATE POLICY "Authenticated users can delete" ON employees FOR DELETE TO authenticated USING (true);
-CREATE POLICY "Authenticated users can delete" ON expense_categories FOR DELETE TO authenticated USING (true);
-
 ALTER TABLE activity_log ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow select for owner and super admin" ON activity_log FOR SELECT USING (true);
 CREATE POLICY "Allow insert for authenticated users" ON activity_log FOR INSERT WITH CHECK (auth.uid() = user_id);
-
