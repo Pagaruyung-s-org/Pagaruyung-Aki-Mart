@@ -447,6 +447,11 @@ export async function createExpense(input: CreateExpenseInput): Promise<ActionRe
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { success: false, error: 'Tidak terautentikasi' }
 
+  const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', user.id).single()
+  if (roleData?.role === 'ADMIN') {
+    return { success: false, error: 'Admin tidak memiliki akses untuk mencatat biaya operasional' }
+  }
+
   const data = parsed.data
 
   const { data: kodeData } = await supabase.rpc('generate_kode_pengeluaran')
@@ -506,6 +511,11 @@ export async function createSupplierPayment(input: CreateSupplierPaymentInput): 
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { success: false, error: 'Tidak terautentikasi' }
+
+  const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', user.id).single()
+  if (roleData?.role === 'ADMIN') {
+    return { success: false, error: 'Admin tidak memiliki akses untuk membayar hutang' }
+  }
 
   const data = parsed.data
 

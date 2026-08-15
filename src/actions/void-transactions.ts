@@ -345,11 +345,8 @@ export async function voidExpense(id: string, reason: string): Promise<ActionRes
   }
 
   if (role === 'ADMIN') {
-    const today = new Date().toISOString()
-    if (!isSameDay(expense.tanggal, today)) {
-      return { success: false, error: 'Hanya dapat membatalkan transaksi pada hari yang sama (Hari H)' }
-    }
-  } else if (role !== 'SUPER_ADMIN') {
+    return { success: false, error: 'Admin tidak memiliki akses untuk membatalkan pengeluaran operasional' }
+  } else if (role !== 'SUPER_ADMIN' && role !== 'OWNER') {
     return { success: false, error: 'Anda tidak memiliki akses untuk membatalkan transaksi' }
   }
 
@@ -433,11 +430,8 @@ export async function voidSupplierPayment(id: string, reason: string): Promise<{
   }
 
   if (role === 'ADMIN') {
-    const today = new Date().toISOString()
-    if (!isSameDay(payment.tanggal, today)) {
-      return { success: false, error: 'Hanya dapat membatalkan transaksi pada hari yang sama (Hari H)' }
-    }
-  } else if (role !== 'SUPER_ADMIN') {
+    return { success: false, error: 'Admin tidak memiliki akses untuk membatalkan pembayaran hutang' }
+  } else if (role !== 'SUPER_ADMIN' && role !== 'OWNER') {
     return { success: false, error: 'Anda tidak memiliki akses untuk membatalkan transaksi' }
   }
 

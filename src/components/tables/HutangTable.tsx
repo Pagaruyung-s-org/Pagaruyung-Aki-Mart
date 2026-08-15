@@ -27,9 +27,10 @@ export interface HutangItem {
 
 interface HutangTableProps {
   data: HutangItem[]
+  role?: string | null
 }
 
-export function HutangTable({ data }: HutangTableProps) {
+export function HutangTable({ data, role }: HutangTableProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [search, setSearch] = useState('')
@@ -153,18 +154,20 @@ export function HutangTable({ data }: HutangTableProps) {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        setSelectedHutang(item)
-                        setNominalBayar('')
-                        setPaymentMethod('CASH')
-                      }}
-                      className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
-                    >
-                      <CreditCard className="h-4 w-4" />
-                      Bayar
-                    </Button>
+                    {role !== 'ADMIN' && (
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setSelectedHutang(item)
+                          setNominalBayar('')
+                          setPaymentMethod('CASH')
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                      >
+                        <CreditCard className="h-4 w-4" />
+                        Bayar
+                      </Button>
+                    )}
                   </td>
                 </tr>
               ))
