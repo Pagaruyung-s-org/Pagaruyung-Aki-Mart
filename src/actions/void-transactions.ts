@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
 type ActionResult<T = null> =
   | { success: true; data?: T; message: string }
@@ -441,7 +442,6 @@ export async function voidSupplierPayment(id: string, reason: string): Promise<{
   }
 
   // Use admin client because supplier_payments might be missing UPDATE policy in RLS
-  const { createClient: createSupabaseClient } = require('@supabase/supabase-js')
   const supabaseAdmin = createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
