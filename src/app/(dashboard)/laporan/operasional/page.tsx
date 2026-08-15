@@ -135,12 +135,7 @@ export default async function LaporanOperasionalPage({ searchParams }: PageProps
         </div>
 
         {/* Data Table */}
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex flex-col">
-          <div className="px-5 py-4 border-b border-gray-100">
-            <h3 className="font-semibold text-gray-900">Rincian Operasional</h3>
-          </div>
-          <OperasionalReportTable data={tableData} />
-        </div>
+        <OperasionalReportTable data={tableData} />
 
       </div>
     </div>

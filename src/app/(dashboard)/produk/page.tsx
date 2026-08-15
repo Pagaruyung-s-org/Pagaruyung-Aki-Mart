@@ -60,8 +60,8 @@ export default async function ProdukPage() {
             { id: 'air_aki', label: 'Master Air Aki', icon: <Droplets className="w-4 h-4" /> }
           ]}
           contents={{
-            aki: <ProdukTable products={productsAki as any} role={role} isAirAki={false} />,
-            air_aki: <ProdukTable products={productsAirAki as any} role={role} isAirAki={true} />
+            aki: <ProdukTable key="aki" products={productsAki as any} role={role} isAirAki={false} />,
+            air_aki: <ProdukTable key="air_aki" products={productsAirAki as any} role={role} isAirAki={true} />
           }}
         />
       </div>

@@ -219,7 +219,7 @@ export function FormPembelian({
                           .filter(p => !selectedMerks[idx] || p.merk === selectedMerks[idx])
                           .map(p => ({
                             value: p.id,
-                            label: `${p.kategori}${p.type ? ' · ' + p.type : ''}${p.kode_baterai ? ' · ' + p.kode_baterai : ''} · ${p.kapasitas_ah}AH`
+                            label: [p.kategori, p.type, p.kode_baterai, `${p.kapasitas_ah}AH`].filter(Boolean).join(' · ')
                           }))}
                       />
                       {product && (

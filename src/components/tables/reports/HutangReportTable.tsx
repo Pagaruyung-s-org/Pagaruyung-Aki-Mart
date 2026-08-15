@@ -43,10 +43,16 @@ export function HutangReportTable({ data }: { data: any[] }) {
               </tr>
             ) : (
               currentData.map(row => (
-                <tr key={row.id} className="hover:bg-gray-50/50 transition-colors">
+                <tr key={row.id} className={`hover:bg-gray-50/50 transition-colors ${row.status_transaksi === 'VOID' ? 'bg-red-50/30 opacity-75' : row.status_transaksi === 'REVERSAL' ? 'bg-yellow-50/30' : ''}`}>
                   <td className="px-6 py-4">
                     <div className="font-medium text-gray-900">{formatDateTime(row.tanggal)}</div>
-                    <div className="text-xs text-gray-500">{row.kode_pembayaran}</div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`text-xs ${row.status_transaksi === 'VOID' ? 'text-red-500 line-through' : row.status_transaksi === 'REVERSAL' ? 'text-yellow-600' : 'text-gray-500'}`}>
+                        {row.kode_pembayaran}
+                      </span>
+                      {row.status_transaksi === 'VOID' && <span className="bg-red-100 text-red-700 px-1.5 py-0.5 rounded text-[10px] font-medium">VOID</span>}
+                      {row.status_transaksi === 'REVERSAL' && <span className="bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded text-[10px] font-medium">REVERSAL</span>}
+                    </div>
                   </td>
                   <td className="px-6 py-4 font-medium text-gray-900">
                     {row.supplier_name}

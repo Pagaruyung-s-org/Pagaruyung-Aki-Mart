@@ -163,6 +163,11 @@ export default async function DashboardPage() {
                     Stok Aki
                   </h3>
                 </div>
+                {stats.stokRendah.length > 0 && (
+                  <span className="bg-red-100 text-red-700 text-xs font-bold px-2.5 py-1 rounded-full">
+                    {stats.stokRendah.length} Warning
+                  </span>
+                )}
               </div>
               <div className="overflow-auto w-full flex-1">
                 <table className="w-full text-left text-sm whitespace-nowrap">
@@ -210,6 +215,11 @@ export default async function DashboardPage() {
                     Stok Air Aki
                   </h3>
                 </div>
+                {stats.airAkiList.filter(p => (p.qty_stok ?? 0) < 20).length > 0 && (
+                  <span className="bg-red-100 text-red-700 text-xs font-bold px-2.5 py-1 rounded-full">
+                    {stats.airAkiList.filter(p => (p.qty_stok ?? 0) < 20).length} Warning
+                  </span>
+                )}
               </div>
               <div className="overflow-auto w-full flex-1">
                 <table className="w-full text-left text-sm whitespace-nowrap">

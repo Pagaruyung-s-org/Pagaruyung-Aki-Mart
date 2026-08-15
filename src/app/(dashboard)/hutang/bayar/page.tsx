@@ -24,6 +24,7 @@ export default async function BayarHutangPage() {
         supplier_payments ( nominal )
       `)
       .in('status_pembayaran', ['HUTANG', 'PARSIAL'])
+      .eq('status_transaksi', 'POSTED')
       .order('tanggal', { ascending: false }),
     supabase
       .from('supplier_payments')

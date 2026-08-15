@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS purchase_transactions (
     pajak               NUMERIC(15,2) NOT NULL DEFAULT 0,  -- 11% dari nominal
     total               NUMERIC(15,2) NOT NULL DEFAULT 0,  -- nominal + pajak
     status_pembayaran   TEXT NOT NULL DEFAULT 'HUTANG' CHECK (status_pembayaran IN ('LUNAS','HUTANG','PARSIAL')),
-    status_transaksi    TEXT NOT NULL DEFAULT 'DRAFT' CHECK (status_transaksi IN ('DRAFT','POSTED','CANCELLED')),
+    status_transaksi    TEXT NOT NULL DEFAULT 'DRAFT' CHECK (status_transaksi IN ('DRAFT','POSTED','CANCELLED','VOID','REVERSAL')),
     keterangan          TEXT,
     created_by          UUID REFERENCES auth.users(id),
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -165,7 +165,7 @@ CREATE TABLE IF NOT EXISTS sales (
     discount         NUMERIC(15,2) NOT NULL DEFAULT 0,
     total            NUMERIC(15,2) NOT NULL DEFAULT 0,
     payment_method   TEXT NOT NULL DEFAULT 'CASH' CHECK (payment_method IN ('CASH','TRANSFER','QRIS')),
-    status_transaksi TEXT NOT NULL DEFAULT 'PAID' CHECK (status_transaksi IN ('DRAFT','PAID','CANCELLED')),
+    status_transaksi TEXT NOT NULL DEFAULT 'PAID' CHECK (status_transaksi IN ('DRAFT','PAID','CANCELLED','VOID','REVERSAL')),
     keterangan       TEXT,
     created_by       UUID REFERENCES auth.users(id),
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -228,7 +228,7 @@ CREATE TABLE IF NOT EXISTS expenses (
     keterangan       TEXT,
     nominal          NUMERIC(15,2) NOT NULL,
     payment_method   TEXT NOT NULL DEFAULT 'CASH' CHECK (payment_method IN ('CASH','TRANSFER','QRIS')),
-    status_transaksi TEXT NOT NULL DEFAULT 'POSTED' CHECK (status_transaksi IN ('DRAFT','POSTED','CANCELLED')),
+    status_transaksi TEXT NOT NULL DEFAULT 'POSTED' CHECK (status_transaksi IN ('DRAFT','POSTED','CANCELLED','VOID','REVERSAL')),
     created_by       UUID REFERENCES auth.users(id),
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     void_reason         TEXT,

@@ -37,6 +37,7 @@ export function HutangTable({ data }: HutangTableProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { showToast } = useToast()
   const [nominalBayar, setNominalBayar] = useState<number | ''>('')
+  const [paymentMethod, setPaymentMethod] = useState('CASH')
 
   // Filter
   const filteredData = data.filter(item => 
@@ -105,7 +106,7 @@ export function HutangTable({ data }: HutangTableProps) {
             placeholder="Cari faktur atau supplier..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-500"
+            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-500 text-gray-900"
           />
         </div>
       </div>
@@ -157,8 +158,9 @@ export function HutangTable({ data }: HutangTableProps) {
                       onClick={() => {
                         setSelectedHutang(item)
                         setNominalBayar('')
+                        setPaymentMethod('CASH')
                       }}
-                      className="gap-1.5"
+                      className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
                     >
                       <CreditCard className="h-4 w-4" />
                       Bayar
@@ -238,6 +240,8 @@ export function HutangTable({ data }: HutangTableProps) {
                   label="Metode Pembayaran"
                   name="payment_method"
                   required
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
                   options={[
                     { value: 'CASH', label: 'Tunai (Kas)' },
                     { value: 'TRANSFER', label: 'Transfer Bank' },

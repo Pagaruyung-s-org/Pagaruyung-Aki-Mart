@@ -37,11 +37,13 @@ export default async function LaporanHutangPage({ searchParams }: PageProps) {
       nominal,
       payment_method,
       keterangan,
+      status_transaksi,
       suppliers ( nama_supplier ),
       purchase_transactions ( kode_pembelian )
     `)
     .gte('tanggal', startDate)
     .lte('tanggal', endDate)
+    .eq('status_transaksi', 'PAID')
     .order('tanggal', { ascending: false })
 
   // Fetch all active debts to calculate total Sisa Hutang (All Time)

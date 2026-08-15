@@ -42,7 +42,10 @@ export function ProdukTable({ products, role, isAirAki }: ProdukTableProps) {
     p.merk.toLowerCase().includes(search.toLowerCase()) ||
     p.kode_produk.toLowerCase().includes(search.toLowerCase()) ||
     p.kategori.toLowerCase().includes(search.toLowerCase()) ||
-    (p.kode_baterai ?? '').toLowerCase().includes(search.toLowerCase())
+    (p.kode_baterai ?? '').toLowerCase().includes(search.toLowerCase()) ||
+    (p.type ?? '').toLowerCase().includes(search.toLowerCase()) ||
+    p.kapasitas_ah.toString().includes(search) ||
+    p.harga_jual.toString().includes(search)
   )
 
   const {
@@ -108,7 +111,7 @@ export function ProdukTable({ products, role, isAirAki }: ProdukTableProps) {
             placeholder="Cari merk, kode, kategori..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-500"
+            className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-500 text-gray-900"
           />
         </div>
         
@@ -154,7 +157,7 @@ export function ProdukTable({ products, role, isAirAki }: ProdukTableProps) {
             <tbody className="divide-y divide-gray-100">
               {currentData.length === 0 ? (
                 <tr>
-                  <td colSpan={isAirAki ? 6 : 8} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={15} className="px-6 py-8 text-center text-gray-500">
                     Belum ada produk.
                   </td>
                 </tr>

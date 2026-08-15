@@ -115,10 +115,10 @@ export async function voidSale(id: string, reason: string): Promise<ActionResult
   await supabase.from('cash_transactions').insert({
     reference_id: reversalSale.id,
     reference_type: 'SALE_REVERSAL',
-    type: 'OUT', // reversal of sale is money out
-    nominal: sale.total,
-    keterangan: 'Pembatalan penjualan ' + sale.kode_penjualan,
-    created_by: user.id
+    transaction_type: 'CREDIT', // reversal of sale is money out
+    debit: 0,
+    credit: sale.total,
+    description: 'Pembatalan penjualan ' + sale.kode_penjualan
   })
   
   // Create Reversal Inventory movements
@@ -126,12 +126,12 @@ export async function voidSale(id: string, reason: string): Promise<ActionResult
     for (const item of saleItems) {
       await supabase.from('inventory_movements').insert({
         product_id: item.product_id,
-        type: 'SALE_REVERSAL',
-        qty: item.qty,
+        movement_type: 'SALE_RETURN',
+        qty_in: item.qty,
+        qty_out: 0,
         reference_id: reversalSale.id,
         reference_type: 'SALE_REVERSAL',
-        keterangan: 'Pembatalan penjualan ' + sale.kode_penjualan,
-        created_by: user.id
+        keterangan: 'Pembatalan penjualan ' + sale.kode_penjualan
       })
     }
   }
@@ -203,6 +203,18 @@ export async function voidPurchase(id: string, reason: string): Promise<ActionRe
     }
   }
 
+  // Check if there are active payments
+  const { data: activePayments } = await supabase
+    .from('supplier_payments')
+    .select('id')
+    .eq('purchase_id', id)
+    .eq('status_transaksi', 'PAID')
+    .limit(1)
+
+  if (activePayments && activePayments.length > 0) {
+    return { success: false, error: 'Gagal membatalkan: Terdapat pembayaran hutang aktif untuk faktur ini. Harap batalkan riwayat pembayarannya terlebih dahulu.' }
+  }
+
   // 1. Mark original as VOID
   const { error: voidError } = await supabase.from('purchase_transactions').update({
     status_transaksi: 'VOID',
@@ -268,25 +280,34 @@ export async function voidPurchase(id: string, reason: string): Promise<ActionRe
       // Add Reversal Movement
       await supabase.from('inventory_movements').insert({
         product_id: item.product_id,
-        type: 'PURCHASE_REVERSAL',
-        qty: -item.qty,
+        movement_type: 'PURCHASE_RETURN',
+        qty_in: 0,
+        qty_out: item.qty,
         reference_id: reversalPurchase.id,
         reference_type: 'PURCHASE_REVERSAL',
-        keterangan: 'Pembatalan pembelian ' + purchase.kode_pembelian,
-        created_by: user.id
+        keterangan: 'Pembatalan pembelian ' + purchase.kode_pembelian
       })
     }
   }
 
-  // Add reversal cash transaction
-  await supabase.from('cash_transactions').insert({
-    reference_id: reversalPurchase.id,
-    reference_type: 'PURCHASE_REVERSAL',
-    type: 'IN', // reversal of purchase is money in
-    nominal: purchase.total,
-    keterangan: 'Pembatalan pembelian ' + purchase.kode_pembelian,
-    created_by: user.id
-  })
+  // 4. Reverse cash transaction if it exists
+  const { data: originalCash } = await supabase
+    .from('cash_transactions')
+    .select('credit')
+    .eq('reference_id', id)
+    .eq('reference_type', 'PURCHASE')
+    .single()
+
+  if (originalCash) {
+    await supabase.from('cash_transactions').insert({
+      reference_id: reversalPurchase.id,
+      reference_type: 'PURCHASE_REVERSAL',
+      transaction_type: 'DEBIT', 
+      debit: originalCash.credit, // Refund exactly what was paid out
+      credit: 0,
+      description: 'Pembatalan pembelian ' + purchase.kode_pembelian
+    })
+  }
 
   revalidatePath('/pembelian')
   revalidatePath('/stok')
@@ -364,10 +385,10 @@ export async function voidExpense(id: string, reason: string): Promise<ActionRes
   await supabase.from('cash_transactions').insert({
     reference_id: reversalExpense.id,
     reference_type: 'EXPENSE_REVERSAL',
-    type: 'IN', // reversal of expense is money in
-    nominal: expense.nominal,
-    keterangan: 'Pembatalan pengeluaran ' + expense.kode_pengeluaran,
-    created_by: user.id
+    transaction_type: 'DEBIT', // reversal of expense is money in
+    debit: expense.nominal,
+    credit: 0,
+    description: 'Pembatalan pengeluaran ' + expense.kode_pengeluaran
   })
 
   revalidatePath('/operasional')
@@ -419,8 +440,15 @@ export async function voidSupplierPayment(id: string, reason: string): Promise<{
     return { success: false, error: 'Anda tidak memiliki akses untuk membatalkan transaksi' }
   }
 
+  // Use admin client because supplier_payments might be missing UPDATE policy in RLS
+  const { createClient: createSupabaseClient } = require('@supabase/supabase-js')
+  const supabaseAdmin = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
   // 1. Mark original as VOID
-  const { error: voidError } = await supabase.from('supplier_payments').update({
+  const { error: voidError } = await supabaseAdmin.from('supplier_payments').update({
     status_transaksi: 'VOID',
     void_reason: reason,
     void_by: user.id,
@@ -481,11 +509,12 @@ export async function voidSupplierPayment(id: string, reason: string): Promise<{
     reference_id: reversalPayment.id,
     debit: payment.nominal,
     credit: 0,
-    description: 'Reversal pembayaran hutang ' + payment.kode_pembayaran,
-    created_by: user.id
+    description: 'Reversal pembayaran hutang ' + payment.kode_pembayaran
   })
 
-  revalidatePath('/pembayaran')
+  revalidatePath('/hutang/bayar')
+  revalidatePath('/laporan/hutang')
+  revalidatePath('/dashboard')
 
   // Log activity
   await supabase.from('activity_log').insert({

@@ -165,7 +165,7 @@ export function FormPenjualan({
                           value: p.id, 
                           label: p.kategori === 'Air Aki' 
                             ? p.merk
-                            : `${p.merk} · ${p.kategori}${p.kode_baterai ? ' · ' + p.kode_baterai : ''} · ${p.kapasitas_ah}AH` 
+                            : [p.merk, p.type, p.kategori, p.kode_baterai, `${p.kapasitas_ah}AH`].filter(Boolean).join(' · ')
                         }))} 
                       />
                     </div>
