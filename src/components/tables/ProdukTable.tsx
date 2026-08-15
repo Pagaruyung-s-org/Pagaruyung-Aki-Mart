@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Plus, Search, Pencil, ToggleLeft, ToggleRight, Package, Info } from 'lucide-react'
+import { Plus, Search, Pencil, ToggleLeft, ToggleRight, Package, Info, Filter } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { InputCurrency } from '@/components/ui/InputCurrency'
@@ -38,15 +38,50 @@ export function ProdukTable({ products, role, isAirAki }: ProdukTableProps) {
   const [error, setError] = useState('')
   const [isPending, startTransition] = useTransition()
 
-  const filtered = products.filter(p =>
-    p.merk.toLowerCase().includes(search.toLowerCase()) ||
-    p.kode_produk.toLowerCase().includes(search.toLowerCase()) ||
-    p.kategori.toLowerCase().includes(search.toLowerCase()) ||
-    (p.kode_baterai ?? '').toLowerCase().includes(search.toLowerCase()) ||
-    (p.type ?? '').toLowerCase().includes(search.toLowerCase()) ||
-    p.kapasitas_ah.toString().includes(search) ||
-    p.harga_jual.toString().includes(search)
-  )
+  // Filter states
+  const [showFilters, setShowFilters] = useState(false)
+  const [filterMerk, setFilterMerk] = useState('ALL')
+  const [filterKategori, setFilterKategori] = useState('ALL')
+  const [filterType, setFilterType] = useState('ALL')
+  const [filterKodeBaterai, setFilterKodeBaterai] = useState('ALL')
+  const [filterKapasitas, setFilterKapasitas] = useState('ALL')
+  const [filterStatus, setFilterStatus] = useState('ALL')
+  const [filterStok, setFilterStok] = useState('ALL')
+
+  // Extract unique values for dropdowns
+  const uniqueMerks = Array.from(new Set(products.map(p => p.merk))).filter(Boolean)
+  const uniqueKategoris = Array.from(new Set(products.map(p => p.kategori))).filter(Boolean)
+  const uniqueTypes = Array.from(new Set(products.map(p => p.type))).filter(Boolean)
+  const uniqueKodeBaterai = Array.from(new Set(products.map(p => p.kode_baterai))).filter(Boolean)
+  const uniqueKapasitas = Array.from(new Set(products.map(p => p.kapasitas_ah))).filter(Boolean).sort((a, b) => Number(a) - Number(b))
+
+  const filtered = products.filter(p => {
+    const matchSearch = p.merk.toLowerCase().includes(search.toLowerCase()) ||
+      p.kode_produk.toLowerCase().includes(search.toLowerCase()) ||
+      p.kategori.toLowerCase().includes(search.toLowerCase()) ||
+      (p.kode_baterai ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      (p.type ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      p.kapasitas_ah.toString().includes(search) ||
+      p.harga_jual.toString().includes(search)
+
+    const matchMerk = filterMerk === 'ALL' || p.merk === filterMerk
+    const matchKategori = filterKategori === 'ALL' || p.kategori === filterKategori
+    const matchType = filterType === 'ALL' || p.type === filterType
+    const matchKodeBaterai = filterKodeBaterai === 'ALL' || p.kode_baterai === filterKodeBaterai
+    const matchKapasitas = filterKapasitas === 'ALL' || p.kapasitas_ah.toString() === filterKapasitas
+    
+    let matchStatus = true
+    if (filterStatus === 'AKTIF') matchStatus = p.status === true
+    if (filterStatus === 'NONAKTIF') matchStatus = p.status === false
+
+    let matchStok = true
+    if (filterStok !== 'ALL') {
+      const stokObj = getStokStatus(p.qty_stok)
+      matchStok = stokObj.label === filterStok
+    }
+
+    return matchSearch && matchMerk && matchKategori && matchType && matchKodeBaterai && matchKapasitas && matchStatus && matchStok
+  })
 
   const {
     currentPage,
@@ -115,12 +150,79 @@ export function ProdukTable({ products, role, isAirAki }: ProdukTableProps) {
           />
         </div>
         
-        {role !== 'OWNER' && (
-          <Button onClick={openCreate} className="w-full sm:w-auto">
-            <Plus className="mr-2 h-4 w-4" /> Tambah Produk
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className={showFilters ? 'bg-blue-50 border-blue-200 text-blue-600' : ''}>
+            <Filter className="mr-2 h-4 w-4" /> Filter
           </Button>
-        )}
+          {role !== 'OWNER' && (
+            <Button onClick={openCreate} className="w-full sm:w-auto">
+              <Plus className="mr-2 h-4 w-4" /> Tambah Produk
+            </Button>
+          )}
+        </div>
       </div>
+
+      {/* Advanced Filters */}
+      {showFilters && (
+        <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Merk</label>
+            <select value={filterMerk} onChange={e => setFilterMerk(e.target.value)} className="w-full text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 p-2 border bg-white">
+              <option value="ALL">Semua Merk</option>
+              {uniqueMerks.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Kategori</label>
+            <select value={filterKategori} onChange={e => setFilterKategori(e.target.value)} className="w-full text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 p-2 border bg-white">
+              <option value="ALL">Semua Kategori</option>
+              {uniqueKategoris.map(k => <option key={k} value={k}>{k}</option>)}
+            </select>
+          </div>
+          {!isAirAki && (
+            <>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Type</label>
+                <select value={filterType} onChange={e => setFilterType(e.target.value)} className="w-full text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 p-2 border bg-white">
+                  <option value="ALL">Semua Type</option>
+                  {uniqueTypes.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Kode Baterai</label>
+                <select value={filterKodeBaterai} onChange={e => setFilterKodeBaterai(e.target.value)} className="w-full text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 p-2 border bg-white">
+                  <option value="ALL">Semua Kode</option>
+                  {uniqueKodeBaterai.map(kb => <option key={kb} value={kb}>{kb}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">Kapasitas (AH)</label>
+                <select value={filterKapasitas} onChange={e => setFilterKapasitas(e.target.value)} className="w-full text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 p-2 border bg-white">
+                  <option value="ALL">Semua Kapasitas</option>
+                  {uniqueKapasitas.map(k => <option key={k} value={k}>{k} AH</option>)}
+                </select>
+              </div>
+            </>
+          )}
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
+            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-full text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 p-2 border bg-white">
+              <option value="ALL">Semua Status</option>
+              <option value="AKTIF">Aktif</option>
+              <option value="NONAKTIF">Non-Aktif</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Stok</label>
+            <select value={filterStok} onChange={e => setFilterStok(e.target.value)} className="w-full text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 p-2 border bg-white">
+              <option value="ALL">Semua Stok</option>
+              <option value="Aman">Aman</option>
+              <option value="Menipis">Menipis</option>
+              <option value="Habis">Habis</option>
+            </select>
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="flex gap-3 text-sm text-gray-500">
