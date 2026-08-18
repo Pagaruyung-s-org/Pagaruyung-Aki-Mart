@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { Plus, Search, Pencil, ToggleLeft, ToggleRight, Package, Info, Filter } from 'lucide-react'
+import { useState, useTransition, useRef, useEffect } from 'react'
+import { Plus, Search, Pencil, ToggleLeft, ToggleRight, Filter, ChevronDown, ChevronRight, X, ArrowUpDown } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { InputCurrency } from '@/components/ui/InputCurrency'
 import { Modal } from '@/components/ui/Modal'
-import { formatRupiah, getStokStatus, formatDate } from '@/lib/utils'
+import { formatRupiah, getStokStatus } from '@/lib/utils'
 import { createProduct, updateProduct, toggleProductStatus } from '@/actions/master'
 import { useRouter } from 'next/navigation'
 import type { Product } from '@/types/database'
@@ -27,61 +27,359 @@ interface ProdukTableProps {
   isAirAki?: boolean
 }
 
+// ─── Filter Popup Component ──────────────────────────────────────────
+
+interface FilterSection {
+  key: string
+  label: string
+  type: 'checkbox' | 'radio'
+  options: { value: string; label: string }[]
+}
+
+interface FilterPopupProps {
+  sections: FilterSection[]
+  checkboxValues: Record<string, string[]>
+  radioValues: Record<string, string>
+  sortStok: 'ASC' | 'DESC' | ''
+  onCheckboxChange: (key: string, value: string, checked: boolean) => void
+  onRadioChange: (key: string, value: string) => void
+  onSortStokChange: (val: 'ASC' | 'DESC' | '') => void
+  onReset: () => void
+  activeCount: number
+}
+
+function FilterPopup({
+  sections,
+  checkboxValues,
+  radioValues,
+  sortStok,
+  onCheckboxChange,
+  onRadioChange,
+  onSortStokChange,
+  onReset,
+  activeCount,
+}: FilterPopupProps) {
+  const [expanded, setExpanded] = useState<string | null>(null)
+  const toggle = (key: string) =>
+    setExpanded((prev) => (prev === key ? null : key))
+
+  return (
+    <div
+      className="absolute right-0 top-full mt-2 z-50 w-72 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden"
+      style={{ boxShadow: '0 8px 32px 0 rgba(0,0,0,0.12)' }}
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50">
+        <span className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+          <Filter className="h-4 w-4 text-blue-500" />
+          Filter Produk
+          {activeCount > 0 && (
+            <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-blue-500 text-white text-[11px] font-bold">
+              {activeCount}
+            </span>
+          )}
+        </span>
+        {activeCount > 0 && (
+          <button
+            onClick={onReset}
+            className="text-xs text-red-500 hover:text-red-700 font-medium flex items-center gap-1 transition-colors"
+          >
+            <X className="h-3 w-3" /> Reset
+          </button>
+        )}
+      </div>
+
+      {/* Sections */}
+      <div className="max-h-[420px] overflow-y-auto divide-y divide-gray-100">
+        {sections.map((section) => {
+          const isOpen = expanded === section.key
+          const hasActive =
+            section.type === 'checkbox'
+              ? (checkboxValues[section.key] ?? []).length > 0
+              : radioValues[section.key] && radioValues[section.key] !== 'ALL'
+          return (
+            <div key={section.key}>
+              <button
+                onClick={() => toggle(section.key)}
+                className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                <span className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                  {section.label}
+                  {hasActive && <span className="h-2 w-2 rounded-full bg-blue-500 inline-block" />}
+                </span>
+                {isOpen ? (
+                  <ChevronDown className="h-4 w-4 text-gray-400" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-gray-400" />
+                )}
+              </button>
+              <div
+                className={`grid transition-all duration-300 ease-in-out ${
+                  isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+                }`}
+              >
+                <div className="overflow-hidden">
+                  <div className="px-4 pb-3 space-y-2 bg-gray-50/60 pt-1">
+                    {section.type === 'checkbox' &&
+                      section.options.map((opt) => {
+                        const checked = (checkboxValues[section.key] ?? []).includes(opt.value)
+                        return (
+                          <label key={opt.value} className="flex items-center gap-2.5 cursor-pointer group">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => onCheckboxChange(section.key, opt.value, e.target.checked)}
+                              className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                            />
+                            <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
+                              {opt.label}
+                            </span>
+                          </label>
+                        )
+                      })}
+                    {section.type === 'radio' && (
+                      <>
+                        <label className="flex items-center gap-2.5 cursor-pointer group">
+                          <input
+                            type="radio"
+                            name={`radio-${section.key}`}
+                            value="ALL"
+                            checked={!radioValues[section.key] || radioValues[section.key] === 'ALL'}
+                            onChange={() => onRadioChange(section.key, 'ALL')}
+                            className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                          />
+                          <span className="text-sm text-gray-500 italic group-hover:text-gray-700 transition-colors">
+                            Semua
+                          </span>
+                        </label>
+                        {section.options.map((opt) => (
+                          <label key={opt.value} className="flex items-center gap-2.5 cursor-pointer group">
+                            <input
+                              type="radio"
+                              name={`radio-${section.key}`}
+                              value={opt.value}
+                              checked={radioValues[section.key] === opt.value}
+                              onChange={() => onRadioChange(section.key, opt.value)}
+                              className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                            />
+                            <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
+                              {opt.label}
+                            </span>
+                          </label>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+
+        {/* Stok Sort Section */}
+        <div>
+          <button
+            onClick={() => toggle('_stok_sort')}
+            className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-gray-50 transition-colors cursor-pointer"
+          >
+            <span className="flex items-center gap-2 text-sm font-medium text-gray-700">
+              <ArrowUpDown className="h-3.5 w-3.5 text-gray-400" />
+              Urut Stok
+              {sortStok !== '' && <span className="h-2 w-2 rounded-full bg-blue-500 inline-block" />}
+            </span>
+            {expanded === '_stok_sort' ? (
+              <ChevronDown className="h-4 w-4 text-gray-400" />
+            ) : (
+              <ChevronRight className="h-4 w-4 text-gray-400" />
+            )}
+          </button>
+          <div
+            className={`grid transition-all duration-300 ease-in-out ${
+              expanded === '_stok_sort' ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+            }`}
+          >
+            <div className="overflow-hidden">
+              <div className="px-4 pb-3 space-y-2 bg-gray-50/60 pt-1">
+                {[
+                  { value: '', label: 'Default' },
+                  { value: 'ASC', label: 'Stok Terkecil Dulu (Ascending)' },
+                  { value: 'DESC', label: 'Stok Terbesar Dulu (Descending)' },
+                ].map((opt) => (
+                  <label key={opt.value} className="flex items-center gap-2.5 cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="radio-stok-sort"
+                      value={opt.value}
+                      checked={sortStok === opt.value}
+                      onChange={() => onSortStokChange(opt.value as 'ASC' | 'DESC' | '')}
+                      className="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    />
+                    <span className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors">
+                      {opt.label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Main Component ──────────────────────────────────────────────────
+
 export function ProdukTable({ products, role, isAirAki }: ProdukTableProps) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editProduct, setEditProduct] = useState<Product | null>(null)
-  const [toastMsg, setToastMsg] = useState<{type: 'success'|'error', msg: string} | null>(null)
   const [hargaJual, setHargaJual] = useState<number | ''>('')
-  const [kategori, setKategori] = useState('')
   const [error, setError] = useState('')
   const [isPending, startTransition] = useTransition()
 
-  // Filter states
+  // Filter popup
   const [showFilters, setShowFilters] = useState(false)
-  const [filterMerk, setFilterMerk] = useState('ALL')
-  const [filterKategori, setFilterKategori] = useState('ALL')
+  const filterRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setShowFilters(false)
+      }
+    }
+    if (showFilters) document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [showFilters])
+
+  // Checkbox filter states
+  const [filterMerk, setFilterMerk] = useState<string[]>([])
+  const [filterKategori, setFilterKategori] = useState<string[]>([])
+  const [filterKapasitas, setFilterKapasitas] = useState<string[]>([])
+  const [filterStatus, setFilterStatus] = useState('ALL')
+  // Radio filter states
   const [filterType, setFilterType] = useState('ALL')
   const [filterKodeBaterai, setFilterKodeBaterai] = useState('ALL')
-  const [filterKapasitas, setFilterKapasitas] = useState('ALL')
-  const [filterStatus, setFilterStatus] = useState('ALL')
-  const [filterStok, setFilterStok] = useState('ALL')
+  // Stok sort
+  const [sortStok, setSortStok] = useState<'ASC' | 'DESC' | ''>('')
 
-  // Extract unique values for dropdowns
-  const uniqueMerks = Array.from(new Set(products.map(p => p.merk))).filter(Boolean)
-  const uniqueKategoris = Array.from(new Set(products.map(p => p.kategori))).filter(Boolean)
-  const uniqueTypes = Array.from(new Set(products.map(p => p.type))).filter(Boolean)
-  const uniqueKodeBaterai = Array.from(new Set(products.map(p => p.kode_baterai))).filter(Boolean)
-  const uniqueKapasitas = Array.from(new Set(products.map(p => p.kapasitas_ah))).filter(Boolean).sort((a, b) => Number(a) - Number(b))
+  // Unique option values
+  const uniqueMerks = Array.from(new Set(products.map((p) => p.merk))).filter(Boolean).sort() as string[]
+  const uniqueKategoris = Array.from(new Set(products.map((p) => p.kategori))).filter(Boolean).sort() as string[]
+  const uniqueTypes = Array.from(new Set(products.map((p) => p.type))).filter(Boolean).sort() as string[]
+  const uniqueKodeBaterai = Array.from(new Set(products.map((p) => p.kode_baterai))).filter(Boolean).sort() as string[]
+  const uniqueKapasitas = Array.from(new Set(products.map((p) => p.kapasitas_ah)))
+    .filter(Boolean)
+    .sort((a, b) => Number(a) - Number(b)) as number[]
 
-  const filtered = products.filter(p => {
-    const matchSearch = p.merk.toLowerCase().includes(search.toLowerCase()) ||
+  function handleCheckboxChange(key: string, value: string, checked: boolean) {
+    const setters: Record<string, React.Dispatch<React.SetStateAction<string[]>>> = {
+      merk: setFilterMerk,
+      kategori: setFilterKategori,
+      kapasitas: setFilterKapasitas,
+    }
+    const setter = setters[key]
+    if (!setter) return
+    setter((prev) => (checked ? [...prev, value] : prev.filter((v) => v !== value)))
+  }
+
+  function handleRadioChange(key: string, value: string) {
+    if (key === 'type') setFilterType(value)
+    if (key === 'kodeBaterai') setFilterKodeBaterai(value)
+    if (key === 'status') setFilterStatus(value)
+  }
+
+  function handleReset() {
+    setFilterMerk([])
+    setFilterKategori([])
+    setFilterKapasitas([])
+    setFilterStatus('ALL')
+    setFilterType('ALL')
+    setFilterKodeBaterai('ALL')
+    setSortStok('')
+  }
+
+  const activeCount =
+    filterMerk.length +
+    filterKategori.length +
+    filterKapasitas.length +
+    (filterStatus !== 'ALL' ? 1 : 0) +
+    (filterType !== 'ALL' ? 1 : 0) +
+    (filterKodeBaterai !== 'ALL' ? 1 : 0) +
+    (sortStok !== '' ? 1 : 0)
+
+  const filterSections: FilterSection[] = [
+    {
+      key: 'merk',
+      label: 'Merk',
+      type: 'checkbox',
+      options: uniqueMerks.map((m) => ({ value: m, label: m })),
+    },
+    {
+      key: 'kategori',
+      label: 'Kategori',
+      type: 'checkbox',
+      options: uniqueKategoris.map((k) => ({ value: k, label: k })),
+    },
+    ...(!isAirAki
+      ? [
+          {
+            key: 'type',
+            label: 'Type',
+            type: 'radio' as const,
+            options: uniqueTypes.map((t) => ({ value: t, label: t })),
+          },
+          {
+            key: 'kodeBaterai',
+            label: 'Kode Baterai',
+            type: 'radio' as const,
+            options: uniqueKodeBaterai.map((kb) => ({ value: kb, label: kb })),
+          },
+          {
+            key: 'kapasitas',
+            label: 'Kapasitas (AH)',
+            type: 'checkbox' as const,
+            options: uniqueKapasitas.map((k) => ({ value: k.toString(), label: `${k} AH` })),
+          },
+        ]
+      : []),
+    {
+      key: 'status',
+      label: 'Status',
+      type: 'radio',
+      options: [
+        { value: 'AKTIF', label: 'Aktif' },
+        { value: 'NONAKTIF', label: 'Non-Aktif' },
+      ],
+    },
+  ]
+
+  // Filtering
+  const filtered = products.filter((p) => {
+    const matchSearch =
+      p.merk.toLowerCase().includes(search.toLowerCase()) ||
       p.kode_produk.toLowerCase().includes(search.toLowerCase()) ||
       p.kategori.toLowerCase().includes(search.toLowerCase()) ||
       (p.kode_baterai ?? '').toLowerCase().includes(search.toLowerCase()) ||
       (p.type ?? '').toLowerCase().includes(search.toLowerCase()) ||
       p.kapasitas_ah.toString().includes(search) ||
       p.harga_jual.toString().includes(search)
-
-    const matchMerk = filterMerk === 'ALL' || p.merk === filterMerk
-    const matchKategori = filterKategori === 'ALL' || p.kategori === filterKategori
+    const matchMerk = filterMerk.length === 0 || filterMerk.includes(p.merk)
+    const matchKategori = filterKategori.length === 0 || filterKategori.includes(p.kategori)
     const matchType = filterType === 'ALL' || p.type === filterType
     const matchKodeBaterai = filterKodeBaterai === 'ALL' || p.kode_baterai === filterKodeBaterai
-    const matchKapasitas = filterKapasitas === 'ALL' || p.kapasitas_ah.toString() === filterKapasitas
-    
+    const matchKapasitas = filterKapasitas.length === 0 || filterKapasitas.includes(p.kapasitas_ah.toString())
     let matchStatus = true
     if (filterStatus === 'AKTIF') matchStatus = p.status === true
     if (filterStatus === 'NONAKTIF') matchStatus = p.status === false
 
-    let matchStok = true
-    if (filterStok !== 'ALL') {
-      const stokObj = getStokStatus(p.qty_stok)
-      matchStok = stokObj.label === filterStok
-    }
-
-    return matchSearch && matchMerk && matchKategori && matchType && matchKodeBaterai && matchKapasitas && matchStatus && matchStok
+    return matchSearch && matchMerk && matchKategori && matchType && matchKodeBaterai && matchKapasitas && matchStatus
   })
+
+  // Sort by stok
+  const sorted = sortStok
+    ? [...filtered].sort((a, b) => sortStok === 'ASC' ? a.qty_stok - b.qty_stok : b.qty_stok - a.qty_stok)
+    : filtered
 
   const {
     currentPage,
@@ -92,22 +390,20 @@ export function ProdukTable({ products, role, isAirAki }: ProdukTableProps) {
     currentData,
     totalItems,
     goToNextPage,
-    goToPrevPage
-  } = usePagination(filtered, 10)
+    goToPrevPage,
+  } = usePagination(sorted, 10)
 
-  function openCreate() { 
-    setEditProduct(null); 
-    setError(''); 
-    setKategori('Aki Mobil'); 
-    setHargaJual('');
-    setModalOpen(true); 
+  function openCreate() {
+    setEditProduct(null)
+    setError('')
+    setHargaJual('')
+    setModalOpen(true)
   }
-  function openEdit(p: Product) { 
-    setEditProduct(p); 
-    setError(''); 
-    setKategori(p.kategori); 
-    setHargaJual(p.harga_jual);
-    setModalOpen(true); 
+  function openEdit(p: Product) {
+    setEditProduct(p)
+    setError('')
+    setHargaJual(p.harga_jual)
+    setModalOpen(true)
   }
 
   async function handleSubmit(formData: FormData) {
@@ -116,7 +412,6 @@ export function ProdukTable({ products, role, isAirAki }: ProdukTableProps) {
       const result = editProduct
         ? await updateProduct(editProduct.id, formData)
         : await createProduct(formData)
-
       if (!result.success) {
         setError(result.error ?? 'Terjadi kesalahan')
         return
@@ -149,11 +444,50 @@ export function ProdukTable({ products, role, isAirAki }: ProdukTableProps) {
             className="w-full pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-gray-500 text-gray-900"
           />
         </div>
-        
+
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className={showFilters ? 'bg-blue-50 border-blue-200 text-blue-600' : ''}>
-            <Filter className="mr-2 h-4 w-4" /> Filter
-          </Button>
+          {/* Filter Button + Popup */}
+          <div ref={filterRef} className="relative">
+            <button
+              onClick={() => setShowFilters((v) => !v)}
+              className={`inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border transition-all ${
+                showFilters || activeCount > 0
+                  ? 'bg-blue-50 border-blue-300 text-blue-700'
+                  : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <Filter className="h-4 w-4" />
+              Filter
+              {activeCount > 0 && (
+                <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded-full bg-blue-500 text-white text-[11px] font-bold">
+                  {activeCount}
+                </span>
+              )}
+            </button>
+
+            {showFilters && (
+              <FilterPopup
+                sections={filterSections}
+                checkboxValues={{
+                  merk: filterMerk,
+                  kategori: filterKategori,
+                  kapasitas: filterKapasitas,
+                }}
+                radioValues={{
+                  type: filterType,
+                  kodeBaterai: filterKodeBaterai,
+                  status: filterStatus,
+                }}
+                sortStok={sortStok}
+                onCheckboxChange={handleCheckboxChange}
+                onRadioChange={handleRadioChange}
+                onSortStokChange={setSortStok}
+                onReset={handleReset}
+                activeCount={activeCount}
+              />
+            )}
+          </div>
+
           {role !== 'OWNER' && (
             <Button onClick={openCreate} className="w-full sm:w-auto">
               <Plus className="mr-2 h-4 w-4" /> Tambah Produk
@@ -162,75 +496,62 @@ export function ProdukTable({ products, role, isAirAki }: ProdukTableProps) {
         </div>
       </div>
 
-      {/* Advanced Filters */}
-      {showFilters && (
-        <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Merk</label>
-            <select value={filterMerk} onChange={e => setFilterMerk(e.target.value)} className="w-full text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 p-2 border bg-white">
-              <option value="ALL">Semua Merk</option>
-              {uniqueMerks.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Kategori</label>
-            <select value={filterKategori} onChange={e => setFilterKategori(e.target.value)} className="w-full text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 p-2 border bg-white">
-              <option value="ALL">Semua Kategori</option>
-              {uniqueKategoris.map(k => <option key={k} value={k}>{k}</option>)}
-            </select>
-          </div>
-          {!isAirAki && (
-            <>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Type</label>
-                <select value={filterType} onChange={e => setFilterType(e.target.value)} className="w-full text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 p-2 border bg-white">
-                  <option value="ALL">Semua Type</option>
-                  {uniqueTypes.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Kode Baterai</label>
-                <select value={filterKodeBaterai} onChange={e => setFilterKodeBaterai(e.target.value)} className="w-full text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 p-2 border bg-white">
-                  <option value="ALL">Semua Kode</option>
-                  {uniqueKodeBaterai.map(kb => <option key={kb} value={kb}>{kb}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">Kapasitas (AH)</label>
-                <select value={filterKapasitas} onChange={e => setFilterKapasitas(e.target.value)} className="w-full text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 p-2 border bg-white">
-                  <option value="ALL">Semua Kapasitas</option>
-                  {uniqueKapasitas.map(k => <option key={k} value={k}>{k} AH</option>)}
-                </select>
-              </div>
-            </>
+      {/* Active filter chips */}
+      {activeCount > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {filterMerk.map((m) => (
+            <span key={m} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-medium">
+              Merk: {m}
+              <button onClick={() => setFilterMerk((prev) => prev.filter((v) => v !== m))} className="hover:text-blue-900"><X className="h-3 w-3" /></button>
+            </span>
+          ))}
+          {filterKategori.map((k) => (
+            <span key={k} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-50 border border-purple-200 text-purple-700 text-xs font-medium">
+              Kategori: {k}
+              <button onClick={() => setFilterKategori((prev) => prev.filter((v) => v !== k))} className="hover:text-purple-900"><X className="h-3 w-3" /></button>
+            </span>
+          ))}
+          {filterKapasitas.map((k) => (
+            <span key={k} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-teal-50 border border-teal-200 text-teal-700 text-xs font-medium">
+              {k} AH
+              <button onClick={() => setFilterKapasitas((prev) => prev.filter((v) => v !== k))} className="hover:text-teal-900"><X className="h-3 w-3" /></button>
+            </span>
+          ))}
+          {filterStatus !== 'ALL' && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-green-50 border border-green-200 text-green-700 text-xs font-medium">
+              Status: {filterStatus === 'AKTIF' ? 'Aktif' : 'Non-Aktif'}
+              <button onClick={() => setFilterStatus('ALL')} className="hover:text-green-900"><X className="h-3 w-3" /></button>
+            </span>
           )}
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Status</label>
-            <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="w-full text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 p-2 border bg-white">
-              <option value="ALL">Semua Status</option>
-              <option value="AKTIF">Aktif</option>
-              <option value="NONAKTIF">Non-Aktif</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Stok</label>
-            <select value={filterStok} onChange={e => setFilterStok(e.target.value)} className="w-full text-sm border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 p-2 border bg-white">
-              <option value="ALL">Semua Stok</option>
-              <option value="Aman">Aman</option>
-              <option value="Menipis">Menipis</option>
-              <option value="Habis">Habis</option>
-            </select>
-          </div>
+          {filterType !== 'ALL' && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-50 border border-orange-200 text-orange-700 text-xs font-medium">
+              Type: {filterType}
+              <button onClick={() => setFilterType('ALL')} className="hover:text-orange-900"><X className="h-3 w-3" /></button>
+            </span>
+          )}
+          {filterKodeBaterai !== 'ALL' && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-yellow-50 border border-yellow-200 text-yellow-700 text-xs font-medium">
+              Kode Baterai: {filterKodeBaterai}
+              <button onClick={() => setFilterKodeBaterai('ALL')} className="hover:text-yellow-900"><X className="h-3 w-3" /></button>
+            </span>
+          )}
+          {sortStok !== '' && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-gray-100 border border-gray-300 text-gray-700 text-xs font-medium">
+              <ArrowUpDown className="h-3 w-3" />
+              Stok {sortStok === 'ASC' ? '↑ Asc' : '↓ Desc'}
+              <button onClick={() => setSortStok('')} className="hover:text-gray-900"><X className="h-3 w-3" /></button>
+            </span>
+          )}
         </div>
       )}
 
       {/* Stats */}
       <div className="flex gap-3 text-sm text-gray-500">
-        <span>{filtered.length} produk</span>
+        <span>{sorted.length} produk</span>
         <span>·</span>
-        <span>{filtered.filter(p => p.status).length} aktif</span>
+        <span>{sorted.filter((p) => p.status).length} aktif</span>
         <span>·</span>
-        <span className="text-orange-500">{filtered.filter(p => p.qty_stok <= 3).length} hampir habis</span>
+        <span className="text-orange-500">{sorted.filter((p) => p.qty_stok <= 3).length} hampir habis</span>
       </div>
 
       {/* Table */}
@@ -246,7 +567,12 @@ export function ProdukTable({ products, role, isAirAki }: ProdukTableProps) {
                 {!isAirAki && <th className="text-center px-4 py-3 font-medium text-gray-600">Kode Baterai</th>}
                 {!isAirAki && <th className="text-center px-4 py-3 font-medium text-gray-600">Kapasitas (AH)</th>}
                 <th className="text-right px-4 py-3 font-medium text-gray-600">Harga Jual</th>
-                <th className="text-center px-4 py-3 font-medium text-gray-600">Stok</th>
+                <th className="text-center px-4 py-3 font-medium text-gray-600">
+                  Stok
+                  {sortStok !== '' && (
+                    <span className="ml-1 text-blue-500">{sortStok === 'ASC' ? '↑' : '↓'}</span>
+                  )}
+                </th>
                 <th className="px-4 py-3 font-semibold text-gray-900 text-center">Status</th>
                 {(role === 'SUPER_ADMIN' || role === 'OWNER') && (
                   <th className="px-4 py-3 font-semibold text-gray-900 text-right">Modal</th>
@@ -317,7 +643,7 @@ export function ProdukTable({ products, role, isAirAki }: ProdukTableProps) {
             </tbody>
           </table>
         </div>
-        
+
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
@@ -396,9 +722,7 @@ export function ProdukTable({ products, role, isAirAki }: ProdukTableProps) {
               />
             </div>
           )}
-          {isAirAki && (
-            <input type="hidden" name="kapasitas_ah" value="0" />
-          )}
+          {isAirAki && <input type="hidden" name="kapasitas_ah" value="0" />}
           <InputCurrency
             label="Harga Jual (Rp)"
             name="harga_jual"
