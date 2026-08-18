@@ -450,7 +450,7 @@ export function ProdukTable({ products, role, isAirAki }: ProdukTableProps) {
           <div ref={filterRef} className="relative">
             <button
               onClick={() => setShowFilters((v) => !v)}
-              className={`inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border transition-all ${
+              className={`inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border transition-all cursor-pointer ${
                 showFilters || activeCount > 0
                   ? 'bg-blue-50 border-blue-300 text-blue-700'
                   : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
