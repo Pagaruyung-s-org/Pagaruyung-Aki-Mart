@@ -2,13 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
 import { StatCard } from '@/components/ui/Card'
 import { formatRupiah } from '@/lib/utils'
-import {
-  Package,
-  CreditCard,
-  Wallet,
-  AlertTriangle,
-  TrendingUp,
-} from 'lucide-react'
+import { CreditCard, TrendingUp, Wallet, Package, AlertTriangle } from 'lucide-react'
+import { getUserRole } from '@/actions/users'
 import { SalesDashboardClient } from '@/components/dashboard/SalesDashboardClient'
 
 async function getDashboardStats() {
@@ -115,47 +110,52 @@ async function getDashboardStats() {
 }
 
 export default async function DashboardPage() {
-  const stats = await getDashboardStats()
+  const [stats, role] = await Promise.all([
+    getDashboardStats(),
+    getUserRole()
+  ])
 
   return (
     <div>
       <Header title="Dashboard" subtitle="Ringkasan bisnis usaha aki" />
 
-      <div className="p-6 space-y-6 max-w-7xl">
+      <div className={`p-6 space-y-6 max-w-7xl w-full ${role === 'ADMIN' ? 'h-[calc(100vh-100px)] flex flex-col' : ''}`}>
         
         {/* Global Summary KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            title="Laba Bersih Bulan Ini"
-            value={formatRupiah(stats.labaBersih)}
-            icon={<TrendingUp className="h-5 w-5" />}
-            colorClass={stats.labaBersih >= 0 ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50'}
-          />
-          <StatCard
-            title="Total Hutang Supplier"
-            value={formatRupiah(stats.totalHutang)}
-            icon={<CreditCard className="h-5 w-5" />}
-            colorClass="text-orange-600 bg-orange-50"
-          />
-          <StatCard
-            title="Saldo Kas & Bank"
-            value={formatRupiah(stats.saldoKas)}
-            icon={<Wallet className="h-5 w-5" />}
-            colorClass="text-cyan-600 bg-cyan-50"
-          />
-          <StatCard
-            title="Total Produk Aktif"
-            value={stats.produkAktif.toString()}
-            subtitle="jenis produk"
-            icon={<Package className="h-5 w-5" />}
-            colorClass="text-indigo-600 bg-indigo-50"
-          />
-        </div>
+        {role !== 'ADMIN' && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard
+              title="Laba Bersih Bulan Ini"
+              value={formatRupiah(stats.labaBersih)}
+              icon={<TrendingUp className="h-5 w-5" />}
+              colorClass={stats.labaBersih >= 0 ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50'}
+            />
+            <StatCard
+              title="Total Hutang Supplier"
+              value={formatRupiah(stats.totalHutang)}
+              icon={<CreditCard className="h-5 w-5" />}
+              colorClass="text-orange-600 bg-orange-50"
+            />
+            <StatCard
+              title="Saldo Kas & Bank"
+              value={formatRupiah(stats.saldoKas)}
+              icon={<Wallet className="h-5 w-5" />}
+              colorClass="text-cyan-600 bg-cyan-50"
+            />
+            <StatCard
+              title="Total Produk Aktif"
+              value={stats.produkAktif.toString()}
+              subtitle="jenis produk"
+              icon={<Package className="h-5 w-5" />}
+              colorClass="text-indigo-600 bg-indigo-50"
+            />
+          </div>
+        )}
 
         {/* Low Stock Warning Tables */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <div className={`bg-white border rounded-xl shadow-sm overflow-hidden h-[340px] flex flex-col ${stats.stokRendah.length > 0 ? 'border-red-200' : 'border-gray-200'}`}>
+        <div className={role === 'ADMIN' ? "grid grid-cols-1 grid-rows-2 gap-6 flex-1 min-h-0" : "grid grid-cols-1 lg:grid-cols-3 gap-6"}>
+          <div className={role === 'ADMIN' ? "order-2 h-full min-h-0" : "lg:col-span-2"}>
+            <div className={`bg-white border rounded-xl shadow-sm overflow-hidden flex flex-col ${role === 'ADMIN' ? 'h-full' : 'h-[340px]'} ${stats.stokRendah.length > 0 ? 'border-red-200' : 'border-gray-200'}`}>
               <div className={`px-6 py-4 border-b flex items-center justify-between ${stats.stokRendah.length > 0 ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
                 <div className="flex items-center gap-2">
                   <AlertTriangle className={`h-5 w-5 ${stats.stokRendah.length > 0 ? 'text-red-600' : 'text-gray-400'}`} />
@@ -206,8 +206,8 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          <div className="lg:col-span-1">
-            <div className={`bg-white border rounded-xl shadow-sm overflow-hidden h-[340px] flex flex-col ${stats.airAkiList.some(p => (p.qty_stok ?? 0) < 20) ? 'border-red-200' : 'border-gray-200'}`}>
+          <div className={role === 'ADMIN' ? "order-1 h-full min-h-0" : "lg:col-span-1"}>
+            <div className={`bg-white border rounded-xl shadow-sm overflow-hidden flex flex-col ${role === 'ADMIN' ? 'h-full' : 'h-[340px]'} ${stats.airAkiList.some(p => (p.qty_stok ?? 0) < 20) ? 'border-red-200' : 'border-gray-200'}`}>
               <div className={`px-6 py-4 border-b flex items-center justify-between ${stats.airAkiList.some(p => (p.qty_stok ?? 0) < 20) ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
                 <div className="flex items-center gap-2">
                   <AlertTriangle className={`h-5 w-5 ${stats.airAkiList.some(p => (p.qty_stok ?? 0) < 20) ? 'text-red-600' : 'text-gray-400'}`} />
@@ -225,7 +225,7 @@ export default async function DashboardPage() {
                 <table className="w-full text-left text-sm whitespace-nowrap">
                   <thead className="bg-gray-50 border-b border-gray-100 text-gray-500">
                     <tr>
-                      <th className="px-6 py-3 font-medium text-left">Merk</th>
+                      <th className="px-6 py-3 font-medium text-center">Merk</th>
                       <th className="px-6 py-3 font-medium text-center">Stok</th>
                     </tr>
                   </thead>
@@ -242,7 +242,7 @@ export default async function DashboardPage() {
                         const isKritis = qty < 20
                         return (
                           <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-6 py-3 font-medium text-gray-900">{p.merk}</td>
+                            <td className="px-6 py-3 font-medium text-gray-900 text-center">{p.merk}</td>
                             <td className="px-6 py-3 text-center">
                               <span className={`font-bold ${isKritis ? 'text-red-600' : 'text-gray-900'}`}>{qty}</span>
                             </td>
@@ -258,7 +258,9 @@ export default async function DashboardPage() {
         </div>
 
         {/* Interactive Sales Dashboard Component */}
-        <SalesDashboardClient sales={stats.salesData} />
+        {role !== 'ADMIN' && (
+          <SalesDashboardClient sales={stats.salesData} />
+        )}
 
       </div>
     </div>

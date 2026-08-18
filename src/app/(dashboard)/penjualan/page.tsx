@@ -62,7 +62,7 @@ export default async function PenjualanPage() {
               )}
             </div>
           ) : (
-            <RiwayatPenjualanTable sales={sales} />
+            <RiwayatPenjualanTable sales={sales} role={role} />
           )}
         </div>
       </div>

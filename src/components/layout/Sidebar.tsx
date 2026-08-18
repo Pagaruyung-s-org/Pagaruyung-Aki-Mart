@@ -162,6 +162,20 @@ function NavLink({ item, depth = 0 }: { item: NavItem; depth?: number }) {
 
 export function Sidebar({ role }: { role: 'SUPER_ADMIN' | 'ADMIN' | 'OWNER' | null }) {
   const filteredNavItems = navItems.map(item => {
+    if (item.label === 'Transaksi') {
+      const filteredChildren = item.children?.filter(child => {
+        if (role === 'ADMIN' && (child.label === 'Operasional' || child.label === 'Bayar Hutang')) return false
+        return true
+      })
+      return { ...item, children: filteredChildren }
+    }
+    if (item.label === 'Master Data') {
+      const filteredChildren = item.children?.filter(child => {
+        if (role === 'ADMIN' && child.label === 'Kategori Biaya') return false
+        return true
+      })
+      return { ...item, children: filteredChildren }
+    }
     if (item.label === 'Pengaturan') {
       const filteredChildren = item.children?.filter(child => {
         if (child.label === 'User Management') return role === 'SUPER_ADMIN'
@@ -173,6 +187,7 @@ export function Sidebar({ role }: { role: 'SUPER_ADMIN' | 'ADMIN' | 'OWNER' | nu
     return item
   }).filter(item => {
     if (item.label === 'Pengaturan' && (!item.children || item.children.length === 0)) return false
+    if (role === 'ADMIN' && (item.label === 'Keuangan' || item.label === 'Laporan')) return false
     return true
   })
 

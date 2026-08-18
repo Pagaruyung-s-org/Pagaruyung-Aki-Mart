@@ -67,9 +67,7 @@ export function KategoriTable({ categories: initial, role }: KategoriTableProps)
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        {role !== 'OWNER' && (
-          <Button onClick={openCreate} id="tambah-kategori-btn"><Plus className="h-4 w-4" /> Tambah Kategori</Button>
-        )}
+        <Button onClick={openCreate} id="tambah-kategori-btn"><Plus className="h-4 w-4" /> Tambah Kategori</Button>
       </div>
 
       <div className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
@@ -86,9 +84,7 @@ export function KategoriTable({ categories: initial, role }: KategoriTableProps)
                   <tr className="border-b border-gray-100 bg-gray-50">
                     <th className="text-left px-4 py-3 font-medium text-gray-600">Kode</th>
                     <th className="text-left px-4 py-3 font-medium text-gray-600">Nama Kategori</th>
-                    {role !== 'OWNER' && (
-                      <th className="text-center px-4 py-3 font-medium text-gray-600">Aksi</th>
-                    )}
+                    <th className="text-center px-4 py-3 font-medium text-gray-600">Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -96,18 +92,16 @@ export function KategoriTable({ categories: initial, role }: KategoriTableProps)
                     <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50">
                       <td className="px-4 py-3 font-mono text-xs text-gray-600">{c.kode_kategori}</td>
                       <td className="px-4 py-3 font-medium text-gray-900">{c.nama_kategori}</td>
-                      {role !== 'OWNER' && (
-                        <td className="px-4 py-3 text-center">
-                          <div className="flex items-center justify-center gap-1">
-                            <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors">
-                              <Pencil className="h-3.5 w-3.5" />
-                            </button>
-                            <button onClick={() => openDelete(c)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors">
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </td>
-                      )}
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex items-center justify-center gap-1">
+                          <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors">
+                            <Pencil className="h-3.5 w-3.5" />
+                          </button>
+                          <button onClick={() => openDelete(c)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors">
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>

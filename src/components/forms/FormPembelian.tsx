@@ -28,13 +28,15 @@ export function FormPembelian({
   products,
   isAirAki = false,
   onSuccess,
-  onCancel
+  onCancel,
+  role
 }: { 
   suppliers: Supplier[]; 
   products: Product[];
   isAirAki?: boolean;
   onSuccess?: () => void;
   onCancel?: () => void;
+  role?: string;
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -231,7 +233,7 @@ export function FormPembelian({
                   </div>
                 )}
 
-                <div className="grid grid-cols-4 gap-3">
+                <div className={`grid ${role === 'ADMIN' ? 'grid-cols-2' : 'grid-cols-3'} gap-3`}>
                   <Input
                     label="QTY"
                     id={`qty-${idx}`}
@@ -251,18 +253,14 @@ export function FormPembelian({
                     required
                     placeholder="Total harga"
                   />
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-medium text-gray-700">Harga Modal/Unit</label>
-                    <div className="flex items-center h-9 px-3 bg-blue-50 border border-blue-200 rounded-lg text-sm font-semibold text-blue-700">
-                      {formatRupiah(modalUnit)}
+                  {role !== 'ADMIN' && (
+                    <div className="flex flex-col gap-1">
+                      <label className="text-sm font-medium text-gray-700">Harga Modal/Unit</label>
+                      <div className="flex items-center h-9 px-3 bg-blue-50 border border-blue-200 rounded-lg text-sm font-semibold text-blue-700">
+                        {formatRupiah(modalUnit)}
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-sm font-medium text-gray-700">Subtotal</label>
-                    <div className="flex items-center h-9 px-3 bg-gray-100 border border-gray-200 rounded-lg text-sm font-medium text-gray-700">
-                      {formatRupiah(item.nominal || 0)}
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
             )
@@ -272,10 +270,6 @@ export function FormPembelian({
         {/* Ringkasan Total */}
         <CardFooter>
           <div className="flex items-end justify-end gap-8">
-            <div className="text-right space-y-1">
-              <p className="text-sm text-gray-500">Total Nominal</p>
-              <p className="text-xl font-bold text-gray-900">{formatRupiah(totalNominal)}</p>
-            </div>
             <div className="text-right space-y-1 bg-blue-50 border border-blue-200 rounded-xl px-5 py-3">
               <p className="text-sm text-blue-600 font-medium flex items-center gap-1.5">
                 <Calculator className="h-3.5 w-3.5" /> Total Bayar

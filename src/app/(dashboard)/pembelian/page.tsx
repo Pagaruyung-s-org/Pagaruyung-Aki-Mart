@@ -44,6 +44,7 @@ export default async function PembelianPage() {
                 suppliers={suppliers ?? []} 
                 products={products ?? []} 
                 label="Buat Pembelian" 
+                role={role ?? undefined}
               />
             )}
           </div>
@@ -60,6 +61,7 @@ export default async function PembelianPage() {
                       suppliers={suppliers ?? []} 
                       products={products ?? []} 
                       label="Buat Pembelian Pertama" 
+                      role={role ?? undefined}
                     />
                   </div>
                 )}

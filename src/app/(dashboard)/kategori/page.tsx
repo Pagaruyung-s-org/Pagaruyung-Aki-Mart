@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
 import { KategoriTable } from '@/components/tables/KategoriTable'
 import { getUserRole } from '@/actions/users'
+import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,6 +13,10 @@ export default async function KategoriPage() {
     getUserRole(),
     supabase.from('expense_categories').select('*').order('nama_kategori')
   ])
+
+  if (role === 'ADMIN') {
+    redirect('/dashboard')
+  }
 
   return (
     <div>

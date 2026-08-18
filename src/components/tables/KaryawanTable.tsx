@@ -114,7 +114,9 @@ export function KaryawanTable({ initial, role }: KaryawanTableProps) {
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Kode</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Nama</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Jabatan</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Gaji Pokok</th>
+                {role !== 'ADMIN' && (
+                  <th className="text-left px-4 py-3 font-medium text-gray-600">Gaji Pokok</th>
+                )}
                 {role !== 'ADMIN' && (
                   <th className="text-center px-4 py-3 font-medium text-gray-600">Aksi</th>
                 )}
@@ -126,7 +128,9 @@ export function KaryawanTable({ initial, role }: KaryawanTableProps) {
                   <td className="px-4 py-3 font-mono text-xs text-gray-600">{e.kode_karyawan}</td>
                   <td className="px-4 py-3 font-medium text-gray-900">{e.nama_karyawan}</td>
                   <td className="px-4 py-3 text-gray-600">{e.jabatan ?? '—'}</td>
-                  <td className="px-4 py-3 font-medium text-gray-900">{formatRupiah(e.gaji)}</td>
+                  {role !== 'ADMIN' && (
+                    <td className="px-4 py-3 font-medium text-gray-900">{formatRupiah(e.gaji)}</td>
+                  )}
                   {role !== 'ADMIN' && (
                     <td className="px-4 py-3 text-center">
                       <div className="flex items-center justify-center gap-1">

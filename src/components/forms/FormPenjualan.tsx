@@ -152,7 +152,7 @@ export function FormPenjualan({
                     <span className="text-xs font-semibold text-gray-500">Item {idx + 1}</span>
                     {items.length > 1 && <button type="button" onClick={() => removeItem(idx)} className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>}
                   </div>
-                  <div className="grid grid-cols-6 gap-3">
+                  <div className="grid grid-cols-5 gap-3">
                     <div className="col-span-2">
                       <Select 
                         label="Produk" 
@@ -172,21 +172,16 @@ export function FormPenjualan({
                     <Input label="QTY" id={`qty-${idx}`} type="number" min="1" value={item.qty || ''} onChange={(e) => updateItem(idx, 'qty', Number(e.target.value))} required hint={product ? `Stok: ${product.qty_stok} unit` : undefined} placeholder="0" />
                     <InputCurrency label="Harga Jual" id={`harga-${idx}`} min="0" value={item.harga_jual || ''} onChange={(val) => updateItem(idx, 'harga_jual', val === '' ? 0 : Number(val))} required disabled />
                     
-                      <InputCurrency 
-                        label="Bayar" 
-                        id={`bayar-${idx}`} 
-                        min="0" 
-                        value={subtotal === 0 ? '' : subtotal} 
-                        onChange={(val) => updateItem(idx, 'discount', (item.qty * item.harga_jual) - (val === '' ? 0 : Number(val)))} 
-                        required 
-                        hint={item.discount > 0 ? `Diskon: ${formatRupiah(item.discount)}` : undefined}
-                        placeholder="0"
-                      />
-
-                    <div className="flex flex-col gap-1">
-                      <label className="text-sm font-medium text-gray-700">Subtotal Aktual</label>
-                      <div className="flex items-center h-9 px-3 bg-green-50 border border-green-200 rounded-lg text-sm font-semibold text-green-700">{formatRupiah(subtotal)}</div>
-                    </div>
+                    <InputCurrency 
+                      label="Bayar" 
+                      id={`bayar-${idx}`} 
+                      min="0" 
+                      value={subtotal === 0 ? '' : subtotal} 
+                      onChange={(val) => updateItem(idx, 'discount', (item.qty * item.harga_jual) - (val === '' ? 0 : Number(val)))} 
+                      required 
+                      hint={item.discount > 0 ? `Diskon: ${formatRupiah(item.discount)}` : undefined}
+                      placeholder="0"
+                    />
                   </div>
                 </div>
               )
@@ -256,20 +251,12 @@ export function FormPenjualan({
       )}
 
       <Card>
-        <CardFooter>
-          <div className="flex items-end justify-between">
-            <div className="flex items-center gap-4">
-              <Input label="Keterangan" id="keterangan_jual" value={keterangan} onChange={(e) => setKeterangan(e.target.value)} className="w-80" placeholder="Catatan opsional" />
-            </div>
-            <div className="flex items-end gap-8">
-              <div className="text-right space-y-0.5">
-                <p className="text-xs text-gray-500">Subtotal</p>
-                <p className="text-lg font-bold text-gray-900">{formatRupiah(subtotalAll)}</p>
-              </div>
-              <div className="text-right bg-green-50 border border-green-200 rounded-xl px-5 py-3">
-                <p className="text-sm text-green-600 font-medium flex items-center gap-1.5"><ShoppingBag className="h-3.5 w-3.5" /> Total Bayar</p>
-                <p className="text-2xl font-bold text-green-700">{formatRupiah(total)}</p>
-              </div>
+        <CardFooter className="flex flex-col items-stretch gap-4">
+          <Input label="Keterangan" id="keterangan_jual" value={keterangan} onChange={(e) => setKeterangan(e.target.value)} className="w-full" placeholder="Catatan opsional" />
+          <div className="flex items-end justify-end gap-8">
+            <div className="text-right bg-green-50 border border-green-200 rounded-xl px-5 py-3">
+              <p className="text-sm text-green-600 font-medium flex items-center gap-1.5"><ShoppingBag className="h-3.5 w-3.5" /> Total Bayar</p>
+              <p className="text-2xl font-bold text-green-700">{formatRupiah(total)}</p>
             </div>
           </div>
           <div className="flex justify-end gap-3 mt-4">

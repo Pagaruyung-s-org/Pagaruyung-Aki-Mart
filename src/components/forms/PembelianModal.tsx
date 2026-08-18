@@ -29,9 +29,10 @@ interface PembelianModalButtonProps {
   suppliers: Supplier[]
   products?: Product[]
   label: string
+  role?: string
 }
 
-export function PembelianModalButton({ type, suppliers, products = [], label }: PembelianModalButtonProps) {
+export function PembelianModalButton({ type, suppliers, products = [], label, role }: PembelianModalButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
 
   const akiProducts = products.filter(p => p.kategori !== 'Air Aki')
@@ -61,6 +62,7 @@ export function PembelianModalButton({ type, suppliers, products = [], label }: 
                 <FormPembelian 
                   suppliers={suppliers} 
                   products={akiProducts} 
+                  role={role}
                   onSuccess={() => setIsOpen(false)}
                   onCancel={() => setIsOpen(false)}
                 />
@@ -70,6 +72,7 @@ export function PembelianModalButton({ type, suppliers, products = [], label }: 
                   suppliers={suppliers} 
                   products={airAkiProducts} 
                   isAirAki={true}
+                  role={role}
                   onSuccess={() => setIsOpen(false)}
                   onCancel={() => setIsOpen(false)}
                 />

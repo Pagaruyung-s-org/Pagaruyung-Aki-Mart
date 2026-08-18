@@ -10,7 +10,7 @@ import { usePagination } from '@/hooks/usePagination'
 import { voidSale } from '@/actions/void-transactions'
 import { useToast } from '@/components/ui/Toast'
 
-export function RiwayatPenjualanTable({ sales }: { sales: any[] }) {
+export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: string | null }) {
   const {
     currentPage,
     setCurrentPage,
@@ -64,7 +64,9 @@ export function RiwayatPenjualanTable({ sales }: { sales: any[] }) {
               <th className="text-right px-4 py-3 font-medium text-gray-600">Subtotal</th>
               <th className="text-right px-4 py-3 font-medium text-gray-600">Diskon</th>
               <th className="text-right px-4 py-3 font-medium text-gray-600">Total</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-600">Laba Kotor</th>
+              {role !== 'ADMIN' && (
+                <th className="text-right px-4 py-3 font-medium text-gray-600">Laba Kotor</th>
+              )}
               <th className="text-center px-4 py-3 font-medium text-gray-600">Bayar</th>
             </tr>
           </thead>
@@ -94,7 +96,9 @@ export function RiwayatPenjualanTable({ sales }: { sales: any[] }) {
                   <td className="px-4 py-3 text-right text-gray-700">{formatRupiah(s.subtotal)}</td>
                   <td className="px-4 py-3 text-right text-gray-500">{formatRupiah(s.discount)}</td>
                   <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatRupiah(s.total)}</td>
-                  <td className="px-4 py-3 text-right font-semibold text-green-600">{formatRupiah(labaKotor)}</td>
+                  {role !== 'ADMIN' && (
+                    <td className="px-4 py-3 text-right font-semibold text-green-600">{formatRupiah(labaKotor)}</td>
+                  )}
                   <td className="px-4 py-3 text-center text-xs text-gray-600">{s.payment_method}</td>
                 </tr>
               )

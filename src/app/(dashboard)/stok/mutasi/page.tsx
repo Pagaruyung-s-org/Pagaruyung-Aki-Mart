@@ -3,7 +3,8 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
 import { MutasiStokTable } from '@/components/tables/reports/MutasiStokTable'
-import { Search, PackageSearch } from 'lucide-react'
+import { PackageSearch } from 'lucide-react'
+import { MutasiFilterClient } from './MutasiFilterClient'
 
 interface PageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
@@ -70,58 +71,13 @@ export default async function MutasiStokPage({ searchParams }: PageProps) {
             <span className="font-medium text-gray-700 whitespace-nowrap">Filter Mutasi:</span>
           </div>
           
-          <form className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
-            <select 
-              name="p"
-              defaultValue={filterProduct}
-              className={`border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white max-w-xs text-sm ${!filterProduct ? 'text-gray-500' : 'text-gray-900'}`}
-            >
-              <option value="" className="text-gray-500">-- Semua Produk --</option>
-              {products?.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.kategori === 'Air Aki' 
-                    ? p.merk 
-                    : [p.merk, p.type, p.kode_baterai, `${p.kapasitas_ah}AH`].filter(Boolean).join(' ')} ({p.kode_produk})
-                </option>
-              ))}
-            </select>
-
-            <select 
-              name="m" 
-              defaultValue={filterMonth}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm text-gray-500"
-            >
-              <option value="1">Januari</option>
-              <option value="2">Februari</option>
-              <option value="3">Maret</option>
-              <option value="4">April</option>
-              <option value="5">Mei</option>
-              <option value="6">Juni</option>
-              <option value="7">Juli</option>
-              <option value="8">Agustus</option>
-              <option value="9">September</option>
-              <option value="10">Oktober</option>
-              <option value="11">November</option>
-              <option value="12">Desember</option>
-            </select>
-            
-            <select 
-              name="y" 
-              defaultValue={filterYear}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm text-gray-500"
-            >
-              {yearOptions.map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-
-            <button 
-              type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 text-sm"
-            >
-              <Search className="h-4 w-4" /> Cari
-            </button>
-          </form>
+          <MutasiFilterClient 
+            products={products || []}
+            initialProduct={filterProduct}
+            initialMonth={filterMonth}
+            initialYear={filterYear}
+            yearOptions={yearOptions}
+          />
         </div>
 
         <MutasiStokTable data={movements || []} />
