@@ -77,7 +77,7 @@ export async function GET(req: NextRequest) {
   const labaBersih = recalculatedLabaKotor - bebanOperasional
   const isProfit = labaBersih >= 0
 
-  const printDate = new Intl.DateTimeFormat('id-ID', { dateStyle: 'full', timeStyle: 'short' }).format(now)
+  const printDate = new Intl.DateTimeFormat('id-ID', { dateStyle: 'full', timeStyle: 'short', timeZone: 'Asia/Jakarta' }).format(now)
   const periodeLabel = `${BULAN[m]} ${y}`
 
   const html = `<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8">

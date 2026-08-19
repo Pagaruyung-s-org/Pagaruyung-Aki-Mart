@@ -11,7 +11,7 @@ function formatRp(n: number) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(n)
 }
 function fmtDate(d: string) {
-  return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(d))
+  return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Jakarta' }).format(new Date(d))
 }
 
 const baseStyle = `
@@ -111,7 +111,7 @@ export async function GET(req: NextRequest) {
     return { ...p, no: i + 1, supplier_name: supp?.nama_supplier || '—', kode_pembelian: pt?.kode_pembelian || '—' }
   })
 
-  const printDate = new Intl.DateTimeFormat('id-ID', { dateStyle: 'full', timeStyle: 'short' }).format(now)
+  const printDate = new Intl.DateTimeFormat('id-ID', { dateStyle: 'full', timeStyle: 'short', timeZone: 'Asia/Jakarta' }).format(now)
   const periodeLabel = `${BULAN[m]} ${y}`
 
   const tableRows = rows.map(r => `<tr>
