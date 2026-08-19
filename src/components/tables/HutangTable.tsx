@@ -246,7 +246,8 @@ export function HutangTable({ data, role }: HutangTableProps) {
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
                   options={[
-                    { value: 'CASH', label: 'Tunai (Kas)' },
+                    { value: 'CASH', label: 'Tunai (Kas Laci)' },
+                    { value: 'BRANKAS', label: 'Brankas Toko' },
                     { value: 'TRANSFER', label: 'Transfer Bank' },
                     { value: 'QRIS', label: 'QRIS' },
                   ]}

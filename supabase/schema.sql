@@ -303,14 +303,14 @@ CREATE TABLE IF NOT EXISTS air_aki_sale_allocations (
 );
 
 -- ============================================================
--- 14. CASH_TRANSACTIONS — Kas/Bank
+-- 14. CASH_TRANSACTIONS — Kas/Bank/Brankas
 -- ============================================================
 CREATE TABLE IF NOT EXISTS cash_transactions (
     id               UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     tanggal          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    account_type     TEXT NOT NULL DEFAULT 'KAS' CHECK (account_type IN ('KAS','BANK')),
+    account_type     TEXT NOT NULL DEFAULT 'KAS' CHECK (account_type IN ('KAS','BANK','BRANKAS')),
     transaction_type TEXT NOT NULL CHECK (transaction_type IN ('DEBIT','CREDIT')),
-    reference_type   TEXT,     -- 'SALE','PURCHASE','EXPENSE','PAYMENT'
+    reference_type   TEXT,     -- 'SALE','PURCHASE','EXPENSE','PAYMENT','CASH_DROP','BANK_DEPOSIT'
     reference_id     UUID,
     debit            NUMERIC(15,2) NOT NULL DEFAULT 0,   -- kas masuk
     credit           NUMERIC(15,2) NOT NULL DEFAULT 0,   -- kas keluar
@@ -321,6 +321,31 @@ CREATE TABLE IF NOT EXISTS cash_transactions (
 CREATE INDEX idx_cash_tanggal ON cash_transactions(tanggal);
 CREATE INDEX idx_cash_type ON cash_transactions(transaction_type);
 CREATE INDEX idx_cash_reference ON cash_transactions(reference_type, reference_id);
+
+-- ============================================================
+-- 16. DAILY_CLOSINGS — Closing Harian Kasir
+-- ============================================================
+CREATE TABLE IF NOT EXISTS daily_closings (
+    id                       UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tanggal                  DATE NOT NULL UNIQUE,
+    total_penjualan_tunai    NUMERIC(15,2) NOT NULL DEFAULT 0,
+    total_penjualan_transfer NUMERIC(15,2) NOT NULL DEFAULT 0,
+    total_pengeluaran_tunai  NUMERIC(15,2) NOT NULL DEFAULT 0,
+    total_bayar_hutang       NUMERIC(15,2) NOT NULL DEFAULT 0,
+    total_cash_drop          NUMERIC(15,2) NOT NULL DEFAULT 0,
+    estimasi_sisa_laci       NUMERIC(15,2) NOT NULL DEFAULT 0,
+    catatan                  TEXT,
+    status                   TEXT NOT NULL DEFAULT 'DRAFT' CHECK (status IN ('DRAFT', 'SUBMITTED')),
+    is_late                  BOOLEAN NOT NULL DEFAULT FALSE,
+    created_by               UUID REFERENCES auth.users(id),
+    submitted_by             UUID REFERENCES auth.users(id),
+    submitted_at             TIMESTAMPTZ,
+    created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_daily_closings_tanggal ON daily_closings(tanggal);
+CREATE INDEX idx_daily_closings_status ON daily_closings(status);
 
 -- ============================================================
 -- 15. AUDIT_LOGS — Log Audit

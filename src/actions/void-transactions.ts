@@ -13,6 +13,18 @@ const isSameDay = (d1: string, d2: string) => {
   return new Date(d1).toISOString().split('T')[0] === new Date(d2).toISOString().split('T')[0]
 }
 
+// Helper: cek apakah tanggal sudah di-closing (SUBMITTED)
+async function checkClosedDate(supabase: any, tanggal: string): Promise<boolean> {
+  const dateOnly = new Date(tanggal).toISOString().split('T')[0]
+  const { data } = await supabase
+    .from('daily_closings')
+    .select('status')
+    .eq('tanggal', dateOnly)
+    .eq('status', 'SUBMITTED')
+    .maybeSingle()
+  return !!data
+}
+
 export async function voidSale(id: string, reason: string): Promise<ActionResult> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -27,6 +39,12 @@ export async function voidSale(id: string, reason: string): Promise<ActionResult
   if (!sale) return { success: false, error: 'Data penjualan tidak ditemukan' }
   if (sale.status_transaksi === 'VOID' || sale.status_transaksi === 'REVERSAL') {
     return { success: false, error: 'Transaksi sudah berstatus Void atau Reversal' }
+  }
+
+  // Cek apakah tanggal transaksi sudah di-closing
+  const isClosed = await checkClosedDate(supabase, sale.tanggal)
+  if (isClosed) {
+    return { success: false, error: 'Transaksi tidak dapat di-void karena tanggal ini sudah di-closing (dikunci)' }
   }
 
   if (role === 'ADMIN') {
@@ -169,6 +187,12 @@ export async function voidPurchase(id: string, reason: string): Promise<ActionRe
   if (!purchase) return { success: false, error: 'Data pembelian tidak ditemukan' }
   if (purchase.status_transaksi === 'VOID' || purchase.status_transaksi === 'REVERSAL') {
     return { success: false, error: 'Transaksi sudah berstatus Void atau Reversal' }
+  }
+
+  // Cek apakah tanggal transaksi sudah di-closing
+  const isPurchaseClosed = await checkClosedDate(supabase, purchase.tanggal)
+  if (isPurchaseClosed) {
+    return { success: false, error: 'Transaksi tidak dapat di-void karena tanggal ini sudah di-closing (dikunci)' }
   }
 
   if (role === 'ADMIN') {
@@ -344,6 +368,12 @@ export async function voidExpense(id: string, reason: string): Promise<ActionRes
     return { success: false, error: 'Transaksi sudah berstatus Void atau Reversal' }
   }
 
+  // Cek apakah tanggal transaksi sudah di-closing
+  const isExpenseClosed = await checkClosedDate(supabase, expense.tanggal)
+  if (isExpenseClosed) {
+    return { success: false, error: 'Transaksi tidak dapat di-void karena tanggal ini sudah di-closing (dikunci)' }
+  }
+
   if (role === 'ADMIN') {
     return { success: false, error: 'Admin tidak memiliki akses untuk membatalkan pengeluaran operasional' }
   } else if (role !== 'SUPER_ADMIN' && role !== 'OWNER') {
@@ -427,6 +457,12 @@ export async function voidSupplierPayment(id: string, reason: string): Promise<{
 
   if (payment.status_transaksi === 'VOID' || payment.status_transaksi === 'REVERSAL') {
     return { success: false, error: 'Transaksi sudah berstatus Void atau Reversal' }
+  }
+
+  // Cek apakah tanggal transaksi sudah di-closing
+  const isPaymentClosed = await checkClosedDate(supabase, payment.tanggal)
+  if (isPaymentClosed) {
+    return { success: false, error: 'Transaksi tidak dapat di-void karena tanggal ini sudah di-closing (dikunci)' }
   }
 
   if (role === 'ADMIN') {

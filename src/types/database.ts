@@ -63,7 +63,7 @@ export interface ExpenseCategory {
 export type StatusPembayaran = 'LUNAS' | 'HUTANG' | 'PARSIAL'
 export type StatusTransaksi = 'DRAFT' | 'POSTED' | 'CANCELLED'
 export type StatusPenjualan = 'DRAFT' | 'PAID' | 'CANCELLED'
-export type PaymentMethod = 'CASH' | 'TRANSFER' | 'QRIS'
+export type PaymentMethod = 'CASH' | 'TRANSFER' | 'QRIS' | 'BRANKAS'
 
 export interface PurchaseTransaction {
   id: string
@@ -220,7 +220,7 @@ export interface SupplierPayment {
   purchase_transactions?: PurchaseTransaction
 }
 
-export type AccountType = 'KAS' | 'BANK'
+export type AccountType = 'KAS' | 'BANK' | 'BRANKAS'
 export type TransactionType = 'DEBIT' | 'CREDIT'
 
 export interface CashTransaction {
@@ -295,6 +295,39 @@ export interface CreateSupplierPaymentInput {
   tanggal: string
   nominal: number
   payment_method: PaymentMethod
+  keterangan?: string
+}
+
+export type ClosingStatus = 'DRAFT' | 'SUBMITTED'
+
+export interface DailyClosing {
+  id: string
+  tanggal: string
+  total_penjualan_tunai: number
+  total_penjualan_transfer: number
+  total_pengeluaran_tunai: number
+  total_bayar_hutang: number
+  total_cash_drop: number
+  estimasi_sisa_laci: number
+  catatan: string | null
+  status: ClosingStatus
+  is_late: boolean
+  created_by: string | null
+  submitted_by: string | null
+  submitted_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateClosingInput {
+  tanggal: string
+  total_cash_drop: number
+  catatan?: string
+}
+
+export interface CreateSetorInput {
+  tanggal: string
+  nominal: number
   keterangan?: string
 }
 

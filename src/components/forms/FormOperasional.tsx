@@ -31,7 +31,7 @@ export function FormOperasional({
   const [employeeId, setEmployeeId] = useState('')
   const [keterangan, setKeterangan] = useState('')
   const [nominal, setNominal] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'TRANSFER' | 'QRIS'>('CASH')
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'TRANSFER' | 'QRIS' | 'BRANKAS'>('CASH')
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -90,9 +90,10 @@ export function FormOperasional({
               label="Metode Bayar"
               id="payment_method_ops"
               value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value as 'CASH' | 'TRANSFER' | 'QRIS')}
+              onChange={(e) => setPaymentMethod(e.target.value as 'CASH' | 'TRANSFER' | 'QRIS' | 'BRANKAS')}
               options={[
-                { value: 'CASH', label: 'Tunai' },
+                { value: 'CASH', label: 'Tunai (Kas Laci)' },
+                { value: 'BRANKAS', label: 'Brankas Toko' },
                 { value: 'TRANSFER', label: 'Transfer Bank' },
                 { value: 'QRIS', label: 'QRIS' },
               ]}

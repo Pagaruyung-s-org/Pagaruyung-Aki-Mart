@@ -21,6 +21,8 @@ import {
   ChevronRight,
   Droplets,
   Settings,
+  Lock,
+  Vault,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState } from 'react'
@@ -72,6 +74,7 @@ const navItems: NavItem[] = [
     children: [
       { label: 'Hutang Supplier', href: '/hutang', icon: <CreditCard className="h-4 w-4" /> },
       { label: 'Kas/Bank', href: '/kas', icon: <Wallet className="h-4 w-4" /> },
+      { label: 'Closing Harian', href: '/closing', icon: <Lock className="h-4 w-4" /> },
     ],
   },
   {

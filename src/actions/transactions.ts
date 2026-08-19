@@ -46,7 +46,7 @@ const CreateExpenseSchema = z.object({
   employee_id: z.string().uuid().optional(),
   keterangan: z.string().optional(),
   nominal: z.number().positive(),
-  payment_method: z.enum(['CASH', 'TRANSFER', 'QRIS']),
+  payment_method: z.enum(['CASH', 'TRANSFER', 'QRIS', 'BRANKAS']),
 })
 
 const CreatePaymentSchema = z.object({
@@ -54,7 +54,7 @@ const CreatePaymentSchema = z.object({
   purchase_id: z.string().uuid().optional(),
   tanggal: z.string().min(1),
   nominal: z.number().positive(),
-  payment_method: z.enum(['CASH', 'TRANSFER', 'QRIS']),
+  payment_method: z.enum(['CASH', 'TRANSFER', 'QRIS', 'BRANKAS']),
   keterangan: z.string().optional(),
 })
 
@@ -478,9 +478,10 @@ export async function createExpense(input: CreateExpenseInput): Promise<ActionRe
   }
 
   // Catat kas keluar
+  const accountType = data.payment_method === 'BRANKAS' ? 'BRANKAS' : (data.payment_method === 'TRANSFER' || data.payment_method === 'QRIS') ? 'BANK' : 'KAS'
   await supabase.from('cash_transactions').insert({
     tanggal: new Date().toISOString(),
-    account_type: 'KAS',
+    account_type: accountType,
     transaction_type: 'CREDIT',
     reference_type: 'EXPENSE',
     reference_id: expense.id,
@@ -542,9 +543,10 @@ export async function createSupplierPayment(input: CreateSupplierPaymentInput): 
   }
 
   // Catat kas keluar
+  const paymentAccountType = data.payment_method === 'BRANKAS' ? 'BRANKAS' : (data.payment_method === 'TRANSFER' || data.payment_method === 'QRIS') ? 'BANK' : 'KAS'
   await supabase.from('cash_transactions').insert({
     tanggal: new Date().toISOString(),
-    account_type: 'KAS',
+    account_type: paymentAccountType,
     transaction_type: 'CREDIT',
     reference_type: 'PAYMENT',
     reference_id: payment.id,
