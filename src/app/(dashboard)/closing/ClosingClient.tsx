@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Plus, Send, Pencil, Trash2, AlertTriangle, CheckCircle, Clock, ArrowRightLeft, Info } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
+import { Input } from '@/components/ui/Input'
 import { InputCurrency } from '@/components/ui/InputCurrency'
 import { StatusBadge } from '@/components/ui/Badge'
 import { createClosing, updateClosing, deleteClosing, submitClosing, getClosingSummary, createSetor } from '@/actions/closing'
@@ -399,19 +400,15 @@ export function ClosingClient({ closings }: ClosingClientProps) {
           )}
 
           {/* Catatan */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Catatan {isLate && <span className="text-red-500">*</span>}
-            </label>
-            <textarea
-              value={catatan}
-              onChange={(e) => setCatatan(e.target.value)}
-              placeholder={isLate ? 'Wajib: Jelaskan alasan keterlambatan...' : 'Opsional: Catatan tambahan...'}
-              rows={2}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder:text-gray-800 placeholder:opacity-100"
-              required={isLate}
-            />
-          </div>
+          <Input
+            label={`Catatan ${isLate ? '*' : ''}`}
+            id="catatan"
+            value={catatan}
+            onChange={(e) => setCatatan(e.target.value)}
+            placeholder={isLate ? 'Wajib: Jelaskan alasan keterlambatan...' : 'Opsional: Catatan tambahan...'}
+            required={isLate}
+            className="w-full"
+          />
 
           {/* Error */}
           {error && <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">{error}</div>}
@@ -517,16 +514,14 @@ export function ClosingClient({ closings }: ClosingClientProps) {
             required
           />
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
-            <textarea
-              value={setorKeterangan}
-              onChange={(e) => setSetorKeterangan(e.target.value)}
-              placeholder="Contoh: Setor ke BCA..."
-              rows={2}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 placeholder:text-gray-800 placeholder:opacity-100"
-            />
-          </div>
+          <Input
+            label="Keterangan"
+            id="setorKeterangan"
+            value={setorKeterangan}
+            onChange={(e) => setSetorKeterangan(e.target.value)}
+            placeholder="Contoh: Setor ke BCA..."
+            className="w-full"
+          />
 
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="secondary" onClick={() => setIsSetorOpen(false)}>

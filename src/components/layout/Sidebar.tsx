@@ -187,10 +187,18 @@ export function Sidebar({ role }: { role: 'SUPER_ADMIN' | 'ADMIN' | 'OWNER' | nu
       })
       return { ...item, children: filteredChildren }
     }
+    if (item.label === 'Keuangan') {
+      const filteredChildren = item.children?.filter(child => {
+        if (role === 'ADMIN' && (child.label === 'Hutang Supplier' || child.label === 'Kas/Bank')) return false
+        return true
+      })
+      return { ...item, children: filteredChildren }
+    }
     return item
   }).filter(item => {
     if (item.label === 'Pengaturan' && (!item.children || item.children.length === 0)) return false
-    if (role === 'ADMIN' && (item.label === 'Keuangan' || item.label === 'Laporan')) return false
+    if (item.label === 'Keuangan' && (!item.children || item.children.length === 0)) return false
+    if (role === 'ADMIN' && item.label === 'Laporan') return false
     return true
   })
 

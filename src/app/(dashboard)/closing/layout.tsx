@@ -8,7 +8,8 @@ export default async function ClosingLayout({
 }) {
   const role = await getUserRole()
   
-  if (role === 'ADMIN') {
+  // Admin & Owner allowed
+  if (!['SUPER_ADMIN', 'OWNER', 'ADMIN'].includes(role || '')) {
     redirect('/dashboard')
   }
   
