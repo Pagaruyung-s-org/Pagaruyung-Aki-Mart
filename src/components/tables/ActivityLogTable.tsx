@@ -5,6 +5,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { formatDateTime } from '@/lib/utils'
 import { Pagination } from '@/components/ui/Pagination'
 import { Modal } from '@/components/ui/Modal'
+import { Select } from '@/components/ui/Select'
 
 export function ActivityLogTable({ 
   logs, 
@@ -50,32 +51,30 @@ export function ActivityLogTable({
       <div className="p-4 border-b border-gray-200 bg-gray-50 flex flex-wrap gap-4 items-end">
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">Tipe Aksi</label>
-          <select 
-            className={`border border-gray-300 rounded-lg text-sm bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[180px] ${!searchParams.get('action') ? 'text-gray-400' : 'text-gray-900'}`}
+          <Select 
+            className="w-48"
+            placeholder="Semua Aksi"
             value={searchParams.get('action') || ''}
             onChange={(e) => updateFilter('action', e.target.value)}
-          >
-            <option value="" className="text-gray-500">Semua Aksi</option>
-            <option value="void_penjualan" className="text-gray-900">Void Penjualan</option>
-            <option value="void_pembelian" className="text-gray-900">Void Pembelian</option>
-            <option value="void_operasional" className="text-gray-900">Void Operasional</option>
-            <option value="void_pembayaran_hutang" className="text-gray-900">Void Pembayaran Hutang</option>
-            <option value="tambah_produk" className="text-gray-900">Tambah Produk</option>
-            <option value="edit_produk" className="text-gray-900">Edit Produk</option>
-          </select>
+            options={[
+              { value: "void_penjualan", label: "Void Penjualan" },
+              { value: "void_pembelian", label: "Void Pembelian" },
+              { value: "void_operasional", label: "Void Operasional" },
+              { value: "void_pembayaran_hutang", label: "Void Pembayaran Hutang" },
+              { value: "tambah_produk", label: "Tambah Produk" },
+              { value: "edit_produk", label: "Edit Produk" }
+            ]}
+          />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">User Pelaku</label>
-          <select 
-            className={`border border-gray-300 rounded-lg text-sm bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[180px] ${!searchParams.get('userId') ? 'text-gray-400' : 'text-gray-900'}`}
+          <Select 
+            className="w-48"
+            placeholder="Semua User"
             value={searchParams.get('userId') || ''}
             onChange={(e) => updateFilter('userId', e.target.value)}
-          >
-            <option value="" className="text-gray-500">Semua User</option>
-            {users.map(u => (
-              <option key={u.id} value={u.id} className="text-gray-900">{u.full_name} ({u.role})</option>
-            ))}
-          </select>
+            options={users.map(u => ({ value: u.id, label: `${u.full_name} (${u.role})` }))}
+          />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">Mulai Tanggal</label>

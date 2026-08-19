@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
 import { formatRupiah } from '@/lib/utils'
 import { Search, ArrowDownCircle, ArrowUpCircle, Banknote } from 'lucide-react'
+import { Select } from '@/components/ui/Select'
 import { PrintButton } from '@/components/ui/PrintButton'
 import { ArusKasReportTable } from '@/components/tables/reports/ArusKasReportTable'
 
@@ -65,34 +66,32 @@ export default async function LaporanArusKasPage({ searchParams }: PageProps) {
           <div className="flex items-center gap-3 text-sm">
             <span className="font-medium text-gray-700">Filter Periode:</span>
             <form className="flex items-center gap-2">
-              <select 
-                name="m" 
+                            <Select
+                name="m"
                 defaultValue={filterMonth}
-                className="border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-500"
-              >
-                <option value="1">Januari</option>
-                <option value="2">Februari</option>
-                <option value="3">Maret</option>
-                <option value="4">April</option>
-                <option value="5">Mei</option>
-                <option value="6">Juni</option>
-                <option value="7">Juli</option>
-                <option value="8">Agustus</option>
-                <option value="9">September</option>
-                <option value="10">Oktober</option>
-                <option value="11">November</option>
-                <option value="12">Desember</option>
-              </select>
+                className="w-36"
+                options={[
+                  { value: "1", label: "Januari" },
+                  { value: "2", label: "Februari" },
+                  { value: "3", label: "Maret" },
+                  { value: "4", label: "April" },
+                  { value: "5", label: "Mei" },
+                  { value: "6", label: "Juni" },
+                  { value: "7", label: "Juli" },
+                  { value: "8", label: "Agustus" },
+                  { value: "9", label: "September" },
+                  { value: "10", label: "Oktober" },
+                  { value: "11", label: "November" },
+                  { value: "12", label: "Desember" }
+                ]}
+              />
               
-              <select 
-                name="y" 
+                            <Select
+                name="y"
                 defaultValue={filterYear}
-                className="border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-500"
-              >
-                {yearOptions.map(y => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
+                className="w-24"
+                options={yearOptions.map(y => ({ value: String(y), label: String(y) }))}
+              />
 
               <button 
                 type="submit"

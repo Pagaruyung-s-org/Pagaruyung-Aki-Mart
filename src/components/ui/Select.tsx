@@ -14,10 +14,20 @@ interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'onC
 }
 
 const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, label, error, hint, id, options, placeholder, value, onChange, disabled, required, ...props }, ref) => {
+  ({ className, label, error, hint, id, options, placeholder, value, defaultValue, onChange, disabled, required, ...props }, ref) => {
     const [isOpen, setIsOpen] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
     const containerRef = useRef<HTMLDivElement>(null)
+
+    // Internal state for uncontrolled mode
+    const [internalValue, setInternalValue] = useState<string | number | readonly string[] | undefined>(value ?? defaultValue ?? '')
+
+    // Keep internal value in sync with controlled value prop if it changes
+    useEffect(() => {
+      if (value !== undefined) {
+        setInternalValue(value)
+      }
+    }, [value])
 
     // Handle click outside to close dropdown
     useEffect(() => {
@@ -35,7 +45,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
     }, [isOpen])
 
     // Find currently selected label
-    const selectedOption = useMemo(() => options.find((opt) => opt.value === String(value)), [options, value])
+    const selectedOption = useMemo(() => options.find((opt) => opt.value === String(internalValue)), [options, internalValue])
 
     // Filter options based on search term
     const filteredOptions = useMemo(() => {
@@ -48,6 +58,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
         // Fake the event object to maintain compatibility with existing forms
         onChange({ target: { value: val, name: props.name, id: id } })
       }
+      setInternalValue(val)
       setIsOpen(false)
       setSearchTerm('')
     }
@@ -83,7 +94,7 @@ const Select = forwardRef<HTMLSelectElement, SelectProps>(
           {/* Hidden native select for form compatibility if needed */}
           <select
             ref={ref}
-            value={value}
+            value={internalValue}
             onChange={() => {}}
             className="hidden"
             name={props.name}
