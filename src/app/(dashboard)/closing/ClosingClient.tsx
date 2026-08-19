@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Plus, Send, Pencil, Trash2, AlertTriangle, CheckCircle, Clock, ArrowRightLeft, Info } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
+import { InputCurrency } from '@/components/ui/InputCurrency'
 import { StatusBadge } from '@/components/ui/Badge'
 import { createClosing, updateClosing, deleteClosing, submitClosing, getClosingSummary, createSetor } from '@/actions/closing'
 import type { DailyClosing } from '@/types/database'
@@ -372,18 +373,15 @@ export function ClosingClient({ closings }: ClosingClientProps) {
           )}
 
           {/* Nominal Cash Drop */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nominal Uang yang Ditarik (100rb & 50rb)</label>
-            <input
-              type="number"
-              value={totalCashDrop}
-              onChange={(e) => setTotalCashDrop(e.target.value)}
-              placeholder="Contoh: 1500000"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              min="0"
-              required
-            />
-          </div>
+          <InputCurrency
+            label="Nominal Uang yang Ditarik (100rb & 50rb)"
+            id="totalCashDrop"
+            value={totalCashDrop === '' ? '' : Number(totalCashDrop)}
+            onChange={(val) => setTotalCashDrop(val.toString())}
+            placeholder="0"
+            min="0"
+            required
+          />
 
           {/* Info sisa laci */}
           {summary && (
@@ -509,18 +507,15 @@ export function ClosingClient({ closings }: ClosingClientProps) {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nominal Setoran</label>
-            <input
-              type="number"
-              value={setorNominal}
-              onChange={(e) => setSetorNominal(e.target.value)}
-              placeholder="Contoh: 5000000"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              min="1"
-              required
-            />
-          </div>
+          <InputCurrency
+            label="Nominal Setoran"
+            id="setorNominal"
+            value={setorNominal === '' ? '' : Number(setorNominal)}
+            onChange={(val) => setSetorNominal(val.toString())}
+            placeholder="0"
+            min="1"
+            required
+          />
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Keterangan</label>
