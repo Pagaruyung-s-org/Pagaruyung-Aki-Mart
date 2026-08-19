@@ -244,21 +244,6 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
               </div>
             )}
 
-            {/* Cetak Bon for VOID/REVERSAL transactions too */}
-            {(selectedSale.status_transaksi === 'VOID' || selectedSale.status_transaksi === 'REVERSAL') && (
-              <div className="pt-4 border-t border-gray-100 flex justify-end">
-                <button 
-                  onClick={(e) => { 
-                    e.stopPropagation()
-                    setShowFaktur(true)
-                  }}
-                  className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
-                >
-                  <Printer className="h-4 w-4" />
-                  Cetak Bon
-                </button>
-              </div>
-            )}
 
             {showVoidPrompt && (
               <div className="pt-4 border-t border-gray-100 space-y-3">
