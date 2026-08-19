@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Plus, Send, Pencil, Trash2, AlertTriangle, CheckCircle, Clock, ArrowRightLeft, Info } from 'lucide-react'
+import { useState, useEffect, Fragment } from 'react'
+import { Plus, Send, Pencil, Trash2, AlertTriangle, CheckCircle, Clock, ArrowRightLeft, Info, ChevronDown, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
@@ -9,13 +9,15 @@ import { InputCurrency } from '@/components/ui/InputCurrency'
 import { StatusBadge } from '@/components/ui/Badge'
 import { createClosing, updateClosing, deleteClosing, submitClosing, getClosingSummary, createSetor } from '@/actions/closing'
 import type { DailyClosing } from '@/types/database'
+import { format } from 'date-fns'
+import { id as localeId } from 'date-fns/locale'
 
 function formatRupiah(amount: number) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount)
 }
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+function formatDateTime(dateStr: string) {
+  return format(new Date(dateStr), "dd/MM/yyyy, HH:mm", { locale: localeId })
 }
 
 interface ClosingClientProps {
@@ -55,6 +57,11 @@ export function ClosingClient({ closings }: ClosingClientProps) {
   // ==========================================
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
+
+  // ==========================================
+  // STATE — Table Row Expand
+  // ==========================================
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null)
 
   // ==========================================
   // STATE — Setor Form
@@ -236,39 +243,49 @@ export function ClosingClient({ closings }: ClosingClientProps) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 text-gray-600 border-b border-gray-200">
-                  <th className="text-left px-4 py-3 font-medium">Tanggal</th>
-                  <th className="text-right px-4 py-3 font-medium">Jual Tunai</th>
-                  <th className="text-right px-4 py-3 font-medium">Jual Transfer</th>
-                  <th className="text-right px-4 py-3 font-medium">Pengeluaran</th>
-                  <th className="text-right px-4 py-3 font-medium">Bayar Hutang</th>
-                  <th className="text-right px-4 py-3 font-medium">Cash Drop</th>
-                  <th className="text-right px-4 py-3 font-medium">Sisa Laci</th>
-                  <th className="text-center px-4 py-3 font-medium">Status</th>
-                  <th className="text-center px-4 py-3 font-medium">Aksi</th>
+                  <th className="text-left px-4 py-3 font-medium whitespace-nowrap">Tanggal</th>
+                  <th className="text-right px-4 py-3 font-medium whitespace-nowrap">Jual Tunai</th>
+                  <th className="text-right px-4 py-3 font-medium whitespace-nowrap">Jual Transfer</th>
+                  <th className="text-right px-4 py-3 font-medium whitespace-nowrap">Pengeluaran</th>
+                  <th className="text-right px-4 py-3 font-medium whitespace-nowrap">Bayar Hutang</th>
+                  <th className="text-right px-4 py-3 font-medium whitespace-nowrap">Cash Drop</th>
+                  <th className="text-right px-4 py-3 font-medium whitespace-nowrap">Sisa Laci</th>
+                  <th className="text-center px-4 py-3 font-medium whitespace-nowrap">Status</th>
+                  <th className="text-center px-4 py-3 font-medium whitespace-nowrap">Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {closings.map((c) => (
-                  <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-gray-900">{formatDate(c.tanggal)}</div>
-                      {c.is_late && (
-                        <span className="inline-flex items-center gap-1 text-xs text-amber-600 mt-0.5">
-                          <AlertTriangle className="h-3 w-3" />
-                          Terlambat
-                        </span>
-                      )}
-                      {c.catatan && (
-                        <div className="text-xs text-gray-500 mt-0.5 max-w-[200px] truncate">{c.catatan}</div>
-                      )}
+                  <Fragment key={c.id}>
+                    <tr 
+                      className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
+                      onClick={() => setExpandedRowId(expandedRowId === c.id ? null : c.id)}
+                    >
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        {expandedRowId === c.id ? (
+                          <ChevronDown className="h-4 w-4 text-gray-400 shrink-0" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />
+                        )}
+                        <div>
+                          <div className="font-medium text-gray-900">{formatDateTime(c.created_at)}</div>
+                          {c.is_late && (
+                            <span className="inline-flex items-center gap-1 text-xs text-amber-600 mt-0.5">
+                              <AlertTriangle className="h-3 w-3" />
+                              Terlambat
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-4 py-3 text-right text-gray-900">{formatRupiah(c.total_penjualan_tunai)}</td>
-                    <td className="px-4 py-3 text-right text-gray-900">{formatRupiah(c.total_penjualan_transfer)}</td>
-                    <td className="px-4 py-3 text-right text-red-600">{formatRupiah(c.total_pengeluaran_tunai)}</td>
-                    <td className="px-4 py-3 text-right text-red-600">{formatRupiah(c.total_bayar_hutang)}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-blue-600">{formatRupiah(c.total_cash_drop)}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatRupiah(c.estimasi_sisa_laci)}</td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 text-right text-gray-900 whitespace-nowrap">{formatRupiah(c.total_penjualan_tunai)}</td>
+                    <td className="px-4 py-3 text-right text-gray-900 whitespace-nowrap">{formatRupiah(c.total_penjualan_transfer)}</td>
+                    <td className="px-4 py-3 text-right text-red-600 whitespace-nowrap">{formatRupiah(c.total_pengeluaran_tunai)}</td>
+                    <td className="px-4 py-3 text-right text-red-600 whitespace-nowrap">{formatRupiah(c.total_bayar_hutang)}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-blue-600 whitespace-nowrap">{formatRupiah(c.total_cash_drop)}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-gray-900 whitespace-nowrap">{formatRupiah(c.estimasi_sisa_laci)}</td>
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
                       {c.status === 'SUBMITTED' ? (
                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
                           <CheckCircle className="h-3 w-3" />
@@ -281,9 +298,9 @@ export function ClosingClient({ closings }: ClosingClientProps) {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-4 py-3 text-center whitespace-nowrap">
                       {c.status === 'DRAFT' ? (
-                        <div className="flex items-center justify-center gap-1">
+                        <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
                           <button
                             onClick={() => setSubmitConfirmId(c.id)}
                             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
@@ -311,7 +328,55 @@ export function ClosingClient({ closings }: ClosingClientProps) {
                         <span className="text-xs text-gray-400">Terkunci</span>
                       )}
                     </td>
-                  </tr>
+                    </tr>
+                    <tr className="bg-blue-50/30 border-b border-gray-100">
+                      <td colSpan={9} className="p-0 border-0">
+                        <div 
+                          className={`grid transition-all duration-300 ease-in-out ${
+                            expandedRowId === c.id ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+                          }`}
+                        >
+                          <div className="overflow-hidden">
+                            <div className="px-6 py-5">
+                              <div className="flex flex-col lg:flex-row gap-8 text-sm">
+                                <div className="flex-1 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                                  <h4 className="text-sm font-semibold text-gray-900 mb-3 border-b border-gray-50 pb-2">Rangkuman Transaksi</h4>
+                                  <div className="space-y-2.5">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-gray-500">Penjualan Tunai</span>
+                                      <span className="font-medium text-gray-900">{formatRupiah(c.total_penjualan_tunai)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-gray-500">Penjualan Transfer/QRIS</span>
+                                      <span className="font-medium text-gray-900">{formatRupiah(c.total_penjualan_transfer)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-red-600">
+                                      <span>Pengeluaran Operasional</span>
+                                      <span className="font-medium">-{formatRupiah(c.total_pengeluaran_tunai)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-red-600">
+                                      <span>Pembayaran Hutang</span>
+                                      <span className="font-medium">-{formatRupiah(c.total_bayar_hutang)}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex-1 space-y-5 py-2">
+                                  <div>
+                                    <p className="text-gray-500 font-medium mb-1.5">Catatan</p>
+                                    <p className="text-gray-900 whitespace-pre-wrap">{c.catatan || '-'}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-gray-500 font-medium mb-1.5">Waktu Submit</p>
+                                    <p className="text-gray-900">{c.submitted_at ? formatDateTime(c.submitted_at) : '-'}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  </Fragment>
                 ))}
               </tbody>
             </table>
