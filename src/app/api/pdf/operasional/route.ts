@@ -62,8 +62,9 @@ const baseStyle = `
   .btn-print:hover { background: #1e3a8a; }
   @media print {
     .print-bar { display: none !important; }
-    .page { width: 100%; padding: 10mm; margin: 0; }
-    @page { size: A4 portrait; margin: 8mm; }
+    .page { width: 100%; min-height: auto; padding: 10mm; margin: 0; }
+    @page { size: A4 landscape; margin: 8mm; }
+    body { margin: 0; padding: 0; min-height: auto; }
   }
 `
 

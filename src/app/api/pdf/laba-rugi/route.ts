@@ -40,8 +40,9 @@ const baseStyle = `
   .period-badge { display: inline-block; background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; padding: 5px 16px; border-radius: 20px; font-size: 11px; font-weight: 700; margin: 10px 0 18px 0; }
   @media print {
     .print-bar { display: none !important; }
-    .page { width: 100%; padding: 10mm; margin: 0; }
+    .page { width: 100%; min-height: auto; padding: 10mm; margin: 0; }
     @page { size: A4 portrait; margin: 8mm; }
+    body { margin: 0; padding: 0; min-height: auto; }
   }
 `
 

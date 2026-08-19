@@ -72,12 +72,7 @@ export function FakturModal({ isOpen, onClose, sale, autoPrint = false }: Faktur
   }
 
   const formatTanggal = (dateStr: string) => {
-    const d = new Date(dateStr)
-    return d.toLocaleDateString('id-ID', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-    })
+    return formatDateTime(dateStr)
   }
 
   const containerClass = autoPrint
