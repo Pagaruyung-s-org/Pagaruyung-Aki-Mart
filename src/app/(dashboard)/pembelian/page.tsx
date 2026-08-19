@@ -26,6 +26,7 @@ export default async function PembelianPage() {
         )
       `)
       .order('tanggal', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(100),
     supabase.from('suppliers').select('id, nama_supplier, kode_supplier').eq('status', true).order('nama_supplier'),
     supabase.from('products').select('id, merk, kategori, type, kode_baterai, kapasitas_ah, kode_produk, harga_jual').eq('status', true).order('merk'),

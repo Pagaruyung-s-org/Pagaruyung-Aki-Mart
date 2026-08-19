@@ -17,7 +17,7 @@ export default async function OperasionalPage() {
       *,
       expense_categories(nama_kategori),
       employees(nama_karyawan)
-    `).order('tanggal', { ascending: false }).limit(50),
+    `).order('tanggal', { ascending: false }).order('created_at', { ascending: false }).limit(50),
   ])
 
   return (

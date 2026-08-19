@@ -11,6 +11,16 @@ import { voidSale } from '@/actions/void-transactions'
 import { useToast } from '@/components/ui/Toast'
 import { FakturModal } from '@/components/print/FakturModal'
 
+function getPaymentDisplay(method: string, keterangan?: string | null) {
+  if (method === 'TRANSFER' && keterangan) {
+    const match = keterangan.match(/Bank:\s*(BRI|MANDIRI)/i);
+    if (match) {
+      return `TRANSFER ${match[1].toUpperCase()}`;
+    }
+  }
+  return method;
+}
+
 export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: string | null }) {
   const {
     currentPage,
@@ -101,7 +111,7 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
                   {role !== 'ADMIN' && (
                     <td className="px-4 py-3 text-right font-semibold text-green-600">{formatRupiah(labaKotor)}</td>
                   )}
-                  <td className="px-4 py-3 text-center text-xs text-gray-600">{s.payment_method}</td>
+                  <td className="px-4 py-3 text-center text-xs text-gray-600 font-medium">{getPaymentDisplay(s.payment_method, s.keterangan)}</td>
                 </tr>
               )
             })}
@@ -137,7 +147,7 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
               </div>
               <div>
                 <p className="text-xs text-gray-500 mb-1">Metode Bayar</p>
-                <p className="text-sm font-medium text-gray-900">{selectedSale.payment_method}</p>
+                <p className="text-sm font-medium text-gray-900">{getPaymentDisplay(selectedSale.payment_method, selectedSale.keterangan)}</p>
               </div>
             </div>
 

@@ -40,6 +40,7 @@ export function FormPenjualan({
 
   const [customerName, setCustomerName] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'TRANSFER' | 'QRIS'>('CASH')
+  const [bank, setBank] = useState('')
   const [keterangan, setKeterangan] = useState('')
   const [items, setItems] = useState<SaleItem[]>([{ product_id: '', qty: 1, harga_jual: 0, discount: 0 }])
   
@@ -109,11 +110,15 @@ export function FormPenjualan({
     }
     
     startTransition(async () => {
+      const finalKeterangan = paymentMethod === 'TRANSFER' && bank
+        ? (keterangan ? `${keterangan} (Bank: ${bank})` : `Bank: ${bank}`)
+        : keterangan;
+
       const result = await createSale({
         customer_name: customerName || undefined,
         payment_method: paymentMethod,
         discount: 0,
-        keterangan: keterangan || undefined,
+        keterangan: finalKeterangan || undefined,
         items: validItems.map(i => ({ product_id: i.product_id, qty: i.qty, harga_jual: i.harga_jual, discount: i.discount })),
       })
       if (!result.success) { showToast('error', result.error); return }
@@ -131,9 +136,25 @@ export function FormPenjualan({
 
       <Card>
         <CardHeader><h2 className="text-sm font-semibold text-gray-900">Informasi Penjualan</h2></CardHeader>
-        <CardBody className="grid grid-cols-2 gap-4">
+        <CardBody className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Input label="Nama Customer (opsional)" id="customer_name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Nama customer jika perlu dicatat" />
-          <Select label="Metode Pembayaran" id="payment_method" value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value as 'CASH' | 'TRANSFER' | 'QRIS')} options={[{ value: 'CASH', label: 'Tunai' }, { value: 'TRANSFER', label: 'Transfer Bank' }, { value: 'QRIS', label: 'QRIS' }]} />
+          <Select label="Metode Pembayaran" id="payment_method" value={paymentMethod} onChange={(e) => {
+            const val = e.target.value as 'CASH' | 'TRANSFER' | 'QRIS';
+            setPaymentMethod(val);
+            if (val !== 'TRANSFER') setBank('');
+          }} options={[{ value: 'CASH', label: 'Tunai' }, { value: 'TRANSFER', label: 'Transfer Bank' }, { value: 'QRIS', label: 'QRIS' }]} />
+          <Select 
+            label="Pilih Bank" 
+            id="bank" 
+            value={bank} 
+            onChange={(e) => setBank(e.target.value)} 
+            disabled={paymentMethod !== 'TRANSFER'} 
+            options={[
+              { value: '', label: '-- Pilih Bank --' }, 
+              { value: 'BRI', label: 'BRI' }, 
+              { value: 'MANDIRI', label: 'MANDIRI' }
+            ]} 
+          />
         </CardBody>
       </Card>
 

@@ -34,6 +34,7 @@ export default async function BayarHutangPage() {
         purchase_transactions ( kode_pembelian )
       `)
       .order('tanggal', { ascending: false })
+      .order('created_at', { ascending: false })
       .limit(50)
   ])
 

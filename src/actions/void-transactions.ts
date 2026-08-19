@@ -43,7 +43,7 @@ export async function voidSale(id: string, reason: string): Promise<ActionResult
 
   // Cek apakah tanggal transaksi sudah di-closing
   const isClosed = await checkClosedDate(supabase, sale.tanggal)
-  if (isClosed) {
+  if (isClosed && role !== 'SUPER_ADMIN' && role !== 'OWNER') {
     return { success: false, error: 'Transaksi tidak dapat di-void karena tanggal ini sudah di-closing (dikunci)' }
   }
 
@@ -52,7 +52,7 @@ export async function voidSale(id: string, reason: string): Promise<ActionResult
     if (!isSameDay(sale.tanggal, today)) {
       return { success: false, error: 'Hanya dapat membatalkan transaksi pada hari yang sama (Hari H)' }
     }
-  } else if (role !== 'SUPER_ADMIN') {
+  } else if (role !== 'SUPER_ADMIN' && role !== 'OWNER') {
     return { success: false, error: 'Anda tidak memiliki akses untuk membatalkan transaksi' }
   }
 
@@ -191,7 +191,7 @@ export async function voidPurchase(id: string, reason: string): Promise<ActionRe
 
   // Cek apakah tanggal transaksi sudah di-closing
   const isPurchaseClosed = await checkClosedDate(supabase, purchase.tanggal)
-  if (isPurchaseClosed) {
+  if (isPurchaseClosed && role !== 'SUPER_ADMIN' && role !== 'OWNER') {
     return { success: false, error: 'Transaksi tidak dapat di-void karena tanggal ini sudah di-closing (dikunci)' }
   }
 
@@ -200,7 +200,7 @@ export async function voidPurchase(id: string, reason: string): Promise<ActionRe
     if (!isSameDay(purchase.tanggal, today)) {
       return { success: false, error: 'Hanya dapat membatalkan transaksi pada hari yang sama (Hari H)' }
     }
-  } else if (role !== 'SUPER_ADMIN') {
+  } else if (role !== 'SUPER_ADMIN' && role !== 'OWNER') {
     return { success: false, error: 'Anda tidak memiliki akses untuk membatalkan transaksi' }
   }
 
@@ -370,7 +370,7 @@ export async function voidExpense(id: string, reason: string): Promise<ActionRes
 
   // Cek apakah tanggal transaksi sudah di-closing
   const isExpenseClosed = await checkClosedDate(supabase, expense.tanggal)
-  if (isExpenseClosed) {
+  if (isExpenseClosed && role !== 'SUPER_ADMIN' && role !== 'OWNER') {
     return { success: false, error: 'Transaksi tidak dapat di-void karena tanggal ini sudah di-closing (dikunci)' }
   }
 
@@ -461,7 +461,7 @@ export async function voidSupplierPayment(id: string, reason: string): Promise<{
 
   // Cek apakah tanggal transaksi sudah di-closing
   const isPaymentClosed = await checkClosedDate(supabase, payment.tanggal)
-  if (isPaymentClosed) {
+  if (isPaymentClosed && role !== 'SUPER_ADMIN' && role !== 'OWNER') {
     return { success: false, error: 'Transaksi tidak dapat di-void karena tanggal ini sudah di-closing (dikunci)' }
   }
 
