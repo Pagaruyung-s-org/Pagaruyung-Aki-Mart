@@ -32,7 +32,7 @@ export function FormPenjualan({
   products: Product[]
   airAkiProducts?: Product[]
   showAirAkiCheckbox?: boolean
-  onSuccess?: () => void
+  onSuccess?: (saleData?: { id: string; kode: string }) => void
   onCancel?: () => void
 }) {
   const router = useRouter()
@@ -120,7 +120,7 @@ export function FormPenjualan({
       showToast('success', result.message)
       setTimeout(() => {
         router.refresh()
-        if (onSuccess) onSuccess()
+        if (onSuccess) onSuccess(result.data)
         else router.push('/penjualan')
       }, 1500)
     })

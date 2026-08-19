@@ -245,6 +245,29 @@ export async function createPurchase(input: CreatePurchaseInput): Promise<Action
 }
 
 // ============================================================
+// SERVER ACTION: GET SALE BY ID (untuk Faktur)
+// ============================================================
+export async function getSaleById(saleId: string) {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('sales')
+    .select(`
+      *,
+      sale_items(
+        qty,
+        harga_jual,
+        subtotal,
+        products(merk, kategori, type, kode_baterai, kapasitas_ah, kode_produk)
+      )
+    `)
+    .eq('id', saleId)
+    .single()
+
+  if (error || !data) return null
+  return data
+}
+
+// ============================================================
 // SERVER ACTION: BUAT PENJUALAN (dengan FIFO)
 // ============================================================
 export async function createSale(input: CreateSaleInput): Promise<ActionResult<{ id: string; kode: string }>> {

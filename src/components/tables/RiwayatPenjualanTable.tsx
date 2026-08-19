@@ -5,10 +5,11 @@ import { formatRupiah, formatDateTime } from '@/lib/utils'
 import { Pagination } from '@/components/ui/Pagination'
 import { Modal } from '@/components/ui/Modal'
 import { useState } from 'react'
-import { Eye } from 'lucide-react'
+import { Eye, Printer } from 'lucide-react'
 import { usePagination } from '@/hooks/usePagination'
 import { voidSale } from '@/actions/void-transactions'
 import { useToast } from '@/components/ui/Toast'
+import { FakturModal } from '@/components/print/FakturModal'
 
 export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: string | null }) {
   const {
@@ -26,6 +27,7 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
   const [voidReason, setVoidReason] = useState('')
   const [isVoiding, setIsVoiding] = useState(false)
   const [showVoidPrompt, setShowVoidPrompt] = useState(false)
+  const [showFaktur, setShowFaktur] = useState(false)
   const { showToast } = useToast()
 
   const handleVoid = async () => {
@@ -212,12 +214,38 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
             )}
 
             {!showVoidPrompt && selectedSale.status_transaksi !== 'VOID' && selectedSale.status_transaksi !== 'REVERSAL' && (
-              <div className="pt-4 border-t border-gray-100 flex justify-end">
+              <div className="pt-4 border-t border-gray-100 flex justify-between">
                 <button 
                   onClick={(e) => { e.stopPropagation(); setShowVoidPrompt(true) }}
-                  className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors cursor-pointer"
+                  className="px-4 py-3 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors cursor-pointer"
                 >
                   Batalkan Transaksi (Void)
+                </button>
+                <button 
+                  onClick={(e) => { 
+                    e.stopPropagation()
+                    setShowFaktur(true)
+                  }}
+                  className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
+                >
+                  <Printer className="h-4 w-4" />
+                  Cetak Bon
+                </button>
+              </div>
+            )}
+
+            {/* Cetak Bon for VOID/REVERSAL transactions too */}
+            {(selectedSale.status_transaksi === 'VOID' || selectedSale.status_transaksi === 'REVERSAL') && (
+              <div className="pt-4 border-t border-gray-100 flex justify-end">
+                <button 
+                  onClick={(e) => { 
+                    e.stopPropagation()
+                    setShowFaktur(true)
+                  }}
+                  className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
+                >
+                  <Printer className="h-4 w-4" />
+                  Cetak Bon
                 </button>
               </div>
             )}
@@ -255,6 +283,14 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
           </div>
         )}
       </Modal>
+
+      {/* Faktur Modal */}
+      <FakturModal
+        isOpen={showFaktur}
+        onClose={() => setShowFaktur(false)}
+        sale={selectedSale}
+        autoPrint={true}
+      />
     </div>
   )
 }
