@@ -39,6 +39,7 @@ export default async function LaporanPenjualanPage({ searchParams }: PageProps) 
       total, 
       discount, 
       payment_method,
+      keterangan,
       sale_items ( qty, laba_kotor )
     `)
     .gte('tanggal', startDate)

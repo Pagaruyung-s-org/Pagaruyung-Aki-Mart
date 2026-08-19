@@ -13,6 +13,15 @@ function formatRp(n: number) {
 function fmtDateTime(d: string) {
   return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(d))
 }
+function getPaymentDisplay(method: string, keterangan?: string | null) {
+  if (method === 'TRANSFER' && keterangan) {
+    const match = keterangan.match(/Bank:\s*(BRI|MANDIRI)/i);
+    if (match) {
+      return `TRANSFER ${match[1].toUpperCase()}`;
+    }
+  }
+  return method;
+}
 
 const baseStyle = `
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -73,7 +82,7 @@ export async function GET(req: NextRequest) {
   const supabase = await createClient()
   const { data: sales } = await supabase
     .from('sales')
-    .select(`id, kode_penjualan, tanggal, customer_name, total, discount, payment_method, sale_items ( qty, laba_kotor )`)
+    .select(`id, kode_penjualan, tanggal, customer_name, total, discount, payment_method, keterangan, sale_items ( qty, laba_kotor )`)
     .gte('tanggal', startDate)
     .lte('tanggal', endDate)
     .eq('status_transaksi', 'PAID')
@@ -104,7 +113,7 @@ export async function GET(req: NextRequest) {
       <td class="right red">${r.discount ? formatRp(r.discount) : '—'}</td>
       <td class="right bold">${formatRp(r.total)}</td>
       <td class="right green">${formatRp(r.total_laba)}</td>
-      <td class="center">${r.payment_method}</td>
+      <td class="center">${getPaymentDisplay(r.payment_method, r.keterangan)}</td>
     </tr>`).join('')
 
   const html = `<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8">
