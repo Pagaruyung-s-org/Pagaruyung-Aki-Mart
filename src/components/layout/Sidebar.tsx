@@ -25,7 +25,7 @@ import {
   Vault,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 interface NavItem {
   label: string
@@ -104,7 +104,17 @@ const allRegisteredPaths = navItems.flatMap(group =>
   group.children ? group.children.map(c => c.href) : [group.href]
 ).filter(Boolean) as string[]
 
-function NavLink({ item, depth = 0 }: { item: NavItem; depth?: number }) {
+function NavLink({ 
+  item, 
+  depth = 0,
+  openSection,
+  setOpenSection
+}: { 
+  item: NavItem; 
+  depth?: number;
+  openSection?: string | null;
+  setOpenSection?: (label: string | null) => void;
+}) {
   const pathname = usePathname()
 
   const isActive = item.href
@@ -115,15 +125,61 @@ function NavLink({ item, depth = 0 }: { item: NavItem; depth?: number }) {
   const isParentActive = hasChildren && item.children?.some(child =>
     child.href && (pathname === child.href || (pathname.startsWith(child.href + '/') && !allRegisteredPaths.includes(pathname)))
   )
-  const [open, setOpen] = useState(isParentActive ?? false)
+  
+  const [manuallyClosed, setManuallyClosed] = useState(false)
+
+  // Reset manually closed state when path changes to a child of this section
+  // or when this section becomes active again
+  const prevIsParentActive = useRef(isParentActive)
+  useEffect(() => {
+    if (isParentActive && !prevIsParentActive.current) {
+      setManuallyClosed(false)
+    }
+    prevIsParentActive.current = isParentActive
+  }, [isParentActive])
+
+  // Determine if this section is open
+  const isTopLevel = depth === 0
+  let isOpen = false
+  
+  if (hasChildren) {
+    if (isTopLevel && setOpenSection) {
+      isOpen = isParentActive 
+        ? !manuallyClosed 
+        : (openSection === item.label)
+    } else {
+      isOpen = isParentActive ? !manuallyClosed : false // Fallback for nested, though not used here
+    }
+  }
+
+  const handleToggle = () => {
+    if (!hasChildren) return
+    
+    if (isTopLevel && setOpenSection) {
+      if (isParentActive) {
+        setManuallyClosed(!manuallyClosed)
+        if (manuallyClosed) {
+          setOpenSection(item.label)
+        }
+      } else {
+        if (openSection === item.label) {
+          setOpenSection(null)
+        } else {
+          setOpenSection(item.label)
+        }
+      }
+    } else {
+      setManuallyClosed(!manuallyClosed)
+    }
+  }
 
   if (hasChildren) {
     return (
       <div>
         <button
-          onClick={() => setOpen(!open)}
+          onClick={handleToggle}
           className={cn(
-            'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors duration-150',
+            'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors duration-150 cursor-pointer',
             isParentActive
               ? 'bg-blue-50 text-blue-700 font-medium'
               : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
@@ -131,18 +187,27 @@ function NavLink({ item, depth = 0 }: { item: NavItem; depth?: number }) {
         >
           <span className={isParentActive ? 'text-blue-600' : 'text-gray-400'}>{item.icon}</span>
           <span className="flex-1 text-left">{item.label}</span>
-          {open
-            ? <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
-            : <ChevronRight className="h-3.5 w-3.5 text-gray-400" />
-          }
+          <ChevronRight 
+            className={cn(
+              "h-3.5 w-3.5 text-gray-400 transition-transform duration-200",
+              isOpen && "rotate-90"
+            )} 
+          />
         </button>
-        {open && (
-          <div className="ml-3 mt-1 border-l border-gray-200 pl-3 flex flex-col gap-0.5">
-            {item.children!.map((child) => (
-              <NavLink key={child.href} item={child} depth={depth + 1} />
-            ))}
+        <div 
+          className={cn(
+            "grid transition-all duration-200 ease-in-out",
+            isOpen ? "grid-rows-[1fr] opacity-100 mt-1" : "grid-rows-[0fr] opacity-0"
+          )}
+        >
+          <div className="overflow-hidden">
+            <div className="ml-3 border-l border-gray-200 pl-3 flex flex-col gap-0.5">
+              {item.children!.map((child) => (
+                <NavLink key={child.href} item={child} depth={depth + 1} />
+              ))}
+            </div>
           </div>
-        )}
+        </div>
       </div>
     )
   }
@@ -151,7 +216,7 @@ function NavLink({ item, depth = 0 }: { item: NavItem; depth?: number }) {
     <Link
       href={item.href!}
       className={cn(
-        'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors duration-150',
+        'flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors duration-150 cursor-pointer',
         isActive
           ? 'bg-blue-600 text-white font-medium shadow-sm'
           : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
@@ -202,6 +267,8 @@ export function Sidebar({ role }: { role: 'SUPER_ADMIN' | 'ADMIN' | 'OWNER' | nu
     return true
   })
 
+  const [openSection, setOpenSection] = useState<string | null>(null)
+
   return (
     <aside className="w-60 h-full bg-white border-r border-gray-200 flex flex-col">
       {/* Logo */}
@@ -220,7 +287,12 @@ export function Sidebar({ role }: { role: 'SUPER_ADMIN' | 'ADMIN' | 'OWNER' | nu
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 overflow-y-auto flex flex-col gap-0.5">
         {filteredNavItems.map((item) => (
-          <NavLink key={item.label} item={item} />
+          <NavLink 
+            key={item.label} 
+            item={item} 
+            openSection={openSection}
+            setOpenSection={setOpenSection}
+          />
         ))}
       </nav>
 
