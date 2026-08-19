@@ -64,14 +64,14 @@ interface StatCardProps {
 
 export function StatCard({ title, value, subtitle, icon, trend, colorClass = 'text-blue-600 bg-blue-50' }: StatCardProps) {
   return (
-    <Card className="p-5">
-      <div className="flex flex-col gap-3">
-        <div className={cn('p-3 rounded-xl w-fit', colorClass)}>
+    <Card className="p-4">
+      <div className="flex flex-col gap-2.5">
+        <div className={cn('p-2.5 rounded-xl w-fit', colorClass)}>
           {icon}
         </div>
         <div className="min-w-0">
-          <p className="text-sm text-gray-500 font-medium">{title}</p>
-          <p className="text-xl font-bold text-gray-900 mt-1 truncate">{value}</p>
+          <p className="text-xs text-gray-500 font-medium truncate">{title}</p>
+          <p className="text-base xl:text-lg font-bold text-gray-900 mt-1 truncate" title={value}>{value}</p>
           {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
           {trend && (
             <div className={cn(

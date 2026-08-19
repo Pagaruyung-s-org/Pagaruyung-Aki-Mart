@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
 import { StatCard } from '@/components/ui/Card'
 import { formatRupiah } from '@/lib/utils'
-import { CreditCard, TrendingUp, Wallet, Package, AlertTriangle } from 'lucide-react'
+import { CreditCard, TrendingUp, Wallet, Package, AlertTriangle, Vault } from 'lucide-react'
 import { getUserRole } from '@/actions/users'
 import { SalesDashboardClient } from '@/components/dashboard/SalesDashboardClient'
 
@@ -32,12 +32,21 @@ async function getDashboardStats() {
     }
   }
 
-  // Saldo kas
+  // Saldo kas, bank, brankas
   const { data: kasData } = await supabase
     .from('cash_transactions')
-    .select('debit, credit')
+    .select('account_type, debit, credit')
 
-  const saldoKas = kasData?.reduce((s, i) => s + i.debit - i.credit, 0) ?? 0
+  let saldoKasBank = 0
+  let saldoBrankas = 0
+  
+  kasData?.forEach(i => {
+    if (i.account_type === 'BRANKAS') {
+      saldoBrankas += (i.debit - i.credit)
+    } else {
+      saldoKasBank += (i.debit - i.credit)
+    }
+  })
 
   // Jumlah produk aktif
   const { count: produkAktif } = await supabase
@@ -101,7 +110,8 @@ async function getDashboardStats() {
   return {
     labaBersih,
     totalHutang,
-    saldoKas,
+    saldoKasBank,
+    saldoBrankas,
     produkAktif: produkAktif ?? 0,
     stokRendah: stokRendah ?? [],
     airAkiList: airAkiProducts ?? [],
@@ -123,7 +133,7 @@ export default async function DashboardPage() {
         
         {/* Global Summary KPI Cards */}
         {role !== 'ADMIN' && (
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
             <StatCard
               title="Laba Bersih Bulan Ini"
               value={formatRupiah(stats.labaBersih)}
@@ -138,9 +148,15 @@ export default async function DashboardPage() {
             />
             <StatCard
               title="Saldo Kas & Bank"
-              value={formatRupiah(stats.saldoKas)}
+              value={formatRupiah(stats.saldoKasBank)}
               icon={<Wallet className="h-5 w-5" />}
-              colorClass="text-cyan-600 bg-cyan-50"
+              colorClass="text-blue-600 bg-blue-50"
+            />
+            <StatCard
+              title="Saldo Brankas"
+              value={formatRupiah(stats.saldoBrankas)}
+              icon={<Vault className="h-5 w-5" />}
+              colorClass="text-emerald-600 bg-emerald-50"
             />
             <StatCard
               title="Total Produk Aktif"
