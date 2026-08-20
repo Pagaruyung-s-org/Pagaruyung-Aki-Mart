@@ -99,12 +99,12 @@ export interface PurchaseItem {
 // INVENTORY TYPES
 // ============================================================
 
-export type MovementType = 'PURCHASE' | 'SALE' | 'PURCHASE_RETURN' | 'SALE_RETURN' | 'ADJUSTMENT_IN' | 'ADJUSTMENT_OUT'
+export type MovementType = 'PURCHASE' | 'SALE' | 'PURCHASE_RETURN' | 'SALE_RETURN' | 'ADJUSTMENT_IN' | 'ADJUSTMENT_OUT' | 'OPENING_BALANCE'
 
 export interface InventoryBatch {
   id: string
   product_id: string
-  purchase_item_id: string
+  purchase_item_id: string | null
   tanggal_masuk: string
   qty_awal: number
   qty_tersedia: number
@@ -358,4 +358,61 @@ export interface TopProduct {
   kategori: string
   total_qty: number
   total_omzet: number
+}
+
+// ============================================================
+// STOK OPNAME TYPES
+// ============================================================
+
+export type OpnameStatus = 'IN_PROGRESS' | 'COMPLETED' | 'EXPIRED'
+
+export interface OpnameSession {
+  id: string
+  kode_opname: string
+  tanggal: string
+  status: OpnameStatus
+  started_at: string
+  completed_at: string | null
+  started_by: string
+  completed_by: string | null
+  keterangan: string | null
+  created_at: string
+  // Joined
+  opname_items?: OpnameItem[]
+}
+
+export interface OpnameItem {
+  id: string
+  session_id: string
+  product_id: string
+  system_qty_snapshot: number
+  physical_qty: number | null
+  expected_qty: number | null
+  selisih: number | null
+  harga_modal_aktual: number | null
+  keterangan: string | null
+  created_at: string
+  // Joined
+  products?: Product
+}
+
+export interface OpeningBalance {
+  id: string
+  product_id: string
+  qty: number
+  harga_modal: number
+  keterangan: string | null
+  is_locked: boolean
+  created_by: string
+  created_at: string
+  updated_at: string
+  // Joined
+  products?: Product
+}
+
+export interface AppSetting {
+  key: string
+  value: any
+  updated_by: string | null
+  updated_at: string
 }

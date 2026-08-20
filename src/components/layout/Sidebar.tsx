@@ -23,6 +23,7 @@ import {
   Settings,
   Lock,
   Vault,
+  ClipboardCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState, useEffect, useRef } from 'react'
@@ -66,6 +67,7 @@ const navItems: NavItem[] = [
     children: [
       { label: 'Stok Produk', href: '/stok', icon: <Boxes className="h-4 w-4" /> },
       { label: 'Mutasi Stok', href: '/stok/mutasi', icon: <ArrowLeftRight className="h-4 w-4" /> },
+      { label: 'Stok Opname', href: '/stok-opname', icon: <ClipboardCheck className="h-4 w-4" /> },
     ],
   },
   {
@@ -258,6 +260,9 @@ export function Sidebar({ role }: { role: 'SUPER_ADMIN' | 'ADMIN' | 'OWNER' | nu
         return true
       })
       return { ...item, children: filteredChildren }
+    }
+    if (item.label === 'Persediaan') {
+      return item
     }
     return item
   }).filter(item => {

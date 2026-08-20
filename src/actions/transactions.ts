@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
 import { hitungHargaModalUnit } from '@/lib/utils'
 import { calculateFifo, applyFifoAllocations } from '@/lib/fifo'
+import { lockOpeningBalance } from '@/actions/opening-balance'
 import type { CreatePurchaseInput, CreateSaleInput, CreateExpenseInput, CreateSupplierPaymentInput } from '@/types/database'
 
 // ============================================================
@@ -137,6 +138,9 @@ export async function createPurchase(input: CreatePurchaseInput): Promise<Action
   // Insert purchase_items + inventory_batches per item
   for (const item of data.items) {
     const harga_modal_unit = hitungHargaModalUnit(item.nominal, item.qty)
+
+    // Lock opening balance
+    await lockOpeningBalance(item.product_id)
 
     // Insert purchase_item
     const { data: purchaseItem, error: itemError } = await supabase
@@ -317,6 +321,9 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
     if (!fifoResult.success) {
       return { success: false, error: `Stok ${productName} kurang. ${fifoResult.error}` }
     }
+
+    // Lock opening balance
+    await lockOpeningBalance(item.product_id)
 
     const itemDiscount = item.discount ?? 0
     const subtotal = (item.qty * item.harga_jual) - itemDiscount
