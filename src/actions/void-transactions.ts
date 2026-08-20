@@ -60,15 +60,48 @@ export async function voidSale(id: string, reason: string): Promise<ActionResult
     return { success: false, error: 'Alasan pembatalan wajib diisi' }
   }
 
+  const isIndent = sale.status_transaksi === 'INDENT'
+
   // 1. Mark original as VOID
   const { error: voidError } = await supabase.from('sales').update({
-    status_transaksi: 'VOID',
+    status_transaksi: isIndent ? 'VOID INDENT' : 'VOID',
     void_reason: reason,
     void_by: user.id,
     void_at: new Date().toISOString()
   }).eq('id', id)
 
   if (voidError) return { success: false, error: voidError.message }
+
+  if (isIndent) {
+    if ((sale.dp_amount || 0) > 0) {
+      await supabase.from('cash_transactions').insert({
+        tanggal: new Date().toISOString(),
+        account_type: 'KAS',
+        transaction_type: 'CREDIT',
+        reference_type: 'SALE_REVERSAL',
+        reference_id: sale.id,
+        debit: 0,
+        credit: sale.dp_amount,
+        description: 'Refund DP pembatalan inden ' + sale.kode_penjualan
+      })
+    }
+
+    revalidatePath('/penjualan')
+    revalidatePath('/stok')
+    revalidatePath('/stok/air-aki')
+    revalidatePath('/dashboard')
+
+    await supabase.from('activity_log').insert({
+      user_id: user.id,
+      action: 'void_penjualan',
+      entity_type: 'sales',
+      entity_id: id,
+      old_value: sale,
+      reason: reason
+    })
+
+    return { success: true, message: `Inden ${sale.kode_penjualan} berhasil dibatalkan` }
+  }
 
   // 2. Create Reversal
   const { data: reversalSale, error: revError } = await supabase.from('sales').insert({

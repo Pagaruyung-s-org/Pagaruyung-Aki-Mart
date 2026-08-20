@@ -29,7 +29,7 @@ interface PenjualanModalButtonProps {
 
 export function PenjualanModalButton({ type, products = [], label }: PenjualanModalButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const [successData, setSuccessData] = useState<{ id: string; kode: string } | null>(null)
+  const [successData, setSuccessData] = useState<{ id: string; kode: string; isIndent?: boolean } | null>(null)
   const [showFaktur, setShowFaktur] = useState(false)
   const [fakturSale, setFakturSale] = useState<any>(null)
   const [loadingFaktur, setLoadingFaktur] = useState(false)
@@ -37,7 +37,7 @@ export function PenjualanModalButton({ type, products = [], label }: PenjualanMo
   const akiProducts = products.filter(p => p.kategori !== 'Air Aki')
   const airAkiProducts = products.filter(p => p.kategori === 'Air Aki')
 
-  const handleSuccess = (saleData?: { id: string; kode: string }) => {
+  const handleSuccess = (saleData?: { id: string; kode: string; isIndent?: boolean }) => {
     if (saleData) {
       setSuccessData(saleData)
     } else {
@@ -75,7 +75,7 @@ export function PenjualanModalButton({ type, products = [], label }: PenjualanMo
       <Modal
         isOpen={isOpen}
         onClose={handleClose}
-        title={successData ? 'Penjualan Berhasil' : 'Buat Penjualan'}
+        title={successData ? (successData.isIndent ? 'Catatan Inden Berhasil' : 'Penjualan Berhasil') : 'Buat Penjualan'}
         size={successData ? 'sm' : '3xl'}
       >
         {successData ? (
@@ -85,26 +85,29 @@ export function PenjualanModalButton({ type, products = [], label }: PenjualanMo
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">Transaksi Berhasil!</h3>
+              <h3 className="text-lg font-semibold text-gray-900">{successData.isIndent ? 'Catatan Inden Berhasil!' : 'Transaksi Berhasil!'}</h3>
               <p className="text-sm text-gray-500 mt-1">
-                Penjualan <span className="font-mono font-medium text-green-700">{successData.kode}</span> berhasil disimpan.
+                {successData.isIndent ? 'Inden' : 'Penjualan'} <span className="font-mono font-medium text-green-700">{successData.kode}</span> berhasil disimpan.
               </p>
             </div>
-            <div className="flex gap-3 pt-4">
+            <div className={`flex gap-3 pt-4 ${successData.isIndent ? 'w-full' : ''}`}>
               <Button
                 variant="secondary"
                 onClick={handleClose}
+                className={successData.isIndent ? 'w-full' : ''}
               >
                 Tutup
               </Button>
-              <Button
-                onClick={handleCetakBon}
-                loading={loadingFaktur}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                <Printer className="h-4 w-4" />
-                Cetak Bon
-              </Button>
+              {!successData.isIndent && (
+                <Button
+                  onClick={handleCetakBon}
+                  loading={loadingFaktur}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Printer className="h-4 w-4" />
+                  Cetak Bon
+                </Button>
+              )}
             </div>
           </div>
         ) : (

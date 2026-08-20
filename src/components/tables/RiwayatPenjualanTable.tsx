@@ -8,6 +8,7 @@ import { useState } from 'react'
 import { Eye, Printer } from 'lucide-react'
 import { usePagination } from '@/hooks/usePagination'
 import { voidSale } from '@/actions/void-transactions'
+import { fulfillIndentSale } from '@/actions/transactions'
 import { useToast } from '@/components/ui/Toast'
 import { FakturModal } from '@/components/print/FakturModal'
 
@@ -38,6 +39,7 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
   const [isVoiding, setIsVoiding] = useState(false)
   const [showVoidPrompt, setShowVoidPrompt] = useState(false)
   const [showFaktur, setShowFaktur] = useState(false)
+  const [isFulfilling, setIsFulfilling] = useState(false)
   const { showToast } = useToast()
 
   const handleVoid = async () => {
@@ -60,6 +62,25 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
       showToast('error', e.message)
     } finally {
       setIsVoiding(false)
+    }
+  }
+
+  const handleFulfillIndent = async () => {
+    if (!selectedSale || selectedSale.status_transaksi !== 'INDENT') return
+    setIsFulfilling(true)
+    try {
+      // Idealnya ada prompt untuk pilih metode pelunasan, tapi kita default ke CASH dulu atau gunakan metode awal
+      const res = await fulfillIndentSale(selectedSale.id, selectedSale.payment_method || 'CASH')
+      if (res.success) {
+        showToast('success', res.message)
+        setSelectedSale(null)
+      } else {
+        showToast('error', res.error)
+      }
+    } catch (e: any) {
+      showToast('error', e.message)
+    } finally {
+      setIsFulfilling(false)
     }
   }
 
@@ -92,15 +113,17 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
               return (
                 <tr 
                   key={s.id} 
-                  className={`border-b hover:bg-gray-50 cursor-pointer ${s.status_transaksi === 'VOID' ? 'bg-red-50/30 opacity-70' : s.status_transaksi === 'REVERSAL' ? 'bg-yellow-50/30' : 'border-gray-50'}`}
+                  className={`border-b hover:bg-gray-50 cursor-pointer ${(s.status_transaksi === 'VOID' || s.status_transaksi === 'VOID INDENT') ? 'bg-red-50/30 opacity-70' : s.status_transaksi === 'REVERSAL' ? 'bg-yellow-50/30' : 'border-gray-50'}`}
                   onClick={() => setSelectedSale(s)}
                 >
                   <td className="px-4 py-3 font-mono text-xs font-medium">
-                    <span className={s.status_transaksi === 'VOID' ? 'text-red-700 line-through' : s.status_transaksi === 'REVERSAL' ? 'text-yellow-700' : 'text-green-700'}>
+                    <span className={(s.status_transaksi === 'VOID' || s.status_transaksi === 'VOID INDENT') ? 'text-red-700 line-through' : s.status_transaksi === 'REVERSAL' ? 'text-yellow-700' : s.status_transaksi === 'INDENT' ? 'text-purple-700' : 'text-green-700'}>
                       {s.kode_penjualan}
                     </span>
                     {s.status_transaksi === 'VOID' && <span className="ml-2 bg-red-100 text-red-700 px-2 py-0.5 rounded text-[10px]">VOID</span>}
+                    {s.status_transaksi === 'VOID INDENT' && <span className="ml-2 bg-red-100 text-red-700 px-2 py-0.5 rounded text-[10px] font-bold">VOID INDEN</span>}
                     {s.status_transaksi === 'REVERSAL' && <span className="ml-2 bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded text-[10px]">REVERSAL</span>}
+                    {s.status_transaksi === 'INDENT' && <span className="ml-2 bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-[10px] font-bold">INDEN</span>}
                   </td>
                   <td className="px-4 py-3 text-gray-600">{formatDateTime(s.tanggal)}</td>
                   <td className="px-4 py-3 text-gray-600">{s.customer_name ?? '—'}</td>
@@ -135,7 +158,10 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
               <div>
                 <p className="text-xs text-gray-500 mb-1">Kode Bon</p>
-                <p className="font-mono text-sm font-medium text-gray-900">{selectedSale.kode_penjualan}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-mono text-sm font-medium text-gray-900">{selectedSale.kode_penjualan}</p>
+                  {selectedSale.status_transaksi === 'INDENT' && <span className="bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-[10px] font-bold">INDEN</span>}
+                </div>
               </div>
               <div>
                 <p className="text-xs text-gray-500 mb-1">Tanggal</p>
@@ -204,6 +230,18 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
                 <span>Total</span>
                 <span className="text-lg">{formatRupiah(selectedSale.total)}</span>
               </div>
+              {selectedSale.status_transaksi === 'INDENT' && (
+                <>
+                  <div className="flex justify-between text-sm font-medium text-blue-700 pt-2 border-t border-gray-200 mt-2">
+                    <span>DP Masuk</span>
+                    <span>{formatRupiah(selectedSale.dp_amount || 0)}</span>
+                  </div>
+                  <div className="flex justify-between font-bold text-red-600 pt-1">
+                    <span>Sisa Tagihan</span>
+                    <span>{formatRupiah(selectedSale.total - (selectedSale.dp_amount || 0))}</span>
+                  </div>
+                </>
+              )}
             </div>
             
             {(selectedSale.keterangan || selectedSale.kendaraan_nopol) && (
@@ -217,13 +255,13 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
               </div>
             )}
 
-            {selectedSale.status_transaksi === 'VOID' && selectedSale.void_reason && (
+            {(selectedSale.status_transaksi === 'VOID' || selectedSale.status_transaksi === 'VOID INDENT') && selectedSale.void_reason && (
               <div className="bg-red-50 p-3 rounded-lg text-sm text-red-800 mt-2">
                 <strong>Alasan Pembatalan:</strong> {selectedSale.void_reason}
               </div>
             )}
 
-            {!showVoidPrompt && selectedSale.status_transaksi !== 'VOID' && selectedSale.status_transaksi !== 'REVERSAL' && (
+            {!showVoidPrompt && selectedSale.status_transaksi !== 'VOID' && selectedSale.status_transaksi !== 'VOID INDENT' && selectedSale.status_transaksi !== 'REVERSAL' && (
               <div className="pt-4 border-t border-gray-100 flex justify-between">
                 <button 
                   onClick={(e) => { e.stopPropagation(); setShowVoidPrompt(true) }}
@@ -231,16 +269,29 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
                 >
                   Batalkan Transaksi (Void)
                 </button>
-                <button 
-                  onClick={(e) => { 
-                    e.stopPropagation()
-                    setShowFaktur(true)
-                  }}
-                  className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
-                >
-                  <Printer className="h-4 w-4" />
-                  Cetak Bon
-                </button>
+                <div className="flex gap-2">
+                  {selectedSale.status_transaksi === 'INDENT' && (
+                    <button 
+                      onClick={handleFulfillIndent}
+                      disabled={isFulfilling}
+                      className="px-4 py-3 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      {isFulfilling ? 'Memproses...' : 'Selesaikan Inden'}
+                    </button>
+                  )}
+                  {selectedSale.status_transaksi !== 'INDENT' && (
+                    <button 
+                      onClick={(e) => { 
+                        e.stopPropagation()
+                        setShowFaktur(true)
+                      }}
+                      className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
+                    >
+                      <Printer className="h-4 w-4" />
+                      Cetak Bon
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 

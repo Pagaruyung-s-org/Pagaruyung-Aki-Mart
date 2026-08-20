@@ -62,7 +62,7 @@ export interface ExpenseCategory {
 
 export type StatusPembayaran = 'LUNAS' | 'HUTANG' | 'PARSIAL'
 export type StatusTransaksi = 'DRAFT' | 'POSTED' | 'CANCELLED'
-export type StatusPenjualan = 'DRAFT' | 'PAID' | 'CANCELLED'
+export type StatusPenjualan = 'DRAFT' | 'PAID' | 'CANCELLED' | 'INDENT' | 'VOID' | 'REVERSAL' | 'VOID INDENT'
 export type PaymentMethod = 'CASH' | 'TRANSFER' | 'QRIS' | 'BRANKAS'
 
 export interface PurchaseTransaction {
@@ -143,6 +143,7 @@ export interface Sale {
   subtotal: number
   discount: number
   total: number
+  dp_amount: number
   payment_method: PaymentMethod
   status_transaksi: StatusPenjualan
   keterangan: string | null
@@ -277,6 +278,8 @@ export interface CreateSaleInput {
   payment_method: PaymentMethod
   discount?: number
   keterangan?: string
+  is_indent?: boolean
+  dp_amount?: number
   items: SaleItemInput[]
 }
 

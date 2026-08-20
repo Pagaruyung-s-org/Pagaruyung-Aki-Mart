@@ -15,7 +15,7 @@ import { useToast } from '@/components/ui/Toast'
 interface Product {
   id: string; merk: string; kategori: string; type: string | null
   kode_baterai: string | null; kapasitas_ah: number; kode_produk: string
-  harga_jual: number; qty_stok: number
+  harga_jual: number; qty_stok: number; status: boolean
 }
 
 interface SaleItem {
@@ -32,7 +32,7 @@ export function FormPenjualan({
   products: Product[]
   airAkiProducts?: Product[]
   showAirAkiCheckbox?: boolean
-  onSuccess?: (saleData?: { id: string; kode: string }) => void
+  onSuccess?: (saleData?: { id: string; kode: string; isIndent?: boolean }) => void
   onCancel?: () => void
 }) {
   const router = useRouter()
@@ -43,6 +43,8 @@ export function FormPenjualan({
   const [bank, setBank] = useState('')
   const [keterangan, setKeterangan] = useState('')
   const [items, setItems] = useState<SaleItem[]>([{ product_id: '', qty: 1, harga_jual: 0, discount: 0 }])
+  const [isIndent, setIsIndent] = useState(false)
+  const [dpAmount, setDpAmount] = useState<number | ''>('')
   
   // State khusus Sertakan Air Aki
   const [includeAirAki, setIncludeAirAki] = useState(false)
@@ -53,6 +55,7 @@ export function FormPenjualan({
   const { showToast } = useToast()
 
   function getProduct(id: string) { return products.find(p => p.id === id) ?? airAkiProducts.find(p => p.id === id) }
+  const visibleProducts = isIndent ? products : products.filter(p => p.status === true)
 
   function updateItem(idx: number, field: keyof SaleItem, value: string | number) {
     const updated = [...items]
@@ -76,7 +79,7 @@ export function FormPenjualan({
     for (const item of items) {
       if (item.product_id && item.qty > 0) {
         const p = getProduct(item.product_id)
-        if (p && item.qty > p.qty_stok) {
+        if (!isIndent && p && item.qty > p.qty_stok) {
           const pName = p.kategori === 'Air Aki'
             ? p.merk
             : [p.merk, p.kategori, p.type, p.kode_baterai, `${p.kapasitas_ah}AH`].filter(Boolean).join(' · ')
@@ -119,13 +122,15 @@ export function FormPenjualan({
         payment_method: paymentMethod,
         discount: 0,
         keterangan: finalKeterangan || undefined,
+        is_indent: isIndent,
+        dp_amount: isIndent ? (Number(dpAmount) || 0) : 0,
         items: validItems.map(i => ({ product_id: i.product_id, qty: i.qty, harga_jual: i.harga_jual, discount: i.discount })),
       })
       if (!result.success) { showToast('error', result.error); return }
       showToast('success', result.message)
       setTimeout(() => {
         router.refresh()
-        if (onSuccess) onSuccess(result.data)
+        if (onSuccess) onSuccess(result.data ? { ...result.data, isIndent } : undefined)
         else router.push('/penjualan')
       }, 1500)
     })
@@ -135,7 +140,13 @@ export function FormPenjualan({
     <form onSubmit={handleSubmit} className="space-y-6">
 
       <Card>
-        <CardHeader><h2 className="text-sm font-semibold text-gray-900">Informasi Penjualan</h2></CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <h2 className="text-sm font-semibold text-gray-900">Informasi Penjualan</h2>
+          <label className="flex items-center gap-2 text-sm font-medium text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors border border-blue-200">
+            <input type="checkbox" className="rounded border-blue-300 text-blue-600 focus:ring-blue-500" checked={isIndent} onChange={(e) => setIsIndent(e.target.checked)} />
+            Simpan Sebagai Inden
+          </label>
+        </CardHeader>
         <CardBody className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Input label="Nama Customer (opsional)" id="customer_name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Nama customer jika perlu dicatat" />
           <Select label="Metode Pembayaran" id="payment_method" value={paymentMethod} onChange={(e) => {
@@ -155,6 +166,11 @@ export function FormPenjualan({
               { value: 'MANDIRI', label: 'MANDIRI' }
             ]} 
           />
+          {isIndent && (
+             <div className="col-span-1 md:col-span-3">
+               <InputCurrency label="Nominal DP (Opsional, ketik 0 jika tanpa DP)" id="dp_amount" min="0" value={dpAmount} onChange={(val) => setDpAmount(val === '' ? '' : Number(val))} placeholder="0" required={isIndent} />
+             </div>
+          )}
         </CardBody>
       </Card>
 
@@ -182,7 +198,7 @@ export function FormPenjualan({
                         onChange={(e) => updateItem(idx, 'product_id', e.target.value)} 
                         required 
                         placeholder="-- Pilih Produk --" 
-                        options={products.map(p => ({ 
+                        options={visibleProducts.map(p => ({ 
                           value: p.id, 
                           label: p.kategori === 'Air Aki' 
                             ? p.merk
@@ -190,8 +206,8 @@ export function FormPenjualan({
                         }))} 
                       />
                     </div>
-                    <Input label="QTY" id={`qty-${idx}`} type="number" min="1" value={item.qty || ''} onChange={(e) => updateItem(idx, 'qty', Number(e.target.value))} required hint={product ? `Stok: ${product.qty_stok} unit` : undefined} placeholder="0" />
-                    <InputCurrency label="Harga Jual" id={`harga-${idx}`} min="0" value={item.harga_jual || ''} onChange={(val) => updateItem(idx, 'harga_jual', val === '' ? 0 : Number(val))} required disabled />
+                    <Input label="QTY" id={`qty-${idx}`} type="number" min="1" value={item.qty || ''} onChange={(e) => updateItem(idx, 'qty', Number(e.target.value))} required hint={product && !isIndent ? `Stok: ${product.qty_stok} unit` : undefined} placeholder="0" />
+                    <InputCurrency label="Harga Jual" id={`harga-${idx}`} min="0" value={item.harga_jual || ''} onChange={(val) => updateItem(idx, 'harga_jual', val === '' ? 0 : Number(val))} required disabled={!isIndent} />
                     
                     <InputCurrency 
                       label="Bayar" 

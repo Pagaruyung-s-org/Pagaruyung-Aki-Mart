@@ -38,6 +38,8 @@ const CreateSaleSchema = z.object({
   payment_method: z.enum(['CASH', 'TRANSFER', 'QRIS']),
   discount: z.number().min(0).optional(),
   keterangan: z.string().optional(),
+  is_indent: z.boolean().optional(),
+  dp_amount: z.number().min(0).optional(),
   items: z.array(CreateSaleItemSchema).optional().default([]),
 })
 
@@ -294,7 +296,7 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
     subtotal: number
     hpp_fifo: number
     laba_kotor: number
-    fifo: Awaited<ReturnType<typeof calculateFifo>>
+    fifo?: Awaited<ReturnType<typeof calculateFifo>>
   }
 
   const itemsWithFifo: ItemFifo[] = []
@@ -313,23 +315,29 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
       ? product.merk 
       : [product.merk, product.kategori, product.type, product.kode_baterai, `${product.kapasitas_ah}AH`].filter(Boolean).join(' · ')
 
-    if (!product.status) {
-      return { success: false, error: `Produk ${productName} tidak aktif` }
+    if (!data.is_indent && !product.status) {
+      return { success: false, error: `Produk ${productName} tidak aktif. Gunakan fitur Inden.` }
     }
-
-    const fifoResult = await calculateFifo(item.product_id, item.qty)
-    if (!fifoResult.success) {
-      return { success: false, error: `Stok ${productName} kurang. ${fifoResult.error}` }
-    }
-
-    // Lock opening balance
-    await lockOpeningBalance(item.product_id)
 
     const itemDiscount = item.discount ?? 0
     const subtotal = (item.qty * item.harga_jual) - itemDiscount
 
-    const hpp_fifo = fifoResult.total_hpp
-    const laba_kotor = subtotal - hpp_fifo
+    let hpp_fifo = 0
+    let laba_kotor = 0
+    let fifoResult = undefined
+
+    if (!data.is_indent) {
+      const result = await calculateFifo(item.product_id, item.qty)
+      if (!result.success) {
+        return { success: false, error: `Stok ${productName} kurang. ${result.error}` }
+      }
+      fifoResult = result
+      hpp_fifo = result.total_hpp
+      laba_kotor = subtotal - hpp_fifo
+      
+      // Lock opening balance
+      await lockOpeningBalance(item.product_id)
+    }
 
     itemsWithFifo.push({
       product_id: item.product_id,
@@ -347,6 +355,11 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
   const discount = data.discount ?? 0
   const total = subtotalAll - discount
 
+  const dpAmount = data.is_indent ? (data.dp_amount ?? 0) : 0
+  if (data.is_indent && dpAmount > total) {
+    return { success: false, error: 'Nominal DP tidak boleh melebihi total penjualan' }
+  }
+
   // Generate kode penjualan
   const { data: kodeData } = await supabase.rpc('generate_kode_penjualan')
   const kode_penjualan = kodeData as string
@@ -361,8 +374,9 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
       subtotal: subtotalAll,
       discount,
       total,
+      dp_amount: dpAmount,
       payment_method: data.payment_method,
-      status_transaksi: 'PAID',
+      status_transaksi: data.is_indent ? 'INDENT' : 'PAID',
       keterangan: data.keterangan,
       created_by: user.id,
       include_air_aki: false, // legacy compat
@@ -398,59 +412,64 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
       return { success: false, error: saleItemError?.message ?? 'Gagal menyimpan item penjualan' }
     }
 
-    // Insert sale_batch_allocations (detail FIFO)
-    for (const alloc of itemData.fifo.allocations) {
-      await supabase.from('sale_batch_allocations').insert({
-        sale_item_id: saleItem.id,
-        batch_id: alloc.batch_id,
-        qty_used: alloc.qty_used,
-        harga_modal_unit: alloc.harga_modal_unit,
-        subtotal_hpp: alloc.subtotal_hpp,
+    if (!data.is_indent && itemData.fifo) {
+      // Insert sale_batch_allocations (detail FIFO)
+      for (const alloc of itemData.fifo.allocations) {
+        await supabase.from('sale_batch_allocations').insert({
+          sale_item_id: saleItem.id,
+          batch_id: alloc.batch_id,
+          qty_used: alloc.qty_used,
+          harga_modal_unit: alloc.harga_modal_unit,
+          subtotal_hpp: alloc.subtotal_hpp,
+        })
+      }
+
+      // Kurangi qty_tersedia batch FIFO
+      await applyFifoAllocations(itemData.fifo.allocations)
+
+      // Catat inventory movement (SALE)
+      await supabase.from('inventory_movements').insert({
+        product_id: itemData.product_id,
+        movement_type: 'SALE',
+        reference_id: sale.id,
+        reference_type: 'SALE',
+        qty_in: 0,
+        qty_out: itemData.qty,
+        transaction_date: new Date().toISOString(),
+        keterangan: `Penjualan ${kode_penjualan}`,
       })
-    }
 
-    // Kurangi qty_tersedia batch FIFO
-    await applyFifoAllocations(itemData.fifo.allocations)
-
-    // Catat inventory movement (SALE)
-    await supabase.from('inventory_movements').insert({
-      product_id: itemData.product_id,
-      movement_type: 'SALE',
-      reference_id: sale.id,
-      reference_type: 'SALE',
-      qty_in: 0,
-      qty_out: itemData.qty,
-      transaction_date: new Date().toISOString(),
-      keterangan: `Penjualan ${kode_penjualan}`,
-    })
-
-    // Update qty_stok produk
-    const { data: currentProduct } = await supabase
-      .from('products')
-      .select('qty_stok')
-      .eq('id', itemData.product_id)
-      .single()
-
-    if (currentProduct) {
-      await supabase
+      // Update qty_stok produk
+      const { data: currentProduct } = await supabase
         .from('products')
-        .update({ qty_stok: Math.max(0, currentProduct.qty_stok - itemData.qty) })
+        .select('qty_stok')
         .eq('id', itemData.product_id)
+        .single()
+
+      if (currentProduct) {
+        await supabase
+          .from('products')
+          .update({ qty_stok: Math.max(0, currentProduct.qty_stok - itemData.qty) })
+          .eq('id', itemData.product_id)
+      }
     }
   }
 
 
   // Catat kas masuk dari penjualan
-  await supabase.from('cash_transactions').insert({
-    tanggal: new Date().toISOString(),
-    account_type: 'KAS',
-    transaction_type: 'DEBIT',
-    reference_type: 'SALE',
-    reference_id: sale.id,
-    debit: total,
-    credit: 0,
-    description: `Penjualan ${kode_penjualan}`,
-  })
+  const cashIn = data.is_indent ? dpAmount : total
+  if (cashIn > 0) {
+    await supabase.from('cash_transactions').insert({
+      tanggal: new Date().toISOString(),
+      account_type: 'KAS',
+      transaction_type: 'DEBIT',
+      reference_type: 'SALE',
+      reference_id: sale.id,
+      debit: cashIn,
+      credit: 0,
+      description: data.is_indent ? `DP Inden ${kode_penjualan}` : `Penjualan ${kode_penjualan}`,
+    })
+  }
 
   revalidatePath('/penjualan')
   revalidatePath('/stok')
@@ -460,7 +479,7 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
   return {
     success: true,
     data: { id: sale.id, kode: kode_penjualan },
-    message: `Penjualan ${kode_penjualan} berhasil disimpan`,
+    message: data.is_indent ? `Inden ${kode_penjualan} berhasil disimpan` : `Penjualan ${kode_penjualan} berhasil disimpan`,
   }
 }
 
@@ -620,4 +639,129 @@ export async function createSupplierPayment(input: CreateSupplierPaymentInput): 
     data: { id: payment.id, kode: kode_pembayaran },
     message: `Pembayaran hutang ${kode_pembayaran} berhasil dicatat`,
   }
+}
+// ============================================================
+// SERVER ACTION: SELESAIKAN INDENT (Pelunasan)
+// ============================================================
+export async function fulfillIndentSale(saleId: string, pelunasanMethod: 'CASH' | 'TRANSFER' | 'QRIS'): Promise<ActionResult<null>> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Tidak terautentikasi' }
+
+  // Ambil data sale
+  const { data: sale, error: saleError } = await supabase
+    .from('sales')
+    .select(`*, sale_items(id, product_id, qty, subtotal)`)
+    .eq('id', saleId)
+    .single()
+
+  if (saleError || !sale) return { success: false, error: 'Transaksi tidak ditemukan' }
+  if (sale.status_transaksi !== 'INDENT') return { success: false, error: 'Transaksi bukan status INDENT' }
+
+  // Ambil semua produk terkait untuk cek status dan FIFO
+  for (const item of sale.sale_items) {
+    const { data: product } = await supabase
+      .from('products')
+      .select('id, status, merk, kategori, type, kode_baterai, kapasitas_ah')
+      .eq('id', item.product_id)
+      .single()
+
+    if (!product) return { success: false, error: 'Produk pada nota tidak ditemukan di master data' }
+
+    const productName = product.kategori === 'Air Aki' 
+      ? product.merk 
+      : [product.merk, product.kategori, product.type, product.kode_baterai, `${product.kapasitas_ah}AH`].filter(Boolean).join(' · ')
+
+    if (!product.status) {
+      return { success: false, error: `Produk ${productName} masih berstatus tidak aktif. Silakan aktifkan terlebih dahulu atau pastikan stoknya sudah masuk.` }
+    }
+
+    const fifoResult = await calculateFifo(item.product_id, item.qty)
+    if (!fifoResult.success) {
+      return { success: false, error: `Stok ${productName} kurang untuk memenuhi Inden. ${fifoResult.error}` }
+    }
+  }
+
+  // Lakukan pemotongan stok dan update HPP
+  for (const item of sale.sale_items) {
+    const fifoResult = await calculateFifo(item.product_id, item.qty)
+    if (!fifoResult.success) throw new Error('Stok kurang mendadak') // Seharusnya tidak terjadi karena sudah dicek
+
+    await lockOpeningBalance(item.product_id)
+
+    const hpp_fifo = fifoResult.total_hpp
+    const laba_kotor = item.subtotal - hpp_fifo
+
+    // Update sale_item dengan HPP dan laba kotor
+    await supabase.from('sale_items').update({
+      hpp_fifo,
+      laba_kotor
+    }).eq('id', item.id)
+
+    // Insert sale_batch_allocations
+    for (const alloc of fifoResult.allocations) {
+      await supabase.from('sale_batch_allocations').insert({
+        sale_item_id: item.id,
+        batch_id: alloc.batch_id,
+        qty_used: alloc.qty_used,
+        harga_modal_unit: alloc.harga_modal_unit,
+        subtotal_hpp: alloc.subtotal_hpp,
+      })
+    }
+
+    // Kurangi qty_tersedia batch FIFO
+    await applyFifoAllocations(fifoResult.allocations)
+
+    // Catat inventory movement
+    await supabase.from('inventory_movements').insert({
+      product_id: item.product_id,
+      movement_type: 'SALE',
+      reference_id: sale.id,
+      reference_type: 'SALE',
+      qty_in: 0,
+      qty_out: item.qty,
+      transaction_date: new Date().toISOString(),
+      keterangan: `Penyelesaian Inden ${sale.kode_penjualan}`,
+    })
+
+    // Update qty_stok produk
+    const { data: currentProduct } = await supabase
+      .from('products')
+      .select('qty_stok')
+      .eq('id', item.product_id)
+      .single()
+
+    if (currentProduct) {
+      await supabase
+        .from('products')
+        .update({ qty_stok: Math.max(0, currentProduct.qty_stok - item.qty) })
+        .eq('id', item.product_id)
+    }
+  }
+
+  // Catat pelunasan kas jika ada sisa bayar
+  const sisaBayar = sale.total - (sale.dp_amount ?? 0)
+  if (sisaBayar > 0) {
+    await supabase.from('cash_transactions').insert({
+      tanggal: new Date().toISOString(),
+      account_type: 'KAS', // Kita asumsikan KAS dulu, idealnya ngikut payment_method pelunasan
+      transaction_type: 'DEBIT',
+      reference_type: 'SALE',
+      reference_id: sale.id,
+      debit: sisaBayar,
+      credit: 0,
+      description: `Pelunasan Inden ${sale.kode_penjualan}`,
+    })
+  }
+
+  // Update header sales
+  await supabase.from('sales').update({
+    status_transaksi: 'PAID'
+  }).eq('id', sale.id)
+
+  revalidatePath('/penjualan')
+  revalidatePath('/stok')
+  revalidatePath('/dashboard')
+
+  return { success: true, data: null, message: `Inden ${sale.kode_penjualan} berhasil diselesaikan` }
 }
