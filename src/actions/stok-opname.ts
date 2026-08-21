@@ -419,7 +419,7 @@ export async function getSessionHistory() {
       *,
       opname_items (count)
     `)
-    .in('status', ['COMPLETED', 'EXPIRED'])
+    .in('status', ['COMPLETED', 'EXPIRED', 'CANCELLED'])
     .order('created_at', { ascending: false })
     .limit(50)
 
@@ -450,6 +450,35 @@ export async function getSessionDetail(sessionId: string) {
 // ============================================================
 // 7. GET LATEST HARGA MODAL (for UI pre-fill)
 // ============================================================
-export async function getLatestHargaModalForProduct(productId: string): Promise<number | null> {
-  return await getLatestHargaModal(productId)
+export async function getLatestHargaModalForProduct(productId: string) {
+  return getLatestHargaModal(productId)
+}
+
+// ============================================================
+// 7. CANCEL OPNAME SESSION
+// ============================================================
+export async function cancelOpnameSession(sessionId: string): Promise<ActionResult> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Tidak terautentikasi' }
+
+  const { data: session } = await supabase
+    .from('opname_sessions')
+    .select('id, status, kode_opname')
+    .eq('id', sessionId)
+    .single()
+
+  if (!session) return { success: false, error: 'Sesi tidak ditemukan' }
+  if (session.status !== 'IN_PROGRESS') return { success: false, error: `Sesi tidak bisa dibatalkan karena berstatus ${session.status}` }
+
+  // Ubah status menjadi CANCELLED (Batal) daripada di-delete untuk menghindari error RLS
+  const { error } = await supabase
+    .from('opname_sessions')
+    .update({ status: 'CANCELLED' })
+    .eq('id', sessionId)
+    
+  if (error) return { success: false, error: error.message }
+
+  revalidatePath('/stok-opname')
+  return { success: true, message: `Sesi opname ${session.kode_opname} berhasil dibatalkan` }
 }

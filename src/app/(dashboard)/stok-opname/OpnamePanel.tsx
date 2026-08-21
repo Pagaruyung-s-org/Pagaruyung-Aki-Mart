@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { OpnameHistoryTable } from './OpnameHistoryTable'
 import { StartOpnameModal } from './StartOpnameModal'
-import { savePhysicalCount, completeOpnameSession, getLatestHargaModalForProduct } from '@/actions/stok-opname'
+import { savePhysicalCount, completeOpnameSession, getLatestHargaModalForProduct, cancelOpnameSession } from '@/actions/stok-opname'
 import { useToast } from '@/components/ui/Toast'
-import { Play, Save, CheckCircle2, AlertTriangle, Search, ClipboardCheck } from 'lucide-react'
+import { Play, Save, CheckCircle2, AlertTriangle, Search, ClipboardCheck, X } from 'lucide-react'
+import { Modal } from '@/components/ui/Modal'
 
 export function OpnamePanel({
   activeSession,
@@ -19,18 +21,27 @@ export function OpnamePanel({
   const [isStartModalOpen, setIsStartModalOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isCompleting, setIsCompleting] = useState(false)
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
   const [search, setSearch] = useState('')
   const { showToast } = useToast()
+  const router = useRouter()
 
-  // Local state for active session items to allow input
-  const [items, setItems] = useState<any[]>(
-    activeSession?.opname_items?.map((item: any) => ({
-      ...item,
-      input_qty: item.physical_qty !== null ? item.physical_qty.toString() : '',
-      input_keterangan: item.keterangan || '',
-      input_harga_modal: item.harga_modal_aktual !== null ? item.harga_modal_aktual?.toString() : '',
-    })) || []
-  )
+  const [items, setItems] = useState<any[]>([])
+
+  useEffect(() => {
+    if (activeSession?.opname_items) {
+      setItems(
+        activeSession.opname_items.map((item: any) => ({
+          ...item,
+          input_qty: item.physical_qty !== null ? item.physical_qty.toString() : '',
+          input_keterangan: item.keterangan || '',
+          input_harga_modal: item.harga_modal_aktual !== null ? item.harga_modal_aktual?.toString() : '',
+        }))
+      )
+    } else {
+      setItems([])
+    }
+  }, [activeSession])
 
   const handleInputChange = (id: string, field: string, value: string) => {
     setItems(items.map(item => item.id === id ? { ...item, [field]: value } : item))
@@ -84,7 +95,25 @@ export function OpnamePanel({
       const result = await completeOpnameSession(activeSession.id)
       if (result.success) {
         showToast('success', result.message)
-        // Refresh page or let Next.js handle revalidation
+        router.refresh()
+      } else {
+        showToast('error', result.error)
+      }
+    } catch (e) {
+      showToast('error', 'Terjadi kesalahan jaringan')
+    } finally {
+      setIsCompleting(false)
+    }
+  }
+
+  const handleCancel = async () => {
+    setIsCancelModalOpen(false)
+    setIsCompleting(true)
+    try {
+      const result = await cancelOpnameSession(activeSession.id)
+      if (result.success) {
+        showToast('success', result.message)
+        router.refresh()
       } else {
         showToast('error', result.error)
       }
@@ -129,16 +158,23 @@ export function OpnamePanel({
             </div>
             <div className="flex items-center gap-2">
               <button
+                onClick={() => setIsCancelModalOpen(true)}
+                disabled={isSaving || isCompleting}
+                className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 whitespace-nowrap"
+              >
+                <X className="h-4 w-4" /> {isCompleting ? 'Memproses...' : 'Batal Opname'}
+              </button>
+              <button
                 onClick={handleSaveDraft}
                 disabled={isSaving || isCompleting}
-                className="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
+                className="bg-blue-700 hover:bg-blue-800 text-white px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50 whitespace-nowrap"
               >
                 <Save className="h-4 w-4" /> {isSaving ? 'Menyimpan...' : 'Simpan Draft'}
               </button>
               <button
                 onClick={handleComplete}
                 disabled={isSaving || isCompleting}
-                className="bg-white text-blue-700 hover:bg-blue-50 px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 transition-colors cursor-pointer shadow-sm disabled:opacity-50"
+                className="bg-white text-blue-700 hover:bg-blue-50 px-3 py-1.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm disabled:opacity-50 whitespace-nowrap"
               >
                 <CheckCircle2 className="h-4 w-4" /> {isCompleting ? 'Memproses...' : 'Selesaikan Opname'}
               </button>
@@ -154,7 +190,7 @@ export function OpnamePanel({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Cari produk dalam sesi..."
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm bg-white"
+                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm bg-white text-gray-900"
               />
             </div>
             <div className="text-sm font-medium text-gray-600">
@@ -276,6 +312,34 @@ export function OpnamePanel({
           />
         </div>
       )}
+      
+      <Modal
+        isOpen={isCancelModalOpen}
+        onClose={() => setIsCancelModalOpen(false)}
+        title="Batalkan Sesi Opname"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-600">
+            Apakah Anda yakin ingin membatalkan sesi opname ini? Semua data draft yang telah diisi akan terhapus.
+          </p>
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              onClick={() => setIsCancelModalOpen(false)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+            >
+              Kembali
+            </button>
+            <button
+              onClick={handleCancel}
+              disabled={isCompleting}
+              className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {isCompleting ? 'Memproses...' : 'Ya, Batalkan'}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

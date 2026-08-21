@@ -41,8 +41,12 @@ export function OpnameDetailModal({ isOpen, onClose, session }: OpnameDetailModa
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
                   <CheckCircle2 className="h-3 w-3" /> Selesai
                 </span>
-              ) : session.status === 'EXPIRED' ? (
+              ) : session.status === 'CANCELLED' ? (
                 <span className="inline-flex items-center gap-1 text-xs font-medium text-red-700 bg-red-100 px-2 py-0.5 rounded-full">
+                  <XCircle className="h-3 w-3" /> Batal
+                </span>
+              ) : session.status === 'EXPIRED' ? (
+                <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-700 bg-gray-100 px-2 py-0.5 rounded-full">
                   <XCircle className="h-3 w-3" /> Kadaluarsa
                 </span>
               ) : (

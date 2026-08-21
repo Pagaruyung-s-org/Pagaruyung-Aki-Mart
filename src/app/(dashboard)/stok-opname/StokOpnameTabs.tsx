@@ -73,31 +73,30 @@ export function StokOpnameTabs({
   }
 
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-4">
-        <Tabs tabs={tabs} contents={contents} />
-        
-        {/* Toggle untuk Super Admin */}
-        {userRole === 'SUPER_ADMIN' && (
-          <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm self-start">
-            <Settings className="h-4 w-4 text-gray-500" />
-            <span className="text-sm font-medium text-gray-700">Fitur Opening Balance:</span>
-            <button
-              onClick={handleToggleOb}
-              disabled={isUpdating}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
-                obEnabled ? 'bg-blue-600' : 'bg-gray-200'
-              } disabled:opacity-50`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  obEnabled ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
+      <Tabs 
+        tabs={tabs} 
+        contents={contents} 
+        rightContent={
+          userRole === 'SUPER_ADMIN' ? (
+            <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-xl border border-gray-200 shadow-sm">
+              <Settings className="h-4 w-4 text-gray-500" />
+              <span className="text-sm font-medium text-gray-700">Fitur Opening Balance:</span>
+              <button
+                onClick={handleToggleOb}
+                disabled={isUpdating}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
+                  obEnabled ? 'bg-blue-600' : 'bg-gray-200'
+                } disabled:opacity-50`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    obEnabled ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+          ) : undefined
+        }
+      />
   )
 }

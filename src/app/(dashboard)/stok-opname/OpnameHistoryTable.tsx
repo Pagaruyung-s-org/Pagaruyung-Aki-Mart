@@ -84,8 +84,12 @@ export function OpnameHistoryTable({ history }: { history: any[] }) {
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
                         <CheckCircle2 className="h-3.5 w-3.5" /> Selesai
                       </span>
-                    ) : (
+                    ) : session.status === 'CANCELLED' ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                        <XCircle className="h-3.5 w-3.5" /> Batal
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700">
                         <XCircle className="h-3.5 w-3.5" /> Kadaluarsa
                       </span>
                     )}
