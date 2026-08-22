@@ -11,7 +11,7 @@ export default async function KategoriPage() {
 
   const [role, { data: categories }] = await Promise.all([
     getUserRole(),
-    supabase.from('expense_categories').select('*').order('nama_kategori')
+    supabase.from('expense_categories').select('*').order('nama_kategori').order('id', { ascending: true })
   ])
 
   if (role === 'ADMIN') {

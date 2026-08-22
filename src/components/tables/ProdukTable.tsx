@@ -36,6 +36,7 @@ export function ProdukTable({ products, role, isAirAki }: ProdukTableProps) {
   const [search, setSearch] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [editProduct, setEditProduct] = useState<Product | null>(null)
+  const [hargaSupplier, setHargaSupplier] = useState<number | ''>('')
   const [hargaJual, setHargaJual] = useState<number | ''>('')
   const [error, setError] = useState('')
   const [isPending, startTransition] = useTransition()
@@ -179,7 +180,12 @@ export function ProdukTable({ products, role, isAirAki }: ProdukTableProps) {
 
   // Sort by stok
   const sorted = sortStok
-    ? [...filtered].sort((a, b) => sortStok === 'ASC' ? a.qty_stok - b.qty_stok : b.qty_stok - a.qty_stok)
+    ? [...filtered].sort((a, b) => {
+        if (a.qty_stok !== b.qty_stok) {
+          return sortStok === 'ASC' ? a.qty_stok - b.qty_stok : b.qty_stok - a.qty_stok
+        }
+        return a.id.localeCompare(b.id)
+      })
     : filtered
 
   const {
@@ -197,12 +203,14 @@ export function ProdukTable({ products, role, isAirAki }: ProdukTableProps) {
   function openCreate() {
     setEditProduct(null)
     setError('')
+    setHargaSupplier('')
     setHargaJual('')
     setModalOpen(true)
   }
   function openEdit(p: Product) {
     setEditProduct(p)
     setError('')
+    setHargaSupplier(p.harga_supplier ?? 0)
     setHargaJual(p.harga_jual)
     setModalOpen(true)
   }
@@ -367,6 +375,7 @@ export function ProdukTable({ products, role, isAirAki }: ProdukTableProps) {
                 {!isAirAki && <th className="text-center px-4 py-3 font-medium text-gray-600">Type</th>}
                 {!isAirAki && <th className="text-center px-4 py-3 font-medium text-gray-600">Kode Baterai</th>}
                 {!isAirAki && <th className="text-center px-4 py-3 font-medium text-gray-600">Kapasitas (AH)</th>}
+                <th className="text-right px-4 py-3 font-medium text-gray-600">Harga Supplier</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">Harga Jual</th>
                 <th className="text-center px-4 py-3 font-medium text-gray-600">
                   Stok
@@ -404,6 +413,7 @@ export function ProdukTable({ products, role, isAirAki }: ProdukTableProps) {
                       {!isAirAki && <td className="px-4 py-3 text-center text-gray-600">{p.type ?? '—'}</td>}
                       {!isAirAki && <td className="px-4 py-3 text-center text-gray-600">{p.kode_baterai ?? '—'}</td>}
                       {!isAirAki && <td className="px-4 py-3 text-center text-gray-700">{p.kapasitas_ah} AH</td>}
+                      <td className="px-4 py-3 text-right font-medium text-gray-600">{formatRupiah(p.harga_supplier ?? 0)}</td>
                       <td className="px-4 py-3 text-right font-medium text-gray-900">{formatRupiah(p.harga_jual)}</td>
                       <td className="px-4 py-3 text-center">
                         <span className={`font-semibold ${stok.color}`}>{p.qty_stok}</span>
@@ -524,16 +534,28 @@ export function ProdukTable({ products, role, isAirAki }: ProdukTableProps) {
             </div>
           )}
           {isAirAki && <input type="hidden" name="kapasitas_ah" value="0" />}
-          <InputCurrency
-            label="Harga Jual (Rp)"
-            name="harga_jual"
-            id="harga_jual"
-            min="0"
-            value={hargaJual}
-            onChange={(val) => setHargaJual(val)}
-            required
-            placeholder="mis: 750000"
-          />
+          <div className="grid grid-cols-2 gap-3">
+            <InputCurrency
+              label="Harga Supplier (Rp)"
+              name="harga_supplier"
+              id="harga_supplier"
+              min="0"
+              value={hargaSupplier}
+              onChange={(val) => setHargaSupplier(val)}
+              required
+              placeholder="mis: 600000"
+            />
+            <InputCurrency
+              label="Harga Jual (Rp)"
+              name="harga_jual"
+              id="harga_jual"
+              min="0"
+              value={hargaJual}
+              onChange={(val) => setHargaJual(val)}
+              required
+              placeholder="mis: 750000"
+            />
+          </div>
           {editProduct && (
             <input type="hidden" name="status" value={editProduct.status ? 'true' : 'false'} />
           )}

@@ -11,8 +11,8 @@ export default async function OperasionalPage() {
 
   const [role, { data: categories }, { data: employees }, { data: expenses }] = await Promise.all([
     getUserRole(),
-    supabase.from('expense_categories').select('*').eq('status', true).order('nama_kategori'),
-    supabase.from('employees').select('*').eq('status', true).order('nama_karyawan'),
+    supabase.from('expense_categories').select('*').eq('status', true).order('nama_kategori').order('id', { ascending: true }),
+    supabase.from('employees').select('*').eq('status', true).order('nama_karyawan').order('id', { ascending: true }),
     supabase.from('expenses').select(`
       *,
       expense_categories(nama_kategori),

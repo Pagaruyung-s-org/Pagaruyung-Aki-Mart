@@ -13,7 +13,7 @@ export default async function ProdukPage() {
   // Run independent queries concurrently
   const [role, { data: products }, { data: batches }] = await Promise.all([
     getUserRole(),
-    supabase.from('products').select('*').order('merk', { ascending: true }).order('kategori', { ascending: true }),
+    supabase.from('products').select('*').order('merk', { ascending: true }).order('kategori', { ascending: true }).order('id', { ascending: true }),
     supabase.from('inventory_batches').select('product_id, harga_modal_unit, tanggal_masuk').order('created_at', { ascending: false })
   ])
 
@@ -44,7 +44,9 @@ export default async function ProdukPage() {
     if (aLow !== bLow) {
       return bLow - aLow // 1 comes before 0
     }
-    return a.merk.localeCompare(b.merk)
+    const merkCompare = a.merk.localeCompare(b.merk)
+    if (merkCompare !== 0) return merkCompare
+    return a.id.localeCompare(b.id)
   })
   // Separate by category
   const productsAki = productsWithModal.filter((p) => p.kategori !== 'Air Aki')

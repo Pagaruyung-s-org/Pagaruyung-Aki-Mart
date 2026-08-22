@@ -18,6 +18,7 @@ export interface Product {
   type: string | null
   kode_baterai: string | null
   kapasitas_ah: number
+  harga_supplier: number
   harga_jual: number
   qty_stok: number
   status: boolean

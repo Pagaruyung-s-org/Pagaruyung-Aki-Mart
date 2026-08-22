@@ -10,7 +10,7 @@ export default async function SupplierPage() {
 
   const [role, { data: suppliers }] = await Promise.all([
     getUserRole(),
-    supabase.from('suppliers').select('*').order('nama_supplier', { ascending: true })
+    supabase.from('suppliers').select('*').order('nama_supplier', { ascending: true }).order('id', { ascending: true })
   ])
 
   return (

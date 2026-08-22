@@ -16,6 +16,7 @@ const ProductSchema = z.object({
   type: z.string().optional(),
   kode_baterai: z.string().optional(),
   kapasitas_ah: z.number().min(0, 'Kapasitas tidak boleh negatif'),
+  harga_supplier: z.number().min(0, 'Harga supplier tidak boleh negatif'),
   harga_jual: z.number().min(0, 'Harga jual tidak boleh negatif'),
   status: z.boolean().default(true),
 })
@@ -32,6 +33,7 @@ export async function createProduct(formData: FormData) {
     type: formData.get('type') as string || undefined,
     kode_baterai: formData.get('kode_baterai') as string || undefined,
     kapasitas_ah: Number(formData.get('kapasitas_ah')),
+    harga_supplier: Number(formData.get('harga_supplier')),
     harga_jual: Number(formData.get('harga_jual')),
     status: formData.has('status') ? formData.get('status') === 'true' : true,
   }
@@ -76,6 +78,7 @@ export async function updateProduct(id: string, formData: FormData) {
     type: formData.get('type') as string || undefined,
     kode_baterai: formData.get('kode_baterai') as string || undefined,
     kapasitas_ah: Number(formData.get('kapasitas_ah')),
+    harga_supplier: Number(formData.get('harga_supplier')),
     harga_jual: Number(formData.get('harga_jual')),
     status: formData.get('status') === 'true',
   }

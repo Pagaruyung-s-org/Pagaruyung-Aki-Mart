@@ -19,6 +19,7 @@ interface Product {
   kode_produk: string
   harga_jual: number
   qty_stok: number
+  status: boolean
 }
 
 interface PenjualanModalButtonProps {

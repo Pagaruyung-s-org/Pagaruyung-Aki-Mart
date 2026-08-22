@@ -10,7 +10,7 @@ export default async function KaryawanPage() {
 
   const [role, { data: employees }] = await Promise.all([
     getUserRole(),
-    supabase.from('employees').select('*').order('nama_karyawan')
+    supabase.from('employees').select('*').order('nama_karyawan').order('id', { ascending: true })
   ])
 
   return (
