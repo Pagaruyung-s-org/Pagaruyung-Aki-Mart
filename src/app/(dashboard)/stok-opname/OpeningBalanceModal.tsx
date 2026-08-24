@@ -24,7 +24,7 @@ export function OpeningBalanceModal({ isOpen, onClose, product, existingBalance 
     if (isOpen) {
       if (existingBalance) {
         setQty(existingBalance.qty.toString())
-        setHargaModal(existingBalance.harga_modal.toString())
+        setHargaModal(new Intl.NumberFormat('id-ID').format(existingBalance.harga_modal))
         setKeterangan(existingBalance.keterangan || '')
       } else {
         setQty('')
@@ -42,11 +42,12 @@ export function OpeningBalanceModal({ isOpen, onClose, product, existingBalance 
   }
 
   const handleSubmit = async () => {
+    const hargaModalNum = hargaModal ? Number(hargaModal.replace(/\D/g, '')) : 0
     if (!qty || Number(qty) < 0) {
       showToast('error', 'Qty harus diisi dan tidak boleh negatif')
       return
     }
-    if (!hargaModal || Number(hargaModal) <= 0) {
+    if (!hargaModalNum || hargaModalNum <= 0) {
       showToast('error', 'Harga modal harus diisi lebih dari 0')
       return
     }
@@ -56,7 +57,7 @@ export function OpeningBalanceModal({ isOpen, onClose, product, existingBalance 
       const result = await saveOpeningBalance({
         product_id: product.id,
         qty: Number(qty),
-        harga_modal: Number(hargaModal),
+        harga_modal: hargaModalNum,
         keterangan
       })
 
@@ -102,17 +103,20 @@ export function OpeningBalanceModal({ isOpen, onClose, product, existingBalance 
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
             <input
-              type="number"
-              min="0"
+              type="text"
+              inputMode="numeric"
               value={hargaModal}
-              onChange={(e) => setHargaModal(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value.replace(/\D/g, '')
+                setHargaModal(val ? new Intl.NumberFormat('id-ID').format(Number(val)) : '')
+              }}
               className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm text-gray-900 bg-white placeholder-gray-400"
               placeholder="0"
             />
           </div>
-          {hargaModal && Number(hargaModal) > 0 && qty && Number(qty) > 0 && (
+          {hargaModal && Number(hargaModal.replace(/\D/g, '')) > 0 && qty && Number(qty) > 0 && (
             <p className="text-xs text-gray-500 mt-1">
-              Total Nilai Aset: {formatRupiah(Number(hargaModal) * Number(qty))}
+              Total Nilai Aset: {formatRupiah(Number(hargaModal.replace(/\D/g, '')) * Number(qty))}
             </p>
           )}
         </div>
