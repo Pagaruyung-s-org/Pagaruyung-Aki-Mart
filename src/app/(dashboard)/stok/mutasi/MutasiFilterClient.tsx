@@ -34,8 +34,8 @@ export function MutasiFilterClient({
             ...products.map(p => ({
               value: p.id,
               label: p.kategori === 'Air Aki' 
-                ? p.merk 
-                : [p.merk, p.type, p.kode_baterai, `${p.kapasitas_ah}AH`].filter(Boolean).join(' ')
+                ? [p.merk, p.kategori].filter(Boolean).join(' ')
+                : [p.merk, p.kategori, p.type, p.kode_baterai, `${p.kapasitas_ah}AH`].filter(Boolean).join(' ')
             }))
           ]}
         />

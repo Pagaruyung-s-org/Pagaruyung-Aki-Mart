@@ -46,7 +46,7 @@ export function MutasiStokTable({ data }: { data: any[] }) {
             ) : (
               currentData.map(row => {
                 const isMasuk = row.qty_in > 0
-                
+
                 return (
                   <tr key={row.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-6 py-4">
@@ -54,9 +54,9 @@ export function MutasiStokTable({ data }: { data: any[] }) {
                     </td>
                     <td className="px-6 py-4">
                       <div className="font-medium text-gray-900">
-                        {row.products?.kategori === 'Air Aki' 
-                          ? row.products?.merk 
-                          : [row.products?.merk, row.products?.type, row.products?.kode_baterai, `${row.products?.kapasitas_ah}AH`].filter(Boolean).join(' ')}
+                        {row.products?.kategori === 'Air Aki'
+                          ? [row.products?.merk, row.products?.kategori].filter(Boolean).join(' ')
+                          : [row.products?.merk, row.products?.kategori, row.products?.type, row.products?.kode_baterai, `${row.products?.kapasitas_ah}AH`].filter(Boolean).join(' ')}
                       </div>
                       <div className="text-xs text-gray-500">{row.products?.kode_produk}</div>
                     </td>
