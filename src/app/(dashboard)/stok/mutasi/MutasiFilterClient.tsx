@@ -18,6 +18,8 @@ export function MutasiFilterClient({
   yearOptions: number[]
 }) {
   const [product, setProduct] = useState(initialProduct)
+  const [month, setMonth] = useState(initialMonth)
+  const [year, setYear] = useState(initialYear)
 
   return (
     <form className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
@@ -39,34 +41,36 @@ export function MutasiFilterClient({
         />
       </div>
 
-      <select 
-        name="m" 
-        defaultValue={initialMonth}
-        className="border border-gray-300 rounded-lg h-[38px] px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm text-gray-700"
-      >
-        <option value="1">Januari</option>
-        <option value="2">Februari</option>
-        <option value="3">Maret</option>
-        <option value="4">April</option>
-        <option value="5">Mei</option>
-        <option value="6">Juni</option>
-        <option value="7">Juli</option>
-        <option value="8">Agustus</option>
-        <option value="9">September</option>
-        <option value="10">Oktober</option>
-        <option value="11">November</option>
-        <option value="12">Desember</option>
-      </select>
+      <div className="w-[140px]">
+        <Select 
+          name="m" 
+          value={month}
+          onChange={(e) => setMonth(e.target.value)}
+          options={[
+            { value: "1", label: "Januari" },
+            { value: "2", label: "Februari" },
+            { value: "3", label: "Maret" },
+            { value: "4", label: "April" },
+            { value: "5", label: "Mei" },
+            { value: "6", label: "Juni" },
+            { value: "7", label: "Juli" },
+            { value: "8", label: "Agustus" },
+            { value: "9", label: "September" },
+            { value: "10", label: "Oktober" },
+            { value: "11", label: "November" },
+            { value: "12", label: "Desember" }
+          ]}
+        />
+      </div>
       
-      <select 
-        name="y" 
-        defaultValue={initialYear}
-        className="border border-gray-300 rounded-lg h-[38px] px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm text-gray-700"
-      >
-        {yearOptions.map(y => (
-          <option key={y} value={y}>{y}</option>
-        ))}
-      </select>
+      <div className="w-[110px]">
+        <Select 
+          name="y" 
+          value={year}
+          onChange={(e) => setYear(e.target.value)}
+          options={yearOptions.map(y => ({ value: String(y), label: String(y) }))}
+        />
+      </div>
 
       <button 
         type="submit"
