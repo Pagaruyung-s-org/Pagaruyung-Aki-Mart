@@ -275,6 +275,7 @@ export interface SaleItemInput {
 }
 
 export interface CreateSaleInput {
+  tanggal: string
   customer_name?: string
   payment_method: PaymentMethod
   discount?: number

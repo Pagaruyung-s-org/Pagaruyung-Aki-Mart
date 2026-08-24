@@ -34,6 +34,7 @@ const CreateSaleItemSchema = z.object({
 })
 
 const CreateSaleSchema = z.object({
+  tanggal: z.string().min(1, 'Tanggal wajib diisi'),
   customer_name: z.string().optional(),
   payment_method: z.enum(['CASH', 'TRANSFER', 'QRIS']),
   discount: z.number().min(0).optional(),
@@ -369,7 +370,7 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
     .from('sales')
     .insert({
       kode_penjualan,
-      tanggal: new Date().toISOString(),
+      tanggal: data.tanggal,
       customer_name: data.customer_name,
       subtotal: subtotalAll,
       discount,

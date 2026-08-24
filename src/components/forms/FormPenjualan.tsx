@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/Input'
 import { InputCurrency } from '@/components/ui/InputCurrency'
 import { Select } from '@/components/ui/Select'
 import { Card, CardBody, CardFooter, CardHeader } from '@/components/ui/Card'
-import { formatRupiah } from '@/lib/utils'
+import { formatRupiah, toInputDate } from '@/lib/utils'
 import { createSale } from '@/actions/transactions'
 import { useToast } from '@/components/ui/Toast'
 
@@ -38,6 +38,7 @@ export function FormPenjualan({
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
+  const [tanggal, setTanggal] = useState(toInputDate())
   const [customerName, setCustomerName] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'TRANSFER' | 'QRIS'>('CASH')
   const [bank, setBank] = useState('')
@@ -118,6 +119,7 @@ export function FormPenjualan({
         : keterangan;
 
       const result = await createSale({
+        tanggal,
         customer_name: customerName || undefined,
         payment_method: paymentMethod,
         discount: 0,
@@ -147,7 +149,15 @@ export function FormPenjualan({
             Simpan Sebagai Inden
           </label>
         </CardHeader>
-        <CardBody className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <CardBody className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Input 
+            label="Tanggal Penjualan" 
+            id="tanggal" 
+            type="date" 
+            value={tanggal} 
+            onChange={(e) => setTanggal(e.target.value)} 
+            required 
+          />
           <Input label="Nama Customer (opsional)" id="customer_name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Nama customer jika perlu dicatat" />
           <Select label="Metode Pembayaran" id="payment_method" value={paymentMethod} onChange={(e) => {
             const val = e.target.value as 'CASH' | 'TRANSFER' | 'QRIS';
@@ -167,7 +177,7 @@ export function FormPenjualan({
             ]} 
           />
           {isIndent && (
-             <div className="col-span-1 md:col-span-3">
+             <div className="col-span-1 md:col-span-2 lg:col-span-4">
                <InputCurrency label="Nominal DP (Opsional, ketik 0 jika tanpa DP)" id="dp_amount" min="0" value={dpAmount} onChange={(val) => setDpAmount(val === '' ? '' : Number(val))} placeholder="0" required={isIndent} />
              </div>
           )}
