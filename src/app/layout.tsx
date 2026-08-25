@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: 'Pagaruyung Aki Mart — Manajemen Penjualan & Keuangan',
   description: 'Aplikasi manajemen penjualan, pembelian, stok, dan keuangan',
   icons: {
-    icon: '/logo.png',
+    icon: '/logo.svg',
   },
 }
 

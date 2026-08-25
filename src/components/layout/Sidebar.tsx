@@ -106,13 +106,13 @@ const allRegisteredPaths = navItems.flatMap(group =>
   group.children ? group.children.map(c => c.href) : [group.href]
 ).filter(Boolean) as string[]
 
-function NavLink({ 
-  item, 
+function NavLink({
+  item,
   depth = 0,
   openSection,
   setOpenSection
-}: { 
-  item: NavItem; 
+}: {
+  item: NavItem;
   depth?: number;
   openSection?: string | null;
   setOpenSection?: (label: string | null) => void;
@@ -127,7 +127,7 @@ function NavLink({
   const isParentActive = hasChildren && item.children?.some(child =>
     child.href && (pathname === child.href || (pathname.startsWith(child.href + '/') && !allRegisteredPaths.includes(pathname)))
   )
-  
+
   const [manuallyClosed, setManuallyClosed] = useState(false)
 
   // Reset manually closed state when path changes to a child of this section
@@ -143,11 +143,11 @@ function NavLink({
   // Determine if this section is open
   const isTopLevel = depth === 0
   let isOpen = false
-  
+
   if (hasChildren) {
     if (isTopLevel && setOpenSection) {
-      isOpen = isParentActive 
-        ? !manuallyClosed 
+      isOpen = isParentActive
+        ? !manuallyClosed
         : (openSection === item.label)
     } else {
       isOpen = isParentActive ? !manuallyClosed : false // Fallback for nested, though not used here
@@ -156,7 +156,7 @@ function NavLink({
 
   const handleToggle = () => {
     if (!hasChildren) return
-    
+
     if (isTopLevel && setOpenSection) {
       if (isParentActive) {
         setManuallyClosed(!manuallyClosed)
@@ -189,14 +189,14 @@ function NavLink({
         >
           <span className={isParentActive ? 'text-blue-600' : 'text-gray-400'}>{item.icon}</span>
           <span className="flex-1 text-left">{item.label}</span>
-          <ChevronRight 
+          <ChevronRight
             className={cn(
               "h-3.5 w-3.5 text-gray-400 transition-transform duration-200",
               isOpen && "rotate-90"
-            )} 
+            )}
           />
         </button>
-        <div 
+        <div
           className={cn(
             "grid transition-all duration-200 ease-in-out",
             isOpen ? "grid-rows-[1fr] opacity-100 mt-1" : "grid-rows-[0fr] opacity-0"
@@ -280,10 +280,10 @@ export function Sidebar({ role }: { role: 'SUPER_ADMIN' | 'ADMIN' | 'OWNER' | nu
       <div className="px-5 py-5 border-b border-gray-100">
         <div className="flex items-center gap-3">
           <div className="h-12 w-12 rounded-lg overflow-hidden bg-white shadow-sm border border-gray-100 flex items-center justify-center p-1 shrink-0">
-            <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
+            <img src="/logo.svg" alt="Logo" className="w-full h-full object-contain" />
           </div>
           <div>
-            <p className="font-bold text-gray-900 text-[13px] leading-tight">Pagaruyung Aki Mart</p>
+            <p className="font-bold text-gray-900 text-[13px] leading-tight">PT. Pagaruyung Mitra Persada (Aki Mart)</p>
             <p className="text-[11px] text-gray-500">Sistem Manajemen</p>
           </div>
         </div>
@@ -292,9 +292,9 @@ export function Sidebar({ role }: { role: 'SUPER_ADMIN' | 'ADMIN' | 'OWNER' | nu
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 overflow-y-auto flex flex-col gap-0.5">
         {filteredNavItems.map((item) => (
-          <NavLink 
-            key={item.label} 
-            item={item} 
+          <NavLink
+            key={item.label}
+            item={item}
             openSection={openSection}
             setOpenSection={setOpenSection}
           />

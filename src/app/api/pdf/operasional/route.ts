@@ -126,9 +126,12 @@ export async function GET(req: NextRequest) {
 <div class="print-bar"><button class="btn-print" onclick="window.print()">🖨️ Cetak / Simpan sebagai PDF</button></div>
 <div class="page">
   <div class="header">
-    <div>
-      <div class="company-name">Pagaruyung Aki Mart</div>
-      <div class="company-sub">Distributor Aki &amp; Aksesori Kendaraan</div>
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <img src="/logo.svg" alt="Logo" style="height: 45px; width: auto;" />
+      <div>
+        <div class="company-name">PT. PAGARUYUNG MITRA PERSADA (AKI MART)</div>
+        <div class="company-sub">Distributor Aki &amp; Aksesori Kendaraan</div>
+      </div>
     </div>
     <div>
       <div class="report-title">LAPORAN BIAYA OPERASIONAL</div>
@@ -172,7 +175,7 @@ export async function GET(req: NextRequest) {
     </tr></tfoot>
   </table>
   <div class="footer">
-    <div class="footer-note">* Laporan digenerate otomatis oleh sistem Pagaruyung Aki Mart</div>
+    <div class="footer-note">* Laporan digenerate otomatis oleh sistem PT. Pagaruyung Mitra Persada (Aki Mart)</div>
     <div class="footer-note">Halaman 1 dari 1</div>
   </div>
 </div></body></html>`

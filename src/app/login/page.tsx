@@ -45,9 +45,9 @@ export default function LoginPage() {
           {/* Logo */}
           <div className="flex flex-col items-center mb-8">
             <div className="mb-4">
-              <img src="/logo.png" alt="Pagaruyung Aki Mart Logo" className="h-24 w-auto object-contain drop-shadow-md rounded-2xl bg-white p-2" />
+              <img src="/logo.svg" alt="Pagaruyung Aki Mart Logo" className="h-24 w-auto object-contain drop-shadow-md rounded-2xl bg-white p-2" />
             </div>
-            <h1 className="text-2xl font-bold text-white text-center">Pagaruyung Aki Mart</h1>
+            <h1 className="text-2xl font-bold text-white text-center">Pagaruyung Mitra Persada <br /> (Aki Mart)</h1>
             <p className="text-blue-200/70 text-sm mt-1 text-center">Manajemen Penjualan & Keuangan</p>
           </div>
 
