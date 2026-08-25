@@ -65,36 +65,6 @@ export async function saveOpeningBalance(
   if (existing) {
     // UPDATE existing opening balance (belum locked)
 
-    // Hapus batch dan movement lama terkait opening balance
-    // Cari batch yang dibuat oleh opening balance (purchase_item_id IS NULL dan reference_type = OPENING_BALANCE)
-    const { data: oldMovements } = await supabase
-      .from('inventory_movements')
-      .select('id')
-      .eq('product_id', input.product_id)
-      .eq('movement_type', 'OPENING_BALANCE')
-      .eq('reference_type', 'OPENING_BALANCE')
-
-    if (oldMovements) {
-      for (const m of oldMovements) {
-        await supabase.from('inventory_movements').delete().eq('id', m.id)
-      }
-    }
-
-    // Hapus batch lama (yang terkait opening balance, cari by reference)
-    // Karena batch tidak punya reference langsung ke OB, kita cari batch tanpa purchase_item_id
-    // dan tanggal yang sama dengan OB sebelumnya
-    const { data: oldBatches } = await supabase
-      .from('inventory_batches')
-      .select('id')
-      .eq('product_id', input.product_id)
-      .is('purchase_item_id', null)
-
-    if (oldBatches) {
-      for (const b of oldBatches) {
-        await supabase.from('inventory_batches').delete().eq('id', b.id)
-      }
-    }
-
     // Update opening balance record
     await supabase
       .from('opening_balances')
@@ -105,6 +75,72 @@ export async function saveOpeningBalance(
         updated_at: now,
       })
       .eq('id', existing.id)
+
+    // Update existing batch
+    const { data: oldBatches } = await supabase
+      .from('inventory_batches')
+      .select('id')
+      .eq('product_id', input.product_id)
+      .is('purchase_item_id', null)
+
+    if (oldBatches && oldBatches.length > 0) {
+      // Update only the first batch, delete any duplicates caused by previous bug
+      for (let i = 0; i < oldBatches.length; i++) {
+        const b = oldBatches[i]
+        if (i === 0 && input.qty > 0) {
+          await supabase.from('inventory_batches').update({
+            qty_awal: input.qty,
+            qty_tersedia: input.qty,
+            harga_modal_unit: input.harga_modal,
+          }).eq('id', b.id)
+        } else {
+          await supabase.from('inventory_batches').delete().eq('id', b.id)
+        }
+      }
+    } else if (input.qty > 0) {
+      await supabase.from('inventory_batches').insert({
+        product_id: input.product_id,
+        purchase_item_id: null,
+        tanggal_masuk: now,
+        qty_awal: input.qty,
+        qty_tersedia: input.qty,
+        harga_modal_unit: input.harga_modal,
+      })
+    }
+
+    // Update existing movement
+    const { data: oldMovements } = await supabase
+      .from('inventory_movements')
+      .select('id')
+      .eq('product_id', input.product_id)
+      .eq('movement_type', 'OPENING_BALANCE')
+      .eq('reference_type', 'OPENING_BALANCE')
+
+    if (oldMovements && oldMovements.length > 0) {
+      // Update only the first movement, delete any duplicates
+      for (let i = 0; i < oldMovements.length; i++) {
+        const m = oldMovements[i]
+        if (i === 0 && input.qty > 0) {
+          await supabase.from('inventory_movements').update({
+            qty_in: input.qty,
+            transaction_date: now,
+            keterangan: `Opening Balance (Revisi): ${productName} — ${input.qty} unit @ Rp${input.harga_modal.toLocaleString('id-ID')}${input.keterangan ? ` (${input.keterangan})` : ''}`,
+          }).eq('id', m.id)
+        } else {
+          await supabase.from('inventory_movements').delete().eq('id', m.id)
+        }
+      }
+    } else if (input.qty > 0) {
+      await supabase.from('inventory_movements').insert({
+        product_id: input.product_id,
+        movement_type: 'OPENING_BALANCE',
+        reference_type: 'OPENING_BALANCE',
+        qty_in: input.qty,
+        qty_out: 0,
+        transaction_date: now,
+        keterangan: `Opening Balance: ${productName} — ${input.qty} unit @ Rp${input.harga_modal.toLocaleString('id-ID')}${input.keterangan ? ` (${input.keterangan})` : ''}`,
+      })
+    }
 
   } else {
     // INSERT new opening balance
@@ -120,36 +156,38 @@ export async function saveOpeningBalance(
       })
 
     if (obError) return { success: false, error: obError.message }
+
+    // Buat batch FIFO baru
+    if (input.qty > 0) {
+      await supabase.from('inventory_batches').insert({
+        product_id: input.product_id,
+        purchase_item_id: null,
+        tanggal_masuk: now,
+        qty_awal: input.qty,
+        qty_tersedia: input.qty,
+        harga_modal_unit: input.harga_modal,
+      })
+    }
+
+    // Catat inventory movement
+    if (input.qty > 0) {
+      await supabase.from('inventory_movements').insert({
+        product_id: input.product_id,
+        movement_type: 'OPENING_BALANCE',
+        reference_type: 'OPENING_BALANCE',
+        qty_in: input.qty,
+        qty_out: 0,
+        transaction_date: now,
+        keterangan: `Opening Balance: ${productName} — ${input.qty} unit @ Rp${input.harga_modal.toLocaleString('id-ID')}${input.keterangan ? ` (${input.keterangan})` : ''}`,
+      })
+    }
   }
 
-  // Buat batch FIFO baru
-  if (input.qty > 0) {
-    await supabase.from('inventory_batches').insert({
-      product_id: input.product_id,
-      purchase_item_id: null,
-      tanggal_masuk: now,
-      qty_awal: input.qty,
-      qty_tersedia: input.qty,
-      harga_modal_unit: input.harga_modal,
-    })
-  }
-
-  // Update qty_stok produk
+  // Update qty_stok produk (berlaku untuk update maupun insert)
   await supabase
     .from('products')
     .update({ qty_stok: input.qty })
     .eq('id', input.product_id)
-
-  // Catat inventory movement
-  await supabase.from('inventory_movements').insert({
-    product_id: input.product_id,
-    movement_type: 'OPENING_BALANCE',
-    reference_type: 'OPENING_BALANCE',
-    qty_in: input.qty,
-    qty_out: 0,
-    transaction_date: now,
-    keterangan: `Opening Balance: ${productName} — ${input.qty} unit @ Rp${input.harga_modal.toLocaleString('id-ID')}${input.keterangan ? ` (${input.keterangan})` : ''}`,
-  })
 
   revalidatePath('/stok')
   revalidatePath('/stok/mutasi')

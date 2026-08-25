@@ -11,7 +11,7 @@ import { getUserRole } from '@/actions/users'
 export default async function PenjualanPage() {
   const supabase = await createClient()
 
-  const [role, { data: sales }, { data: products }] = await Promise.all([
+  const [role, { data: sales }, { data: products }, { data: batches }] = await Promise.all([
     getUserRole(),
     supabase
       .from('sales')
@@ -29,8 +29,23 @@ export default async function PenjualanPage() {
       .order('tanggal', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(200),
-    supabase.from('products').select('id, merk, kategori, type, kode_baterai, kapasitas_ah, kode_produk, harga_jual, qty_stok, status').order('merk').order('id', { ascending: true })
+    supabase.from('products').select('id, merk, kategori, type, kode_baterai, kapasitas_ah, kode_produk, harga_jual, qty_stok, status').order('merk').order('id', { ascending: true }),
+    supabase.from('inventory_batches').select('product_id, harga_modal_unit').gt('qty_tersedia', 0).order('tanggal_masuk', { ascending: true })
   ])
+
+  const modalMap: Record<string, number> = {}
+  if (batches) {
+    for (const b of batches) {
+      if (!modalMap[b.product_id]) {
+        modalMap[b.product_id] = b.harga_modal_unit
+      }
+    }
+  }
+
+  const productsWithModal = products?.map(p => ({
+    ...p,
+    harga_modal: modalMap[p.id] ?? 0
+  })) ?? []
 
   return (
     <div>
@@ -41,8 +56,9 @@ export default async function PenjualanPage() {
           {role !== 'OWNER' && (
             <PenjualanModalButton 
               type="aki" 
-              products={products ?? []}
+              products={productsWithModal}
               label="Buat Penjualan" 
+              role={role}
             />
           )}
         </div>
@@ -56,8 +72,9 @@ export default async function PenjualanPage() {
                 <div className="mt-3">
                   <PenjualanModalButton 
                     type="aki" 
-                    products={products ?? []}
+                    products={productsWithModal}
                     label="Buat Penjualan Pertama" 
+                    role={role}
                   />
                 </div>
               )}

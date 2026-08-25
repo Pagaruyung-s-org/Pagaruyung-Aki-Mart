@@ -19,6 +19,7 @@ interface Product {
   kode_produk: string
   merk: string
   kategori: string
+  type: string | null
   kode_baterai: string | null
   kapasitas_ah: number
   harga_jual: number
@@ -253,6 +254,7 @@ export function StokProdukTable({ products, batchByProduct, isAirAki, role }: St
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Kode</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">{isAirAki ? 'Nama / Varian' : 'Merk'}</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Kategori</th>
+                {!isAirAki && <th className="text-left px-4 py-3 font-medium text-gray-600">Type</th>}
                 {!isAirAki && <th className="text-center px-4 py-3 font-medium text-gray-600">Kode Baterai</th>}
                 {!isAirAki && <th className="text-center px-4 py-3 font-medium text-gray-600">Kapasitas (AH)</th>}
                 <th className="text-right px-4 py-3 font-medium text-gray-600">Harga Jual</th>
@@ -277,6 +279,7 @@ export function StokProdukTable({ products, batchByProduct, isAirAki, role }: St
                       <td className="px-4 py-3 font-mono text-xs text-gray-600">{p.kode_produk}</td>
                       <td className="px-4 py-3 font-medium text-gray-900">{p.merk}</td>
                       <td className="px-4 py-3 text-gray-600">{p.kategori}</td>
+                      {!isAirAki && <td className="px-4 py-3 text-gray-600">{p.type ?? '—'}</td>}
                       {!isAirAki && <td className="px-4 py-3 text-center text-gray-600">{p.kode_baterai ?? '—'}</td>}
                       {!isAirAki && <td className="px-4 py-3 text-center text-gray-700">{p.kapasitas_ah}</td>}
                       <td className="px-4 py-3 text-right text-gray-700">{formatRupiah(p.harga_jual)}</td>

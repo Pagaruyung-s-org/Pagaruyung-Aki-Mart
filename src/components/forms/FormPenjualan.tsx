@@ -16,6 +16,7 @@ interface Product {
   id: string; merk: string; kategori: string; type: string | null
   kode_baterai: string | null; kapasitas_ah: number; kode_produk: string
   harga_jual: number; qty_stok: number; status: boolean
+  harga_modal?: number
 }
 
 interface SaleItem {
@@ -27,13 +28,15 @@ export function FormPenjualan({
   airAkiProducts = [],
   showAirAkiCheckbox = false,
   onSuccess,
-  onCancel
+  onCancel,
+  role
 }: {
   products: Product[]
   airAkiProducts?: Product[]
   showAirAkiCheckbox?: boolean
   onSuccess?: (saleData?: { id: string; kode: string; isIndent?: boolean }) => void
   onCancel?: () => void
+  role?: string | null
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -216,7 +219,7 @@ export function FormPenjualan({
                         }))} 
                       />
                     </div>
-                    <Input label="QTY" id={`qty-${idx}`} type="number" min="1" value={item.qty || ''} onChange={(e) => updateItem(idx, 'qty', Number(e.target.value))} required hint={product && !isIndent ? `Stok: ${product.qty_stok} unit` : undefined} placeholder="0" />
+                    <Input label="QTY" id={`qty-${idx}`} type="number" min="1" value={item.qty || ''} onChange={(e) => updateItem(idx, 'qty', Number(e.target.value))} required hint={product && !isIndent ? `Stok: ${product.qty_stok} unit${role === 'SUPER_ADMIN' && product.harga_modal ? ` | Modal: ${formatRupiah(product.harga_modal)}` : ''}` : undefined} placeholder="0" />
                     <InputCurrency label="Harga Jual" id={`harga-${idx}`} min="0" value={item.harga_jual || ''} onChange={(val) => updateItem(idx, 'harga_jual', val === '' ? 0 : Number(val))} required disabled={!isIndent} />
                     
                     <InputCurrency 

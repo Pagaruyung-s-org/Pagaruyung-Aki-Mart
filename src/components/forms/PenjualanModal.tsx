@@ -20,15 +20,17 @@ interface Product {
   harga_jual: number
   qty_stok: number
   status: boolean
+  harga_modal?: number
 }
 
 interface PenjualanModalButtonProps {
   type: 'aki' | 'air_aki'
   products?: Product[]
   label: string
+  role?: string | null
 }
 
-export function PenjualanModalButton({ type, products = [], label }: PenjualanModalButtonProps) {
+export function PenjualanModalButton({ type, products = [], label, role }: PenjualanModalButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [successData, setSuccessData] = useState<{ id: string; kode: string; isIndent?: boolean } | null>(null)
   const [showFaktur, setShowFaktur] = useState(false)
@@ -128,6 +130,7 @@ export function PenjualanModalButton({ type, products = [], label }: PenjualanMo
                     showAirAkiCheckbox={true}
                     onSuccess={handleSuccess}
                     onCancel={handleClose}
+                    role={role}
                   />
                 ),
                 'air-aki': (
@@ -136,6 +139,7 @@ export function PenjualanModalButton({ type, products = [], label }: PenjualanMo
                     showAirAkiCheckbox={false}
                     onSuccess={handleSuccess}
                     onCancel={handleClose}
+                    role={role}
                   />
                 )
               }}
