@@ -131,7 +131,7 @@ export async function GET(req: NextRequest) {
 <div class="page">
   <div class="header">
     <div style="display: flex; align-items: center; gap: 12px;">
-      <img src="/logo.svg" alt="Logo" style="height: 45px; width: auto;" />
+      <img src="/logo.png" alt="Logo" style="height: 45px; width: auto;" />
       <div>
         <div class="company-name">PT. PAGARUYUNG MITRA PERSADA (AKI MART)</div>
         <div class="company-sub">Distributor Aki &amp; Aksesori Kendaraan</div>
