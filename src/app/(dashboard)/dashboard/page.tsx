@@ -159,66 +159,83 @@ export default async function DashboardPage() {
 
         {/* Global Summary KPI Cards */}
         {role !== 'ADMIN' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <StatCard
-              title="Total Aset Usaha"
-              value={formatRupiah(stats.totalAsetUsaha)}
-              icon={<TrendingUp className="h-5 w-5" />}
-              colorClass="text-indigo-600 bg-indigo-50"
-            />
-            <StatCard
-              title="Total Nilai Stok"
-              value={formatRupiah(stats.totalNilaiStok)}
-              icon={<Package className="h-5 w-5" />}
-              colorClass="text-purple-600 bg-purple-50"
-            />
-            <StatCard
-              title="Saldo Kas & Bank"
-              value={formatRupiah(stats.saldoKasBank)}
-              icon={<Wallet className="h-5 w-5" />}
-              colorClass="text-blue-600 bg-blue-50"
-            />
-            <StatCard
-              title="Saldo Brankas"
-              value={formatRupiah(stats.saldoBrankas)}
-              icon={<Vault className="h-5 w-5" />}
-              colorClass="text-emerald-600 bg-emerald-50"
-            />
-            <StatCard
-              title="Total Hutang Supplier"
-              value={formatRupiah(stats.totalHutang)}
-              icon={<CreditCard className="h-5 w-5" />}
-              colorClass="text-orange-600 bg-orange-50"
-            />
-            <StatCard
-              title="Laba Bersih Bulan Ini"
-              value={formatRupiah(stats.labaBersih)}
-              icon={<TrendingUp className="h-5 w-5" />}
-              colorClass={stats.labaBersih >= 0 ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50'}
-            />
-            <StatCard
-              title="Total Stok Aki"
-              value={stats.totalStokAki.toString()}
-              subtitle="unit aki"
-              icon={<Package className="h-5 w-5" />}
-              colorClass="text-indigo-600 bg-indigo-50"
-            />
-            <StatCard
-              title="Total Stok Air Aki"
-              value={stats.totalStokAirAki.toString()}
-              subtitle="botol air aki"
-              icon={<Package className="h-5 w-5" />}
-              colorClass="text-cyan-600 bg-cyan-50"
-            />
-            <StatCard
-              title="Total Produk Aktif"
-              value={stats.produkAktif.toString()}
-              subtitle="jenis produk"
-              icon={<Package className="h-5 w-5" />}
-              colorClass="text-gray-600 bg-gray-50"
-            />
+          <div className="flex gap-4 items-stretch">
+            {/* Kiri: 6 Kartu Finansial (2 kolom) */}
+            <div className="flex-1 grid grid-cols-2 gap-4">
+              <StatCard
+                title="Total Aset Usaha"
+                value={formatRupiah(stats.totalAsetUsaha)}
+                icon={<TrendingUp className="h-5 w-5" />}
+                colorClass="text-indigo-600 bg-indigo-50"
+              />
+              <StatCard
+                title="Total Nilai Stok"
+                value={formatRupiah(stats.totalNilaiStok)}
+                icon={<Package className="h-5 w-5" />}
+                colorClass="text-purple-600 bg-purple-50"
+              />
+              <StatCard
+                title="Saldo Kas & Bank"
+                value={formatRupiah(stats.saldoKasBank)}
+                icon={<Wallet className="h-5 w-5" />}
+                colorClass="text-blue-600 bg-blue-50"
+              />
+              <StatCard
+                title="Saldo Brankas"
+                value={formatRupiah(stats.saldoBrankas)}
+                icon={<Vault className="h-5 w-5" />}
+                colorClass="text-emerald-600 bg-emerald-50"
+              />
+              <StatCard
+                title="Total Hutang Supplier"
+                value={formatRupiah(stats.totalHutang)}
+                icon={<CreditCard className="h-5 w-5" />}
+                colorClass="text-orange-600 bg-orange-50"
+              />
+              <StatCard
+                title="Laba Bersih Bulan Ini"
+                value={formatRupiah(stats.labaBersih)}
+                icon={<TrendingUp className="h-5 w-5" />}
+                colorClass={stats.labaBersih >= 0 ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50'}
+              />
+            </div>
+
+            {/* Kanan: 3 Kartu Kuantitas — lebih sempit, tinggi sama */}
+            <div className="flex flex-col gap-4 w-40 shrink-0">
+              <div className="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col items-center text-center gap-2.5">
+                <div className="p-2.5 rounded-xl w-fit bg-indigo-50 text-indigo-600">
+                  <Package className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-gray-500 font-medium truncate">Stok Aki</p>
+                  <p className="text-xl font-bold text-gray-900 mt-1">{stats.totalStokAki}</p>
+                  <p className="text-xs text-gray-500 mt-1">unit</p>
+                </div>
+              </div>
+              <div className="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col items-center text-center gap-2.5">
+                <div className="p-2.5 rounded-xl w-fit bg-cyan-50 text-cyan-600">
+                  <Package className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-gray-500 font-medium truncate">Stok Air Aki</p>
+                  <p className="text-xl font-bold text-gray-900 mt-1">{stats.totalStokAirAki}</p>
+                  <p className="text-xs text-gray-500 mt-1">botol</p>
+                </div>
+              </div>
+              <div className="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col items-center text-center gap-2.5">
+                <div className="p-2.5 rounded-xl w-fit bg-gray-100 text-gray-600">
+                  <Package className="h-4 w-4" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs text-gray-500 font-medium truncate">Produk Aktif</p>
+                  <p className="text-xl font-bold text-gray-900 mt-1">{stats.produkAktif}</p>
+                  <p className="text-xs text-gray-500 mt-1">jenis</p>
+                </div>
+              </div>
+            </div>
           </div>
         )}
+
 
         {/* Interactive Sales Dashboard Component */}
         {role !== 'ADMIN' && (
