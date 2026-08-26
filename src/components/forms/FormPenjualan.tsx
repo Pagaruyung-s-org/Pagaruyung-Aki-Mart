@@ -23,8 +23,8 @@ interface SaleItem {
   product_id: string; qty: number; harga_jual: number; discount: number
 }
 
-export function FormPenjualan({ 
-  products, 
+export function FormPenjualan({
+  products,
   airAkiProducts = [],
   showAirAkiCheckbox = false,
   onSuccess,
@@ -49,7 +49,7 @@ export function FormPenjualan({
   const [items, setItems] = useState<SaleItem[]>([{ product_id: '', qty: 1, harga_jual: 0, discount: 0 }])
   const [isIndent, setIsIndent] = useState(false)
   const [dpAmount, setDpAmount] = useState<number | ''>('')
-  
+
   // State khusus Sertakan Air Aki
   const [includeAirAki, setIncludeAirAki] = useState(false)
   const [airAkiProductId, setAirAkiProductId] = useState('')
@@ -87,7 +87,7 @@ export function FormPenjualan({
           const pName = p.kategori === 'Air Aki'
             ? p.merk
             : [p.merk, p.kategori, p.type, p.kode_baterai, `${p.kapasitas_ah}AH`].filter(Boolean).join(' · ')
-          
+
           showToast('error', `Stok produk ${pName} tidak cukup! Sisa stok: ${p.qty_stok} unit`)
           return
         }
@@ -95,7 +95,7 @@ export function FormPenjualan({
     }
 
     const validItems = items.filter(i => i.product_id && i.qty > 0)
-    
+
     if (includeAirAki && airAkiProductId && airAkiQty > 0) {
       const p = airAkiProducts.find(x => x.id === airAkiProductId)
       if (p && airAkiQty > p.qty_stok) {
@@ -115,7 +115,7 @@ export function FormPenjualan({
       showToast('error', 'Minimal 1 produk harus dipilih')
       return
     }
-    
+
     startTransition(async () => {
       const finalKeterangan = paymentMethod === 'TRANSFER' && bank
         ? (keterangan ? `${keterangan} (Bank: ${bank})` : `Bank: ${bank}`)
@@ -153,13 +153,13 @@ export function FormPenjualan({
           </label>
         </CardHeader>
         <CardBody className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Input 
-            label="Tanggal Penjualan" 
-            id="tanggal" 
-            type="date" 
-            value={tanggal} 
-            onChange={(e) => setTanggal(e.target.value)} 
-            required 
+          <Input
+            label="Tanggal Penjualan"
+            id="tanggal"
+            type="date"
+            value={tanggal}
+            onChange={(e) => setTanggal(e.target.value)}
+            required
           />
           <Input label="Nama Customer (opsional)" id="customer_name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Nama customer jika perlu dicatat" />
           <Select label="Metode Pembayaran" id="payment_method" value={paymentMethod} onChange={(e) => {
@@ -167,22 +167,24 @@ export function FormPenjualan({
             setPaymentMethod(val);
             if (val !== 'TRANSFER') setBank('');
           }} options={[{ value: 'CASH', label: 'Tunai' }, { value: 'TRANSFER', label: 'Transfer Bank' }, { value: 'QRIS', label: 'QRIS' }]} />
-          <Select 
-            label="Pilih Bank" 
-            id="bank" 
-            value={bank} 
-            onChange={(e) => setBank(e.target.value)} 
-            disabled={paymentMethod !== 'TRANSFER'} 
+          <Select
+            label="Pilih Bank"
+            id="bank"
+            value={bank}
+            onChange={(e) => setBank(e.target.value)}
+            disabled={paymentMethod !== 'TRANSFER'}
             options={[
-              { value: '', label: '-- Pilih Bank --' }, 
-              { value: 'BRI', label: 'BRI' }, 
-              { value: 'MANDIRI', label: 'MANDIRI' }
-            ]} 
+              { value: '', label: '-- Pilih Bank --' },
+              { value: 'BRI', label: 'BRI' },
+              { value: 'MANDIRI', label: 'MANDIRI' },
+              { value: 'BSI', label: 'BSI' },
+              { value: 'BNI', label: 'BNI' }
+            ]}
           />
           {isIndent && (
-             <div className="col-span-1 md:col-span-2 lg:col-span-4">
-               <InputCurrency label="Nominal DP (Opsional, ketik 0 jika tanpa DP)" id="dp_amount" min="0" value={dpAmount} onChange={(val) => setDpAmount(val === '' ? '' : Number(val))} placeholder="0" required={isIndent} />
-             </div>
+            <div className="col-span-1 md:col-span-2 lg:col-span-4">
+              <InputCurrency label="Nominal DP (Opsional, ketik 0 jika tanpa DP)" id="dp_amount" min="0" value={dpAmount} onChange={(val) => setDpAmount(val === '' ? '' : Number(val))} placeholder="0" required={isIndent} />
+            </div>
           )}
         </CardBody>
       </Card>
@@ -192,50 +194,50 @@ export function FormPenjualan({
           <h2 className="text-sm font-semibold text-gray-900">Detail Produk</h2>
           <Button type="button" size="sm" variant="outline" onClick={addItem}><Plus className="h-3.5 w-3.5" /> Tambah Produk</Button>
         </CardHeader>
-          <CardBody className="space-y-3">
-            {items.map((item, idx) => {
-              const product = getProduct(item.product_id)
-              const subtotal = (item.qty * item.harga_jual) - item.discount
-              return (
-                <div key={idx} className="p-4 bg-gray-50 rounded-xl border border-gray-200">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-semibold text-gray-500">Item {idx + 1}</span>
-                    {items.length > 1 && <button type="button" onClick={() => removeItem(idx)} className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>}
-                  </div>
-                  <div className="grid grid-cols-5 gap-3">
-                    <div className="col-span-2">
-                      <Select 
-                        label="Produk" 
-                        id={`product-${idx}`} 
-                        value={item.product_id} 
-                        onChange={(e) => updateItem(idx, 'product_id', e.target.value)} 
-                        required 
-                        placeholder="-- Pilih Produk --" 
-                        options={visibleProducts.map(p => ({ 
-                          value: p.id, 
-                          label: p.kategori === 'Air Aki' 
-                            ? p.merk
-                            : [p.merk, p.type, p.kategori, p.kode_baterai, `${p.kapasitas_ah}AH`].filter(Boolean).join(' · ')
-                        }))} 
-                      />
-                    </div>
-                    <Input label="QTY" id={`qty-${idx}`} type="number" min="1" value={item.qty || ''} onChange={(e) => updateItem(idx, 'qty', Number(e.target.value))} required hint={product && !isIndent ? `Stok: ${product.qty_stok} unit${role === 'SUPER_ADMIN' && product.harga_modal ? ` | Modal: ${formatRupiah(product.harga_modal)}` : ''}` : undefined} placeholder="0" />
-                    <InputCurrency label="Harga Jual" id={`harga-${idx}`} min="0" value={item.harga_jual || ''} onChange={(val) => updateItem(idx, 'harga_jual', val === '' ? 0 : Number(val))} required disabled={!isIndent} />
-                    
-                    <InputCurrency 
-                      label="Bayar" 
-                      id={`bayar-${idx}`} 
-                      min="0" 
-                      value={subtotal === 0 ? '' : subtotal} 
-                      onChange={(val) => updateItem(idx, 'discount', (item.qty * item.harga_jual) - (val === '' ? 0 : Number(val)))} 
-                      required 
-                      hint={item.discount > 0 ? `Diskon: ${formatRupiah(item.discount)}` : undefined}
-                      placeholder="0"
+        <CardBody className="space-y-3">
+          {items.map((item, idx) => {
+            const product = getProduct(item.product_id)
+            const subtotal = (item.qty * item.harga_jual) - item.discount
+            return (
+              <div key={idx} className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-semibold text-gray-500">Item {idx + 1}</span>
+                  {items.length > 1 && <button type="button" onClick={() => removeItem(idx)} className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-500"><Trash2 className="h-3.5 w-3.5" /></button>}
+                </div>
+                <div className="grid grid-cols-5 gap-3">
+                  <div className="col-span-2">
+                    <Select
+                      label="Produk"
+                      id={`product-${idx}`}
+                      value={item.product_id}
+                      onChange={(e) => updateItem(idx, 'product_id', e.target.value)}
+                      required
+                      placeholder="-- Pilih Produk --"
+                      options={visibleProducts.map(p => ({
+                        value: p.id,
+                        label: p.kategori === 'Air Aki'
+                          ? p.merk
+                          : [p.merk, p.type, p.kategori, p.kode_baterai, `${p.kapasitas_ah}AH`].filter(Boolean).join(' · ')
+                      }))}
                     />
                   </div>
+                  <Input label="QTY" id={`qty-${idx}`} type="number" min="1" value={item.qty || ''} onChange={(e) => updateItem(idx, 'qty', Number(e.target.value))} required hint={product && !isIndent ? `Stok: ${product.qty_stok} unit${role === 'SUPER_ADMIN' && product.harga_modal ? ` | Modal: ${formatRupiah(product.harga_modal)}` : ''}` : undefined} placeholder="0" />
+                  <InputCurrency label="Harga Jual" id={`harga-${idx}`} min="0" value={item.harga_jual || ''} onChange={(val) => updateItem(idx, 'harga_jual', val === '' ? 0 : Number(val))} required disabled={!isIndent} />
+
+                  <InputCurrency
+                    label="Bayar"
+                    id={`bayar-${idx}`}
+                    min="0"
+                    value={subtotal === 0 ? '' : subtotal}
+                    onChange={(val) => updateItem(idx, 'discount', (item.qty * item.harga_jual) - (val === '' ? 0 : Number(val)))}
+                    required
+                    hint={item.discount > 0 ? `Diskon: ${formatRupiah(item.discount)}` : undefined}
+                    placeholder="0"
+                  />
                 </div>
-              )
-            })}
+              </div>
+            )
+          })}
         </CardBody>
       </Card>
 
@@ -244,8 +246,8 @@ export function FormPenjualan({
           <CardBody className="py-4">
             <div className="flex flex-col gap-4">
               <label className="flex items-center gap-2 font-medium text-gray-900 cursor-pointer">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4"
                   checked={includeAirAki}
                   onChange={(e) => {
@@ -262,8 +264,8 @@ export function FormPenjualan({
               {includeAirAki && (
                 <div className="pl-6 grid grid-cols-4 gap-4 items-start">
                   <div className="col-span-2">
-                    <Select 
-                      label="Pilih Air Aki" 
+                    <Select
+                      label="Pilih Air Aki"
                       id="air-aki-select"
                       value={airAkiProductId}
                       onChange={(e) => {
@@ -277,11 +279,11 @@ export function FormPenjualan({
                       }))}
                     />
                   </div>
-                  <Input 
-                    label="QTY" 
-                    id="air-aki-qty" 
-                    type="number" 
-                    min="1" 
+                  <Input
+                    label="QTY"
+                    id="air-aki-qty"
+                    type="number"
+                    min="1"
                     value={airAkiQty || ''}
                     onChange={(e) => setAirAkiQty(Number(e.target.value))}
                     placeholder="0"
