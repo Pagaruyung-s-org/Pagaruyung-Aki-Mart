@@ -37,15 +37,29 @@ export default async function ProdukPage() {
     })
   }
 
-  // Sort so that low stock (< 3) is at the top
+  // Sort based on requested criteria: status (aktif), merk, kategori, kapasitas, stok
   productsWithModal.sort((a, b) => {
-    const aLow = a.qty_stok < 3 ? 1 : 0
-    const bLow = b.qty_stok < 3 ? 1 : 0
-    if (aLow !== bLow) {
-      return bLow - aLow // 1 comes before 0
-    }
+    // 1. Status (Aktif di atas)
+    if (a.status !== b.status) return a.status ? -1 : 1
+    
+    // 2. Merk (A-Z)
     const merkCompare = a.merk.localeCompare(b.merk)
     if (merkCompare !== 0) return merkCompare
+    
+    // 3. Kategori (A-Z)
+    const katCompare = (a.kategori || '').localeCompare(b.kategori || '')
+    if (katCompare !== 0) return katCompare
+    
+    // 4. Kapasitas (Kecil ke Besar)
+    const capA = Number(a.kapasitas_ah) || 0
+    const capB = Number(b.kapasitas_ah) || 0
+    if (capA !== capB) return capA - capB
+    
+    // 5. Stok (Terendah ke Tertinggi)
+    const stokA = Number(a.qty_stok) || 0
+    const stokB = Number(b.qty_stok) || 0
+    if (stokA !== stokB) return stokA - stokB
+    
     return a.id.localeCompare(b.id)
   })
   // Separate by category
