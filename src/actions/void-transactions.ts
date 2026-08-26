@@ -106,7 +106,7 @@ export async function voidSale(id: string, reason: string): Promise<ActionResult
   // 2. Create Reversal
   const { data: reversalSale, error: revError } = await supabase.from('sales').insert({
     kode_penjualan: sale.kode_penjualan + '-REV',
-    tanggal: new Date().toISOString(),
+    tanggal: sale.tanggal,
     customer_name: sale.customer_name,
     subtotal: -sale.subtotal,
     discount: -sale.discount,
@@ -286,7 +286,7 @@ export async function voidPurchase(id: string, reason: string): Promise<ActionRe
   // 2. Create Reversal
   const { data: reversalPurchase, error: revError } = await supabase.from('purchase_transactions').insert({
     kode_pembelian: purchase.kode_pembelian + '-REV',
-    tanggal: new Date().toISOString(),
+    tanggal: purchase.tanggal,
     supplier_id: purchase.supplier_id,
     nominal: -purchase.nominal,
     pajak: -purchase.pajak,
@@ -430,7 +430,7 @@ export async function voidExpense(id: string, reason: string): Promise<ActionRes
   // 2. Create Reversal
   const { data: reversalExpense, error: revError } = await supabase.from('expenses').insert({
     kode_pengeluaran: expense.kode_pengeluaran + '-REV',
-    tanggal: new Date().toISOString(),
+    tanggal: expense.tanggal,
     category_id: expense.category_id,
     employee_id: expense.employee_id,
     nominal: -expense.nominal,
@@ -525,7 +525,7 @@ export async function voidSupplierPayment(id: string, reason: string): Promise<{
     kode_pembayaran: payment.kode_pembayaran + '-REV',
     supplier_id: payment.supplier_id,
     purchase_id: payment.purchase_id,
-    tanggal: new Date().toISOString(),
+    tanggal: payment.tanggal,
     nominal: -payment.nominal,
     payment_method: payment.payment_method,
     status_transaksi: 'REVERSAL',
