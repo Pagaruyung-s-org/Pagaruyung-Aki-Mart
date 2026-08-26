@@ -30,14 +30,14 @@ const CreateSaleItemSchema = z.object({
   product_id: z.string().uuid(),
   qty: z.number().positive(),
   harga_jual: z.number().min(0),
-  discount: z.number().min(0).optional(),
+  discount: z.number().optional(),
 })
 
 const CreateSaleSchema = z.object({
   tanggal: z.string().min(1, 'Tanggal wajib diisi'),
   customer_name: z.string().optional(),
   payment_method: z.enum(['CASH', 'TRANSFER', 'QRIS']),
-  discount: z.number().min(0).optional(),
+  discount: z.number().optional(),
   keterangan: z.string().optional(),
   is_indent: z.boolean().optional(),
   dp_amount: z.number().min(0).optional(),
