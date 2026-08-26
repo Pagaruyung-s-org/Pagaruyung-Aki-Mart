@@ -125,7 +125,7 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
                     {s.status_transaksi === 'REVERSAL' && <span className="ml-2 bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded text-[10px]">REVERSAL</span>}
                     {s.status_transaksi === 'INDENT' && <span className="ml-2 bg-purple-100 text-purple-700 px-2 py-0.5 rounded text-[10px] font-bold">INDEN</span>}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{formatDateTime(s.tanggal)}</td>
+                  <td className="px-4 py-3 text-gray-600">{formatDateTime(s.created_at || s.tanggal)}</td>
                   <td className="px-4 py-3 text-gray-600">{s.customer_name ?? '—'}</td>
                   <td className="px-4 py-3 text-center font-medium text-gray-900">{qtyItems}</td>
                   <td className="px-4 py-3 text-right text-gray-700">{formatRupiah(s.subtotal)}</td>
@@ -165,7 +165,7 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
               </div>
               <div>
                 <p className="text-xs text-gray-500 mb-1">Tanggal</p>
-                <p className="text-sm font-medium text-gray-900">{formatDateTime(selectedSale.tanggal)}</p>
+                <p className="text-sm font-medium text-gray-900">{formatDateTime(selectedSale.created_at || selectedSale.tanggal)}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 mb-1">Customer</p>

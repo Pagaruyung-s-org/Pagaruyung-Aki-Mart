@@ -71,8 +71,8 @@ export function FakturModal({ isOpen, onClose, sale, autoPrint = false }: Faktur
     window.print()
   }
 
-  const formatTanggal = (dateStr: string) => {
-    return formatDateTime(dateStr)
+  const formatTanggal = () => {
+    return formatDateTime(sale.created_at || sale.tanggal)
   }
 
   const containerClass = autoPrint
@@ -134,7 +134,7 @@ export function FakturModal({ isOpen, onClose, sale, autoPrint = false }: Faktur
               </div>
               <div className="text-right">
                 <span className="text-black">Tanggal:</span>
-                <span className="ml-2">{formatTanggal(sale.tanggal)}</span>
+                <span className="ml-2">{formatTanggal()}</span>
               </div>
               <div>
                 <span className="text-black">Customer:</span>
