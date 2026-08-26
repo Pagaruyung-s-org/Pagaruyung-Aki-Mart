@@ -39,7 +39,7 @@ async function getDashboardStats() {
 
   let saldoKasBank = 0
   let saldoBrankas = 0
-  
+
   kasData?.forEach(i => {
     if (i.account_type === 'BRANKAS') {
       saldoBrankas += (i.debit - i.credit)
@@ -48,11 +48,19 @@ async function getDashboardStats() {
     }
   })
 
-  // Jumlah produk aktif
-  const { count: produkAktif } = await supabase
+  // Jumlah produk aktif dan Total Kuantitas Stok
+  const { data: activeProducts } = await supabase
     .from('products')
-    .select('id', { count: 'exact', head: true })
+    .select('id, qty_stok, kategori')
     .eq('status', true)
+
+  const produkAktif = activeProducts?.length ?? 0
+  const totalStokAki = activeProducts
+    ?.filter((p: any) => p.kategori !== 'Air Aki')
+    .reduce((sum, p) => sum + (p.qty_stok || 0), 0) ?? 0
+  const totalStokAirAki = activeProducts
+    ?.filter((p: any) => p.kategori === 'Air Aki')
+    .reduce((sum, p) => sum + (p.qty_stok || 0), 0) ?? 0
 
   // Produk stok rendah (< 3) - User requested warning if below 3
   // Exclude "Air Aki" since it has its own separate table
@@ -89,8 +97,8 @@ async function getDashboardStats() {
 
   const salesData = (salesRaw ?? []).map(s => {
     // Supabase returns sale_items as an array of objects
-    const totalQty = Array.isArray(s.sale_items) 
-      ? s.sale_items.reduce((sum: number, item: any) => sum + item.qty, 0) 
+    const totalQty = Array.isArray(s.sale_items)
+      ? s.sale_items.reduce((sum: number, item: any) => sum + item.qty, 0)
       : 0
     return {
       tanggal: s.tanggal,
@@ -107,12 +115,30 @@ async function getDashboardStats() {
     .eq('status', true)
     .order('qty_stok', { ascending: true })
 
+  // Total Nilai Stok (Aset Barang)
+  const { data: batches } = await supabase
+    .from('inventory_batches')
+    .select('qty_tersedia, harga_modal_unit')
+    .gt('qty_tersedia', 0)
+
+  let totalNilaiStok = 0
+  if (batches) {
+    totalNilaiStok = batches.reduce((sum, b) => sum + (b.qty_tersedia * b.harga_modal_unit), 0)
+  }
+
+  // Kalkulasi Total Aset Usaha
+  const totalAsetUsaha = saldoKasBank + saldoBrankas + totalNilaiStok
+
   return {
     labaBersih,
     totalHutang,
     saldoKasBank,
     saldoBrankas,
-    produkAktif: produkAktif ?? 0,
+    totalNilaiStok,
+    totalStokAki,
+    totalStokAirAki,
+    totalAsetUsaha,
+    produkAktif,
     stokRendah: stokRendah ?? [],
     airAkiList: airAkiProducts ?? [],
     salesData,
@@ -130,21 +156,21 @@ export default async function DashboardPage() {
       <Header title="Dashboard" subtitle="Ringkasan bisnis usaha aki" />
 
       <div className={`p-6 space-y-6 max-w-7xl w-full ${role === 'ADMIN' ? 'h-[calc(100vh-100px)] flex flex-col' : ''}`}>
-        
+
         {/* Global Summary KPI Cards */}
         {role !== 'ADMIN' && (
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <StatCard
-              title="Laba Bersih Bulan Ini"
-              value={formatRupiah(stats.labaBersih)}
+              title="Total Aset Usaha"
+              value={formatRupiah(stats.totalAsetUsaha)}
               icon={<TrendingUp className="h-5 w-5" />}
-              colorClass={stats.labaBersih >= 0 ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50'}
+              colorClass="text-indigo-600 bg-indigo-50"
             />
             <StatCard
-              title="Total Hutang Supplier"
-              value={formatRupiah(stats.totalHutang)}
-              icon={<CreditCard className="h-5 w-5" />}
-              colorClass="text-orange-600 bg-orange-50"
+              title="Total Nilai Stok"
+              value={formatRupiah(stats.totalNilaiStok)}
+              icon={<Package className="h-5 w-5" />}
+              colorClass="text-purple-600 bg-purple-50"
             />
             <StatCard
               title="Saldo Kas & Bank"
@@ -159,13 +185,44 @@ export default async function DashboardPage() {
               colorClass="text-emerald-600 bg-emerald-50"
             />
             <StatCard
+              title="Total Hutang Supplier"
+              value={formatRupiah(stats.totalHutang)}
+              icon={<CreditCard className="h-5 w-5" />}
+              colorClass="text-orange-600 bg-orange-50"
+            />
+            <StatCard
+              title="Laba Bersih Bulan Ini"
+              value={formatRupiah(stats.labaBersih)}
+              icon={<TrendingUp className="h-5 w-5" />}
+              colorClass={stats.labaBersih >= 0 ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50'}
+            />
+            <StatCard
+              title="Total Stok Aki"
+              value={stats.totalStokAki.toString()}
+              subtitle="unit aki"
+              icon={<Package className="h-5 w-5" />}
+              colorClass="text-indigo-600 bg-indigo-50"
+            />
+            <StatCard
+              title="Total Stok Air Aki"
+              value={stats.totalStokAirAki.toString()}
+              subtitle="botol air aki"
+              icon={<Package className="h-5 w-5" />}
+              colorClass="text-cyan-600 bg-cyan-50"
+            />
+            <StatCard
               title="Total Produk Aktif"
               value={stats.produkAktif.toString()}
               subtitle="jenis produk"
               icon={<Package className="h-5 w-5" />}
-              colorClass="text-indigo-600 bg-indigo-50"
+              colorClass="text-gray-600 bg-gray-50"
             />
           </div>
+        )}
+
+        {/* Interactive Sales Dashboard Component */}
+        {role !== 'ADMIN' && (
+          <SalesDashboardClient sales={stats.salesData} />
         )}
 
         {/* Low Stock Warning Tables */}
@@ -272,12 +329,6 @@ export default async function DashboardPage() {
             </div>
           </div>
         </div>
-
-        {/* Interactive Sales Dashboard Component */}
-        {role !== 'ADMIN' && (
-          <SalesDashboardClient sales={stats.salesData} />
-        )}
-
       </div>
     </div>
   )
