@@ -22,6 +22,7 @@ interface FakturSaleData {
   id: string
   kode_penjualan: string
   tanggal: string
+  created_at?: string
   customer_name: string | null
   subtotal: number
   discount: number
