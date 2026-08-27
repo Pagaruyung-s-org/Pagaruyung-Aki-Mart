@@ -759,10 +759,65 @@ export async function fulfillIndentSale(saleId: string, pelunasanMethod: 'CASH' 
   await supabase.from('sales').update({
     status_transaksi: 'PAID'
   }).eq('id', sale.id)
-
   revalidatePath('/penjualan')
   revalidatePath('/stok')
   revalidatePath('/dashboard')
 
   return { success: true, data: null, message: `Inden ${sale.kode_penjualan} berhasil diselesaikan` }
+}
+// ============================================================
+// SERVER ACTION: INPUT HUTANG MANUAL (TANPA STOK)
+// ============================================================
+const CreateManualHutangSchema = z.object({
+  tanggal: z.string().min(1, 'Tanggal wajib diisi'),
+  supplier_id: z.string().uuid('Supplier tidak valid'),
+  nominal: z.number().positive('Nominal harus lebih dari 0'),
+  keterangan: z.string().optional(),
+})
+
+export async function createManualHutang(input: z.infer<typeof CreateManualHutangSchema>): Promise<ActionResult<{ id: string; kode: string }>> {
+  const parsed = CreateManualHutangSchema.safeParse(input)
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message }
+  }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Tidak terautentikasi' }
+
+  const data = parsed.data
+
+  const { data: kodeData } = await supabase.rpc('generate_kode_pembelian')
+  const kode_pembelian = kodeData as string
+
+  // Insert purchase_transaction WITHOUT items
+  const { data: purchase, error: purchaseError } = await supabase
+    .from('purchase_transactions')
+    .insert({
+      kode_pembelian,
+      tanggal: data.tanggal,
+      supplier_id: data.supplier_id,
+      nominal: data.nominal,
+      pajak: 0,
+      total: data.nominal,
+      status_pembayaran: 'HUTANG',
+      status_transaksi: 'POSTED',
+      keterangan: data.keterangan || 'Hutang Lama (Input Manual)',
+      created_by: user.id,
+    })
+    .select()
+    .single()
+
+  if (purchaseError || !purchase) {
+    return { success: false, error: purchaseError?.message ?? 'Gagal menyimpan hutang manual' }
+  }
+
+  revalidatePath('/hutang')
+  revalidatePath('/dashboard')
+
+  return {
+    success: true,
+    data: { id: purchase.id, kode: kode_pembelian },
+    message: `Hutang manual ${kode_pembelian} berhasil disimpan`,
+  }
 }

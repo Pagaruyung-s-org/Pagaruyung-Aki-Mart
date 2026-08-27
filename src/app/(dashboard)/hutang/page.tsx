@@ -4,6 +4,8 @@ import { formatRupiah, formatDate } from '@/lib/utils'
 import { Badge } from '@/components/ui/Badge'
 import { CreditCard } from 'lucide-react'
 import { HutangAktifTable } from '@/components/tables/HutangAktifTable'
+import { HutangManualModal } from '@/components/forms/HutangManualModal'
+import { getUserRole } from '@/actions/users'
 
 export default async function HutangPage() {
   const supabase = await createClient()
@@ -19,6 +21,15 @@ export default async function HutangPage() {
     .in('status_pembayaran', ['HUTANG', 'PARSIAL'])
     .eq('status_transaksi', 'POSTED')
     .order('tanggal', { ascending: false })
+
+  // Ambil data supplier untuk modal input hutang manual
+  const { data: suppliers } = await supabase
+    .from('suppliers')
+    .select('id, nama_supplier')
+    .eq('status', true)
+    .order('nama_supplier')
+
+  const role = await getUserRole()
 
   // Hitung saldo hutang per pembelian
   const hutangList = (purchases ?? []).map(p => {
@@ -45,7 +56,10 @@ export default async function HutangPage() {
               <p className="text-2xl font-bold text-orange-800">{formatRupiah(totalHutang)}</p>
             </div>
           </div>
-          <p className="text-sm text-orange-600">{hutangList.length} transaksi belum lunas</p>
+          <div className="flex items-center gap-4">
+            <p className="text-sm text-orange-600 font-medium">{hutangList.length} transaksi belum lunas</p>
+            {role === 'SUPER_ADMIN' && <HutangManualModal suppliers={suppliers ?? []} />}
+          </div>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
