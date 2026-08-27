@@ -90,20 +90,25 @@ async function getDashboardStats() {
   // Sales for the interactive client component (Fetch whole year)
   const { data: salesRaw } = await supabase
     .from('sales')
-    .select('tanggal, total, sale_items(qty)')
+    .select('tanggal, total, sale_items(qty, products(kategori))')
     .eq('status_transaksi', 'PAID')
     .gte('tanggal', firstDayOfYear)
     .order('tanggal', { ascending: true })
 
   const salesData = (salesRaw ?? []).map(s => {
-    // Supabase returns sale_items as an array of objects
-    const totalQty = Array.isArray(s.sale_items)
-      ? s.sale_items.reduce((sum: number, item: any) => sum + item.qty, 0)
-      : 0
+    const items = Array.isArray(s.sale_items) ? s.sale_items : []
+    const qtyAki = items
+      .filter((item: any) => item.products?.kategori !== 'Air Aki')
+      .reduce((sum: number, item: any) => sum + item.qty, 0)
+    const qtyAirAki = items
+      .filter((item: any) => item.products?.kategori === 'Air Aki')
+      .reduce((sum: number, item: any) => sum + item.qty, 0)
     return {
       tanggal: s.tanggal,
       total: s.total,
-      total_qty: totalQty
+      total_qty: qtyAki + qtyAirAki,
+      qty_aki: qtyAki,
+      qty_air_aki: qtyAirAki,
     }
   })
 

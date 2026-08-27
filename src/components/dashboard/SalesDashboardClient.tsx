@@ -8,6 +8,8 @@ interface SaleData {
   tanggal: string
   total: number
   total_qty: number
+  qty_aki: number
+  qty_air_aki: number
 }
 
 interface Props {
@@ -58,7 +60,8 @@ export function SalesDashboardClient({ sales }: Props) {
 
   // Summaries
   const totalOmzet = filteredSales.reduce((acc, s) => acc + s.total, 0)
-  const totalQty = filteredSales.reduce((acc, s) => acc + s.total_qty, 0)
+  const totalQtyAki = filteredSales.reduce((acc, s) => acc + (s.qty_aki ?? 0), 0)
+  const totalQtyAirAki = filteredSales.reduce((acc, s) => acc + (s.qty_air_aki ?? 0), 0)
 
   // Chart Data Preparation
   const chartData = useMemo(() => {
@@ -147,9 +150,19 @@ export function SalesDashboardClient({ sales }: Props) {
               <div className="p-2 bg-blue-100 text-blue-700 rounded-lg">
                 <Package className="h-5 w-5" />
               </div>
-              <p className="font-medium text-blue-900">Total Terjual</p>
+              <p className="font-medium text-blue-900">Aki Terjual</p>
             </div>
-            <h4 className="text-3xl font-bold text-blue-700">{totalQty} <span className="text-lg font-medium text-blue-500">Pcs</span></h4>
+            <h4 className="text-3xl font-bold text-blue-700">{totalQtyAki} <span className="text-lg font-medium text-blue-500">Unit</span></h4>
+          </div>
+
+          <div className="bg-gradient-to-br from-cyan-50 to-sky-50 border border-cyan-100 rounded-xl p-5">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-cyan-100 text-cyan-700 rounded-lg">
+                <Package className="h-5 w-5" />
+              </div>
+              <p className="font-medium text-cyan-900">Air Aki Terjual</p>
+            </div>
+            <h4 className="text-3xl font-bold text-cyan-700">{totalQtyAirAki} <span className="text-lg font-medium text-cyan-500">Botol</span></h4>
           </div>
 
           <div className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100 rounded-xl p-5">
