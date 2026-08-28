@@ -55,6 +55,7 @@ export function FormPenjualan({
   const [airAkiProductId, setAirAkiProductId] = useState('')
   const [airAkiQty, setAirAkiQty] = useState(1)
   const [airAkiHarga, setAirAkiHarga] = useState(0)
+  const [jualKeTokoPusat, setJualKeTokoPusat] = useState(false)
 
   const { showToast } = useToast()
 
@@ -65,11 +66,27 @@ export function FormPenjualan({
     const updated = [...items]
     if (field === 'product_id') {
       const p = getProduct(value as string)
-      updated[idx] = { ...updated[idx], product_id: value as string, harga_jual: p?.harga_jual ?? 0 }
+      const hargaJual = jualKeTokoPusat ? (p?.harga_modal ?? p?.harga_jual ?? 0) : (p?.harga_jual ?? 0)
+      updated[idx] = { ...updated[idx], product_id: value as string, harga_jual: hargaJual }
     } else {
       updated[idx] = { ...updated[idx], [field]: value }
     }
     setItems(updated)
+  }
+
+  function handleJualKeTokoPusatChange(checked: boolean) {
+    setJualKeTokoPusat(checked)
+    if (checked) {
+      setItems(items.map(item => {
+        const p = getProduct(item.product_id)
+        return { ...item, harga_jual: p?.harga_modal ?? p?.harga_jual ?? 0, discount: 0 }
+      }))
+    } else {
+      setItems(items.map(item => {
+        const p = getProduct(item.product_id)
+        return { ...item, harga_jual: p?.harga_jual ?? 0, discount: 0 }
+      }))
+    }
   }
 
   function addItem() { setItems([...items, { product_id: '', qty: 1, harga_jual: 0, discount: 0 }]) }
@@ -145,12 +162,18 @@ export function FormPenjualan({
     <form onSubmit={handleSubmit} className="space-y-6">
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <h2 className="text-sm font-semibold text-gray-900">Informasi Penjualan</h2>
-          <label className="flex items-center gap-2 text-sm font-medium text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors border border-blue-200">
-            <input type="checkbox" className="rounded border-blue-300 text-blue-600 focus:ring-blue-500" checked={isIndent} onChange={(e) => setIsIndent(e.target.checked)} />
-            Simpan Sebagai Inden
-          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="flex items-center gap-2 text-sm font-medium text-orange-700 bg-orange-50 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-orange-100 transition-colors border border-orange-200" title="Harga jual = modal HPP">
+              <input type="checkbox" className="rounded border-orange-300 text-orange-600 focus:ring-orange-500" checked={jualKeTokoPusat} onChange={(e) => handleJualKeTokoPusatChange(e.target.checked)} />
+              <span>Jual ke Toko Pusat</span>
+            </label>
+            <label className="flex items-center gap-2 text-sm font-medium text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors border border-blue-200">
+              <input type="checkbox" className="rounded border-blue-300 text-blue-600 focus:ring-blue-500" checked={isIndent} onChange={(e) => setIsIndent(e.target.checked)} />
+              Simpan Sebagai Inden
+            </label>
+          </div>
         </CardHeader>
         <CardBody className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Input
@@ -222,7 +245,7 @@ export function FormPenjualan({
                     />
                   </div>
                   <Input label="QTY" id={`qty-${idx}`} type="number" min="1" value={item.qty || ''} onChange={(e) => updateItem(idx, 'qty', Number(e.target.value))} required hint={product && !isIndent ? `Stok: ${product.qty_stok} unit${role === 'SUPER_ADMIN' && product.harga_modal ? ` | Modal: ${formatRupiah(product.harga_modal)}` : ''}` : undefined} placeholder="0" />
-                  <InputCurrency label="Harga Jual" id={`harga-${idx}`} min="0" value={item.harga_jual || ''} onChange={(val) => updateItem(idx, 'harga_jual', val === '' ? 0 : Number(val))} required disabled={!isIndent} />
+                  <InputCurrency label="Harga Jual" id={`harga-${idx}`} min="0" value={item.harga_jual || ''} onChange={(val) => updateItem(idx, 'harga_jual', val === '' ? 0 : Number(val))} required disabled={!isIndent && !jualKeTokoPusat} />
 
                   <InputCurrency
                     label="Bayar"

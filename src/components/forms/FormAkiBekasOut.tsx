@@ -44,7 +44,7 @@ export function FormAkiBekasOut({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!kapasitasAh) return showToast('error', 'Kapasitas AH harus dipilih')
     if (qty <= 0) return showToast('error', 'Qty harus lebih dari 0')
     if (qty > maxQty) return showToast('error', `Qty melebihi stok (Maks: ${maxQty})`)
@@ -72,8 +72,8 @@ export function FormAkiBekasOut({
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1">
         <label className="text-sm font-medium text-gray-700">Tanggal</label>
-        <Input 
-          type="date" 
+        <Input
+          type="date"
           value={tanggal}
           onChange={(e) => setTanggal(e.target.value)}
           required
@@ -99,10 +99,12 @@ export function FormAkiBekasOut({
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1">
           <label className="text-sm font-medium text-gray-700">Qty (Unit)</label>
-          <InputCurrency 
-            value={qty || ''}
-            onChange={(val) => setQty(Number(val) || 0)}
-            placeholder="0"
+          <Input
+            type="number"
+            min="1"
+            max={maxQty || 1}
+            value={qty}
+            onChange={(e) => setQty(Number(e.target.value))}
             required
             disabled={!kapasitasAh}
           />
@@ -112,24 +114,23 @@ export function FormAkiBekasOut({
         </div>
         <div className="space-y-1">
           <label className="text-sm font-medium text-gray-700">Harga Jual Satuan</label>
-          <InputCurrency 
-            value={hargaJual || ''}
+          <InputCurrency
+            value={hargaJual}
             onChange={(val) => setHargaJual(Number(val) || 0)}
-            placeholder="0"
           />
         </div>
       </div>
 
       <div className="space-y-1">
         <label className="text-sm font-medium text-gray-700">Total Harga</label>
-        <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-right font-bold text-xl text-green-600">
+        <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-right font-semibold text-lg text-green-600">
           Rp {(qty * hargaJual).toLocaleString('id-ID')}
         </div>
       </div>
 
       <div className="space-y-1">
         <label className="text-sm font-medium text-gray-700">Keterangan (Opsional)</label>
-        <Input 
+        <Input
           placeholder="Misal: Dijual ke pengepul"
           value={keterangan}
           onChange={(e) => setKeterangan(e.target.value)}

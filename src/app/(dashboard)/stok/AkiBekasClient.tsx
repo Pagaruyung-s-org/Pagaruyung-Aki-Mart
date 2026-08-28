@@ -76,11 +76,10 @@ export function AkiBekasClient({
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                activeTab === tab.id
+              className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${activeTab === tab.id
                   ? 'bg-blue-50 text-blue-700'
                   : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
-              }`}
+                }`}
             >
               {tab.icon}
               {tab.label}
@@ -103,7 +102,7 @@ export function AkiBekasClient({
       {/* Content */}
       <Card>
         <CardBody className="p-0">
-          
+
           {/* TAB: STOK */}
           {activeTab === 'STOK' && (
             <div className="overflow-x-auto">
@@ -293,7 +292,7 @@ export function AkiBekasClient({
         title="Catat Aki Bekas Masuk (Pembelian)"
         size="md"
       >
-        <FormAkiBekasIn 
+        <FormAkiBekasIn
           categories={categories}
           onSuccess={() => setIsModalInOpen(false)}
           onCancel={() => setIsModalInOpen(false)}
@@ -306,7 +305,7 @@ export function AkiBekasClient({
         title="Catat Aki Bekas Keluar (Penjualan)"
         size="md"
       >
-        <FormAkiBekasOut 
+        <FormAkiBekasOut
           categories={categories}
           summary={summary}
           onSuccess={() => setIsModalOutOpen(false)}

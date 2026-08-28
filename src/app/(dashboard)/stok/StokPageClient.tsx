@@ -30,8 +30,8 @@ export function StokPageClient({ products, batchByProduct, role, akiBekasData }:
   const productsAirAki = products.filter(p => p.kategori === 'Air Aki')
 
   return (
-    <Tabs 
-      tabs={tabs} 
+    <Tabs
+      tabs={tabs}
       defaultTab="produk"
       contents={{
         'produk': <StokProdukTable products={productsAki} batchByProduct={batchByProduct} role={role} />,

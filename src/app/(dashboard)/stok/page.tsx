@@ -48,7 +48,7 @@ export default async function StokPage() {
     .select('*')
     .order('created_at', { ascending: false })
     .limit(100)
-    
+
   const { data: bankTransactions } = await supabase
     .from('bank_aki_bekas_transactions')
     .select('*')

@@ -32,6 +32,8 @@ export default async function PembelianPage() {
     supabase.from('products').select('id, merk, kategori, type, kode_baterai, kapasitas_ah, kode_produk, harga_jual').eq('status', true).order('merk').order('id', { ascending: true }),
   ])
 
+  const productIds = (products ?? []).map(p => p.id)
+
   return (
     <div>
       <Header title="Pembelian" subtitle="Daftar transaksi pembelian produk" />

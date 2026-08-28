@@ -833,3 +833,25 @@ export async function createManualHutang(input: z.infer<typeof CreateManualHutan
     message: `Hutang manual ${kode_pembelian} berhasil disimpan`,
   }
 }
+
+/** Ambil harga beli terakhir per product_id dari inventory_batches */
+export async function getLastPurchasePrices(productIds: string[]): Promise<Record<string, number>> {
+  if (!productIds.length) return {}
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('inventory_batches')
+    .select('product_id, harga_modal_unit, tanggal_masuk')
+    .in('product_id', productIds)
+    .order('tanggal_masuk', { ascending: false })
+
+  if (error || !data) return {}
+
+  // Ambil harga terakhir per product (data sudah terurut DESC, jadi ambil pertama ketemu)
+  const result: Record<string, number> = {}
+  for (const row of data) {
+    if (!result[row.product_id]) {
+      result[row.product_id] = Number(row.harga_modal_unit)
+    }
+  }
+  return result
+}

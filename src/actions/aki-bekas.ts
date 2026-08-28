@@ -88,6 +88,37 @@ export async function getAkiBekasSummary() {
   return summary
 }
 
+/** Ambil harga beli dari batch terakhir yang masuk untuk kapasitas tertentu */
+export async function getLastBatchPrice(kapasitas_ah: number): Promise<number> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('aki_bekas_batches')
+    .select('harga_beli_unit')
+    .eq('kapasitas_ah', kapasitas_ah)
+    .order('tanggal_masuk', { ascending: false })
+    .limit(1)
+    .single()
+
+  if (error || !data) return 0
+  return Number(data.harga_beli_unit)
+}
+
+/** Hitung HPP rata-rata FIFO dari stok tersedia untuk kapasitas tertentu */
+export async function getHppBatch(kapasitas_ah: number): Promise<number> {
+  const supabase = await createClient()
+  const { data: batches, error } = await supabase
+    .from('aki_bekas_batches')
+    .select('harga_beli_unit, qty_tersedia')
+    .eq('kapasitas_ah', kapasitas_ah)
+    .gt('qty_tersedia', 0)
+    .order('tanggal_masuk', { ascending: true })
+    .limit(1)
+
+  if (error || !batches?.length) return 0
+  // Kembalikan harga batch FIFO pertama (yang paling lama)
+  return Number(batches[0].harga_beli_unit)
+}
+
 export async function createAkiBekasPurchase(input: {
   tanggal: string
   kapasitas_ah: number

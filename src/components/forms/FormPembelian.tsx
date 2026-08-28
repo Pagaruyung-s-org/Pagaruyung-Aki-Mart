@@ -84,8 +84,13 @@ export function FormPembelian({
 
   function updateItem(idx: number, field: keyof PurchaseItem, value: string | number) {
     const updated = [...items]
-    updated[idx] = { ...updated[idx], [field]: value }
+    const item = { ...updated[idx], [field]: value }
+    updated[idx] = item
     setItems(updated)
+  }
+
+  function handleSupplierChange(newSupplierId: string) {
+    setSupplierId(newSupplierId)
   }
 
   const totalNominal = items.reduce((s, i) => s + (i.nominal || 0), 0)
@@ -158,7 +163,7 @@ export function FormPembelian({
             label="Supplier"
             id="supplier_id"
             value={supplierId}
-            onChange={(e) => setSupplierId(e.target.value)}
+            onChange={(e) => handleSupplierChange(e.target.value)}
             required
             placeholder="-- Pilih Supplier --"
             options={suppliers.map(s => ({ value: s.id, label: s.nama_supplier }))}
