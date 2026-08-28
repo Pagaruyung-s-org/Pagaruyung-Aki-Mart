@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
 import { StokPageClient } from './StokPageClient'
 import { getUserRole } from '@/actions/users'
+import { getAkiBekasCategories, getAkiBekasSummary, getBankAkiBalance } from '@/actions/aki-bekas'
 
 export default async function StokPage() {
   const supabase = await createClient()
@@ -31,6 +32,29 @@ export default async function StokPage() {
     batchByProduct[b.product_id]!.push(b)
   }
 
+  // ─── Fetch data Aki Bekas ───
+  const balance = await getBankAkiBalance()
+  const categories = await getAkiBekasCategories()
+  const summaryAkiBekas = await getAkiBekasSummary()
+
+  const { data: purchases } = await supabase
+    .from('aki_bekas_purchases')
+    .select('*, sales(kode_penjualan)')
+    .order('created_at', { ascending: false })
+    .limit(100)
+
+  const { data: salesAkiBekas } = await supabase
+    .from('aki_bekas_sales')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(100)
+    
+  const { data: bankTransactions } = await supabase
+    .from('bank_aki_bekas_transactions')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(100)
+
   return (
     <div>
       <Header title="Persediaan Stok" subtitle="Posisi stok produk dan air aki" />
@@ -39,6 +63,14 @@ export default async function StokPage() {
           products={products ?? []}
           batchByProduct={batchByProduct as any}
           role={role ?? undefined}
+          akiBekasData={{
+            initialBalance: balance,
+            categories: categories || [],
+            summary: summaryAkiBekas || [],
+            purchases: purchases || [],
+            sales: salesAkiBekas || [],
+            bankTransactions: bankTransactions || []
+          }}
         />
       </div>
     </div>

@@ -41,6 +41,7 @@ export function ClosingClient({ closings }: ClosingClientProps) {
   const [summary, setSummary] = useState<{
     total_penjualan_tunai: number
     total_penjualan_transfer: number
+    transfer_details?: Record<string, number>
     total_pengeluaran_tunai: number
     total_bayar_hutang: number
   } | null>(null)
@@ -346,10 +347,22 @@ export function ClosingClient({ closings }: ClosingClientProps) {
                                       <span className="text-gray-500">Penjualan Tunai</span>
                                       <span className="font-medium text-gray-900">{formatRupiah(c.total_penjualan_tunai)}</span>
                                     </div>
-                                    <div className="flex justify-between items-center">
-                                      <span className="text-gray-500">Penjualan Transfer/QRIS</span>
-                                      <span className="font-medium text-gray-900">{formatRupiah(c.total_penjualan_transfer)}</span>
-                                    </div>
+                                    {/* Transfer/QRIS breakdown dari transfer_details */}
+                                    {c.transfer_details && Object.keys(c.transfer_details).length > 0 ? (
+                                      Object.entries(c.transfer_details as Record<string, number>)
+                                        .sort(([a], [b]) => a.localeCompare(b))
+                                        .map(([key, val]) => (
+                                          <div key={key} className="flex justify-between items-center pl-2">
+                                            <span className="text-gray-400">↳ {key}</span>
+                                            <span className="font-medium text-gray-900">{formatRupiah(val)}</span>
+                                          </div>
+                                        ))
+                                    ) : (
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-gray-500">Penjualan Transfer/QRIS</span>
+                                        <span className="font-medium text-gray-900">{formatRupiah(c.total_penjualan_transfer)}</span>
+                                      </div>
+                                    )}
                                     <div className="flex justify-between items-center text-red-600">
                                       <span>Pengeluaran Operasional</span>
                                       <span className="font-medium">-{formatRupiah(c.total_pengeluaran_tunai)}</span>
@@ -423,13 +436,25 @@ export function ClosingClient({ closings }: ClosingClientProps) {
           {loadingSummary ? (
             <div className="text-center text-sm text-gray-400 py-4">Menghitung rangkuman...</div>
           ) : summary && (
-            <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
               <h4 className="text-sm font-semibold text-gray-700 mb-2">Rangkuman Transaksi</h4>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="text-gray-600">Penjualan Tunai</div>
                 <div className="text-right font-medium text-green-600">{formatRupiah(summary.total_penjualan_tunai)}</div>
-                <div className="text-gray-600">Penjualan Transfer/QRIS</div>
-                <div className="text-right font-medium text-blue-600">{formatRupiah(summary.total_penjualan_transfer)}</div>
+                {/* Transfer/QRIS breakdown */}
+                {summary.transfer_details && Object.keys(summary.transfer_details).length > 0 ? (
+                  Object.entries(summary.transfer_details).sort(([a], [b]) => a.localeCompare(b)).map(([key, val]) => (
+                    <Fragment key={key}>
+                      <div className="text-gray-600 pl-2">↳ {key}</div>
+                      <div className="text-right font-medium text-blue-600">{formatRupiah(val)}</div>
+                    </Fragment>
+                  ))
+                ) : (
+                  <>
+                    <div className="text-gray-600">Penjualan Transfer/QRIS</div>
+                    <div className="text-right font-medium text-blue-600">{formatRupiah(summary.total_penjualan_transfer)}</div>
+                  </>
+                )}
                 <div className="text-gray-600">Pengeluaran Operasional</div>
                 <div className="text-right font-medium text-red-600">-{formatRupiah(summary.total_pengeluaran_tunai)}</div>
                 <div className="text-gray-600">Pembayaran Hutang</div>

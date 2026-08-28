@@ -322,6 +322,7 @@ export interface DailyClosing {
   tanggal: string
   total_penjualan_tunai: number
   total_penjualan_transfer: number
+  transfer_details?: Record<string, number>
   total_pengeluaran_tunai: number
   total_bayar_hutang: number
   total_cash_drop: number
@@ -339,6 +340,7 @@ export interface DailyClosing {
 export interface CreateClosingInput {
   tanggal: string
   total_cash_drop: number
+  transfer_details?: Record<string, number>
   catatan?: string
 }
 
@@ -432,4 +434,90 @@ export interface AppSetting {
   value: any
   updated_by: string | null
   updated_at: string
+}
+
+// ============================================================
+// AKI BEKAS TYPES
+// ============================================================
+
+export interface AkiBekasCategory {
+  id: string
+  kapasitas_ah: number
+  harga_beli_default: number
+  harga_jual: number
+  status: boolean
+  created_at: string
+}
+
+export interface BankAkiTransaction {
+  id: string
+  tanggal: string
+  jenis: 'MASUK' | 'KELUAR'
+  nominal: number
+  keterangan: string | null
+  reference_type: 'MODAL_AWAL' | 'BELI_BEKAS' | 'JUAL_BEKAS' | 'LAINNYA' | null
+  reference_id: string | null
+  created_by: string | null
+  created_at: string
+}
+
+export interface AkiBekasPurchase {
+  id: string
+  kode: string
+  tanggal: string
+  kapasitas_ah: number
+  qty: number
+  harga_beli_unit: number
+  total: number
+  sumber: 'TUKAR_TAMBAH' | 'BELI_LANGSUNG'
+  sale_id: string | null
+  keterangan: string | null
+  status: 'POSTED' | 'VOID'
+  created_by: string | null
+  created_at: string
+  // Joined
+  sales?: Sale
+}
+
+export interface AkiBekasBatch {
+  id: string
+  purchase_id: string
+  kapasitas_ah: number
+  tanggal_masuk: string
+  qty_awal: number
+  qty_tersedia: number
+  harga_beli_unit: number
+  created_at: string
+  // Joined
+  aki_bekas_purchases?: AkiBekasPurchase
+}
+
+export interface AkiBekasSale {
+  id: string
+  kode: string
+  tanggal: string
+  kapasitas_ah: number
+  qty: number
+  harga_jual_unit: number
+  total: number
+  hpp_total: number
+  laba: number
+  keterangan: string | null
+  status: 'POSTED' | 'VOID'
+  created_by: string | null
+  created_at: string
+  // Joined
+  aki_bekas_sale_allocations?: AkiBekasSaleAllocation[]
+}
+
+export interface AkiBekasSaleAllocation {
+  id: string
+  sale_id: string
+  batch_id: string
+  qty_used: number
+  harga_beli_unit: number
+  subtotal_hpp: number
+  created_at: string
+  // Joined
+  aki_bekas_batches?: AkiBekasBatch
 }

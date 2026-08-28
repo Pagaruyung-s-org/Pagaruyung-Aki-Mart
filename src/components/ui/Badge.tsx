@@ -42,6 +42,9 @@ export function StatusBadge({ status }: StatusBadgeProps) {
     DRAFT: { label: 'Draft', variant: 'default' },
     CANCELLED: { label: 'Dibatalkan', variant: 'danger' },
     PAID: { label: 'Lunas', variant: 'success' },
+    VOID: { label: 'KELUAR', variant: 'danger' },
+    MASUK: { label: 'MASUK', variant: 'success' },
+    KELUAR: { label: 'KELUAR', variant: 'danger' },
   }
 
   const conf = config[status] ?? { label: status, variant: 'default' as const }

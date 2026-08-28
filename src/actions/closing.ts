@@ -46,16 +46,29 @@ async function getTransactionSummary(supabase: any, tanggal: string) {
 
   const totalPenjualanTunai = salesCash?.reduce((sum: number, s: any) => sum + Number(s.total), 0) ?? 0
 
-  // Penjualan transfer/qris
+  // Penjualan transfer/qris — hitung per bank
   const { data: salesTransfer } = await supabase
     .from('sales')
-    .select('total')
+    .select('total, payment_method, keterangan')
     .in('payment_method', ['TRANSFER', 'QRIS'])
     .in('status_transaksi', ['PAID'])
     .gte('tanggal', startOfDay)
     .lte('tanggal', endOfDay)
 
-  const totalPenjualanTransfer = salesTransfer?.reduce((sum: number, s: any) => sum + Number(s.total), 0) ?? 0
+  // Akumulasi total per bank/QRIS
+  const transferDetails: Record<string, number> = {}
+  let totalPenjualanTransfer = 0
+  for (const s of salesTransfer ?? []) {
+    const amount = Number(s.total)
+    totalPenjualanTransfer += amount
+    let key = 'QRIS'
+    if (s.payment_method === 'TRANSFER') {
+      // Format keterangan: "Bank: MANDIRI" atau "tukar tambah (Bank: BCA)"
+      const match = s.keterangan?.match(/Bank:\s*(\S+)/i)
+      key = match ? `Transfer ${match[1].toUpperCase()}` : 'Transfer (Lainnya)'
+    }
+    transferDetails[key] = (transferDetails[key] ?? 0) + amount
+  }
 
   // Pengeluaran operasional (tunai)
   const { data: expenses } = await supabase
@@ -80,6 +93,7 @@ async function getTransactionSummary(supabase: any, tanggal: string) {
   return {
     total_penjualan_tunai: totalPenjualanTunai,
     total_penjualan_transfer: totalPenjualanTransfer,
+    transfer_details: transferDetails,
     total_pengeluaran_tunai: totalPengeluaranTunai,
     total_bayar_hutang: totalBayarHutang,
   }
@@ -141,6 +155,7 @@ export async function createClosing(input: CreateClosingInput): Promise<ActionRe
       tanggal: data.tanggal,
       total_penjualan_tunai: summary.total_penjualan_tunai,
       total_penjualan_transfer: summary.total_penjualan_transfer,
+      transfer_details: summary.transfer_details,
       total_pengeluaran_tunai: summary.total_pengeluaran_tunai,
       total_bayar_hutang: summary.total_bayar_hutang,
       total_cash_drop: data.total_cash_drop,
@@ -205,6 +220,7 @@ export async function updateClosing(id: string, input: CreateClosingInput): Prom
     .update({
       total_penjualan_tunai: summary.total_penjualan_tunai,
       total_penjualan_transfer: summary.total_penjualan_transfer,
+      transfer_details: summary.transfer_details,
       total_pengeluaran_tunai: summary.total_pengeluaran_tunai,
       total_bayar_hutang: summary.total_bayar_hutang,
       total_cash_drop: data.total_cash_drop,
