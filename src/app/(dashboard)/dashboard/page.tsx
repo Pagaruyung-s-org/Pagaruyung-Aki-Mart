@@ -1,60 +1,82 @@
 import { createClient } from '@/lib/supabase/server'
 import { Header } from '@/components/layout/Header'
-import { StatCard } from '@/components/ui/Card'
 import { formatRupiah } from '@/lib/utils'
-import { CreditCard, TrendingUp, Wallet, Package, AlertTriangle, Vault } from 'lucide-react'
+import {
+  ShoppingCart,
+  Droplets,
+  CircleDollarSign,
+  BarChart3,
+  Wallet,
+  ArrowDownRight,
+  AlertTriangle,
+  Battery,
+  Package,
+  Banknote,
+  CreditCard,
+} from 'lucide-react'
 import { getUserRole } from '@/actions/users'
 import { SalesDashboardClient } from '@/components/dashboard/SalesDashboardClient'
+import { HutangSupplierClient } from '@/components/dashboard/HutangSupplierClient'
 
 async function getDashboardStats() {
   const supabase = await createClient()
-  const today = new Date().toISOString().split('T')[0]
   const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]
   const firstDayOfYear = new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0]
 
-  // Total hutang supplier (pembelian HUTANG/PARSIAL)
-  const { data: hutangData } = await supabase
+  // Total hutang supplier & Details
+  const { data: hutangDataFull } = await supabase
     .from('purchase_transactions')
-    .select('total, status_pembayaran, id')
+    .select(`
+      id,
+      tanggal,
+      tanggal_jatuh_tempo,
+      nomor_faktur,
+      total,
+      suppliers (nama_supplier),
+      supplier_payments (nominal)
+    `)
     .in('status_pembayaran', ['HUTANG', 'PARSIAL'])
     .eq('status_transaksi', 'POSTED')
 
-  let totalHutang = 0
-  if (hutangData && hutangData.length > 0) {
-    for (const p of hutangData) {
-      const { data: payments } = await supabase
-        .from('supplier_payments')
-        .select('nominal')
-        .eq('purchase_id', p.id)
-
-      const paid = payments?.reduce((s, i) => s + i.nominal, 0) ?? 0
-      totalHutang += Math.max(0, p.total - paid)
+  const debtList = (hutangDataFull || []).map((p: any) => {
+    const terbayar = p.supplier_payments?.reduce((s: number, pay: any) => s + (pay.nominal || 0), 0) || 0
+    return {
+      id: p.id,
+      tanggal: p.tanggal,
+      tanggal_jatuh_tempo: p.tanggal_jatuh_tempo,
+      nomor_faktur: p.nomor_faktur,
+      supplier_name: p.suppliers?.nama_supplier || 'Unknown',
+      total: p.total,
+      terbayar: terbayar,
+      sisa_hutang: p.total - terbayar
     }
-  }
+  }).filter((d: any) => d.sisa_hutang > 0)
+
+  let totalHutang = debtList.reduce((s: number, d: any) => s + d.sisa_hutang, 0)
 
   // Saldo kas, bank, brankas
   const { data: kasData } = await supabase
     .from('cash_transactions')
     .select('account_type, debit, credit')
 
-  let saldoKasBank = 0
+  let saldoKas = 0
+  let saldoBank = 0
   let saldoBrankas = 0
-
   kasData?.forEach(i => {
-    if (i.account_type === 'BRANKAS') {
-      saldoBrankas += (i.debit - i.credit)
-    } else {
-      saldoKasBank += (i.debit - i.credit)
-    }
+    if (i.account_type === 'KAS') saldoKas += (i.debit - i.credit)
+    else if (i.account_type === 'BANK') saldoBank += (i.debit - i.credit)
+    else if (i.account_type === 'BRANKAS') saldoBrankas += (i.debit - i.credit)
   })
 
-  // Jumlah produk aktif dan Total Kuantitas Stok
+  // Produk aktif & stok
   const { data: activeProducts } = await supabase
     .from('products')
     .select('id, qty_stok, kategori')
     .eq('status', true)
 
   const produkAktif = activeProducts?.length ?? 0
+  const produkAki = activeProducts?.filter((p: any) => p.kategori !== 'Air Aki').length ?? 0
+  const produkAirAki = activeProducts?.filter((p: any) => p.kategori === 'Air Aki').length ?? 0
   const totalStokAki = activeProducts
     ?.filter((p: any) => p.kategori !== 'Air Aki')
     .reduce((sum, p) => sum + (p.qty_stok || 0), 0) ?? 0
@@ -62,8 +84,7 @@ async function getDashboardStats() {
     ?.filter((p: any) => p.kategori === 'Air Aki')
     .reduce((sum, p) => sum + (p.qty_stok || 0), 0) ?? 0
 
-  // Produk stok rendah (< 3) - User requested warning if below 3
-  // Exclude "Air Aki" since it has its own separate table
+  // Stok rendah
   const { data: stokRendah } = await supabase
     .from('products')
     .select('id, merk, kategori, kode_baterai, kapasitas_ah, qty_stok')
@@ -72,12 +93,21 @@ async function getDashboardStats() {
     .lt('qty_stok', 3)
     .order('qty_stok', { ascending: true })
 
-  // Laba Bersih Bulan Ini (Laba Kotor - Operasional)
+  const { data: airAkiProducts } = await supabase
+    .from('products')
+    .select('id, merk, qty_stok')
+    .eq('kategori', 'Air Aki')
+    .eq('status', true)
+    .order('qty_stok', { ascending: true })
+
+  // Bulan ini: laba kotor, operasional, laba bersih
   const { data: monthSaleItems } = await supabase
     .from('sale_items')
-    .select('laba_kotor')
+    .select('laba_kotor, qty')
     .gte('created_at', firstDayOfMonth)
+
   const labaKotorBulanIni = monthSaleItems?.reduce((s, i) => s + i.laba_kotor, 0) ?? 0
+  const totalAkiTerjualBulan = monthSaleItems?.reduce((s, i) => s + i.qty, 0) ?? 0
 
   const { data: opsData } = await supabase
     .from('expenses')
@@ -87,13 +117,62 @@ async function getDashboardStats() {
   const totalOps = opsData?.reduce((s, i) => s + i.nominal, 0) ?? 0
   const labaBersih = labaKotorBulanIni - totalOps
 
-  // Sales for the interactive client component (Fetch whole year)
+  // Omzet bulan ini
+  const { data: monthSales } = await supabase
+    .from('sales')
+    .select('total')
+    .eq('status_transaksi', 'PAID')
+    .gte('tanggal', firstDayOfMonth)
+  const omzetBulanIni = monthSales?.reduce((s, i) => s + i.total, 0) ?? 0
+
+  // Total Nilai Stok
+  const { data: batches } = await supabase
+    .from('inventory_batches')
+    .select('qty_tersedia, harga_modal_unit')
+    .gt('qty_tersedia', 0)
+
+  let totalNilaiStokAki = 0
+  let totalNilaiStokAirAki = 0
+  if (batches) {
+    // Simple: sum all batches as aki stok value (air aki tracked separately via products)
+    totalNilaiStokAki = batches.reduce((sum, b) => sum + (b.qty_tersedia * b.harga_modal_unit), 0)
+  }
+
+  // Sales for interactive chart (whole year)
   const { data: salesRaw } = await supabase
     .from('sales')
-    .select('tanggal, total, sale_items(qty, products(kategori))')
+    .select('tanggal, total, payment_method, keterangan, sale_items(qty, laba_kotor, products(kategori))')
     .eq('status_transaksi', 'PAID')
     .gte('tanggal', firstDayOfYear)
     .order('tanggal', { ascending: true })
+
+  // All time bank balances based on sales (since expenses don't specify bank)
+  const { data: allSalesBank } = await supabase
+    .from('sales')
+    .select('total, payment_method, keterangan')
+    .eq('status_transaksi', 'PAID')
+    .in('payment_method', ['TRANSFER', 'QRIS'])
+
+  let saldoMandiri = 0
+  let saldoBsiQris = 0
+  let saldoBni = 0
+
+  allSalesBank?.forEach(s => {
+    if (s.payment_method === 'QRIS') {
+      saldoBsiQris += s.total
+    } else if (s.payment_method === 'TRANSFER') {
+      const ket = s.keterangan?.toUpperCase() || ''
+      if (ket.includes('BSI')) {
+        saldoBsiQris += s.total
+      } else if (ket.includes('MANDIRI')) {
+        saldoMandiri += s.total
+      } else if (ket.includes('BNI')) {
+        saldoBni += s.total
+      } else {
+        // If there are other banks, we could put them somewhere, but following the requested layout
+      }
+    }
+  })
 
   const salesData = (salesRaw ?? []).map(s => {
     const items = Array.isArray(s.sale_items) ? s.sale_items : []
@@ -103,253 +182,413 @@ async function getDashboardStats() {
     const qtyAirAki = items
       .filter((item: any) => item.products?.kategori === 'Air Aki')
       .reduce((sum: number, item: any) => sum + item.qty, 0)
+    const labaKotor = items.reduce((sum: number, item: any) => sum + (item.laba_kotor || 0), 0)
     return {
       tanggal: s.tanggal,
       total: s.total,
       total_qty: qtyAki + qtyAirAki,
       qty_aki: qtyAki,
       qty_air_aki: qtyAirAki,
+      payment_method: s.payment_method,
+      keterangan: s.keterangan,
+      laba_kotor: labaKotor,
     }
   })
 
-  // Stok Air Aki (dari tabel products)
-  const { data: airAkiProducts } = await supabase
-    .from('products')
-    .select('id, merk, qty_stok')
-    .eq('kategori', 'Air Aki')
-    .eq('status', true)
-    .order('qty_stok', { ascending: true })
+  // Expenses for interactive chart
+  const { data: expensesRaw } = await supabase
+    .from('expenses')
+    .select('tanggal, nominal')
+    .eq('status_transaksi', 'POSTED')
+    .gte('tanggal', firstDayOfYear)
 
-  // Total Nilai Stok (Aset Barang)
-  const { data: batches } = await supabase
-    .from('inventory_batches')
-    .select('qty_tersedia, harga_modal_unit')
-    .gt('qty_tersedia', 0)
-
-  let totalNilaiStok = 0
-  if (batches) {
-    totalNilaiStok = batches.reduce((sum, b) => sum + (b.qty_tersedia * b.harga_modal_unit), 0)
-  }
-
-  // Kalkulasi Total Aset Usaha
-  const totalAsetUsaha = saldoKasBank + saldoBrankas + totalNilaiStok
+  const expensesData = (expensesRaw ?? []).map(e => ({ tanggal: e.tanggal, nominal: e.nominal }))
 
   return {
+    // KPI bulan ini
+    totalAkiTerjualBulan,
+    omzetBulanIni,
+    labaKotorBulanIni,
+    totalOps,
     labaBersih,
+    debtList,
     totalHutang,
-    saldoKasBank,
+    salesData,
+    expensesData,
     saldoBrankas,
-    totalNilaiStok,
+    totalSaldo: saldoKas + saldoBank + saldoBrankas,
+    saldoKas,
+    saldoBank,
+    saldoMandiri,
+    saldoBsiQris,
+    saldoBni,
+    // Stok
+    totalNilaiStokAki,
+    totalNilaiStokAirAki,
     totalStokAki,
     totalStokAirAki,
-    totalAsetUsaha,
     produkAktif,
+    produkAki,
+    produkAirAki,
+    // Warning
     stokRendah: stokRendah ?? [],
     airAkiList: airAkiProducts ?? [],
-    salesData,
   }
 }
 
+function MetricCard({
+  icon: Icon,
+  label,
+  value,
+  sub,
+  color,
+}: {
+  icon: any
+  label: string
+  value: string
+  sub?: string
+  color: string
+}) {
+  const colorMap: Record<string, { bg: string; icon: string; text: string }> = {
+    blue:   { bg: 'bg-blue-50',   icon: 'bg-blue-100 text-blue-700',   text: 'text-blue-900' },
+    teal:   { bg: 'bg-teal-50',   icon: 'bg-teal-100 text-teal-700',   text: 'text-teal-900' },
+    violet: { bg: 'bg-violet-50', icon: 'bg-violet-100 text-violet-700', text: 'text-violet-900' },
+    orange: { bg: 'bg-orange-50', icon: 'bg-orange-100 text-orange-700', text: 'text-orange-900' },
+    slate:  { bg: 'bg-slate-50',  icon: 'bg-slate-100 text-slate-600',  text: 'text-slate-900' },
+    green:  { bg: 'bg-emerald-50', icon: 'bg-emerald-100 text-emerald-700', text: 'text-emerald-900' },
+    red:    { bg: 'bg-red-50',    icon: 'bg-red-100 text-red-700',      text: 'text-red-900' },
+  }
+  const c = colorMap[color] ?? colorMap.blue
+
+  return (
+    <div className={`rounded-2xl ${c.bg} border border-white/60 shadow-sm p-5 flex items-center gap-4`}>
+      <div className={`shrink-0 p-3 rounded-xl ${c.icon}`}>
+        <Icon className="h-5 w-5" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-medium text-gray-500 truncate">{label}</p>
+        <p className={`text-lg font-bold truncate ${c.text}`}>{value}</p>
+        {sub && <p className="text-[11px] text-gray-400 mt-0.5">{sub}</p>}
+      </div>
+    </div>
+  )
+}
+
 export default async function DashboardPage() {
-  const [stats, role] = await Promise.all([
-    getDashboardStats(),
-    getUserRole()
-  ])
+  const [stats, role] = await Promise.all([getDashboardStats(), getUserRole()])
+
+  const isLabaNegatif = stats.labaBersih < 0
 
   return (
     <div>
       <Header title="Dashboard" subtitle="Ringkasan bisnis usaha aki" />
 
-      <div className={`p-6 space-y-6 max-w-7xl w-full ${role === 'ADMIN' ? 'h-[calc(100vh-100px)] flex flex-col' : ''}`}>
+      <div className="p-6 space-y-6 max-w-7xl w-full">
 
-        {/* Global Summary KPI Cards */}
+        {/* ── METRIC CARDS ─────────────────────────────────────────── */}
         {role !== 'ADMIN' && (
-          <div className="flex gap-4 items-stretch">
-            {/* Kiri: 6 Kartu Finansial (2 kolom) */}
-            <div className="flex-1 grid grid-cols-2 gap-4">
-              <StatCard
-                title="Total Aset Usaha"
-                value={formatRupiah(stats.totalAsetUsaha)}
-                icon={<TrendingUp className="h-5 w-5" />}
-                colorClass="text-indigo-600 bg-indigo-50"
-              />
-              <StatCard
-                title="Total Nilai Stok"
-                value={formatRupiah(stats.totalNilaiStok)}
-                icon={<Package className="h-5 w-5" />}
-                colorClass="text-purple-600 bg-purple-50"
-              />
-              <StatCard
-                title="Saldo Kas & Bank"
-                value={formatRupiah(stats.saldoKasBank)}
-                icon={<Wallet className="h-5 w-5" />}
-                colorClass="text-blue-600 bg-blue-50"
-              />
-              <StatCard
-                title="Saldo Brankas"
-                value={formatRupiah(stats.saldoBrankas)}
-                icon={<Vault className="h-5 w-5" />}
-                colorClass="text-emerald-600 bg-emerald-50"
-              />
-              <StatCard
-                title="Total Hutang Supplier"
-                value={formatRupiah(stats.totalHutang)}
-                icon={<CreditCard className="h-5 w-5" />}
-                colorClass="text-orange-600 bg-orange-50"
-              />
-              <StatCard
-                title="Laba Bersih Bulan Ini"
-                value={formatRupiah(stats.labaBersih)}
-                icon={<TrendingUp className="h-5 w-5" />}
-                colorClass={stats.labaBersih >= 0 ? 'text-emerald-600 bg-emerald-50' : 'text-red-600 bg-red-50'}
-              />
+          <section className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+            <MetricCard
+              icon={ShoppingCart}
+              label="Aki terjual bulan ini"
+              value={`${stats.totalAkiTerjualBulan} pcs`}
+              color="blue"
+            />
+            <MetricCard
+              icon={Droplets}
+              label="Stok air aki"
+              value={`${stats.totalStokAirAki} botol`}
+              color="teal"
+            />
+            <MetricCard
+              icon={CircleDollarSign}
+              label="Omzet bulan ini"
+              value={formatRupiah(stats.omzetBulanIni)}
+              color="violet"
+            />
+            <MetricCard
+              icon={BarChart3}
+              label="Laba kotor bulan ini"
+              value={formatRupiah(stats.labaKotorBulanIni)}
+              color="orange"
+            />
+            <MetricCard
+              icon={Wallet}
+              label="Pengeluaran operasional"
+              value={formatRupiah(stats.totalOps)}
+              sub="Bulan ini"
+              color="slate"
+            />
+            <MetricCard
+              icon={isLabaNegatif ? ArrowDownRight : ArrowDownRight}
+              label="Laba bersih bulan ini"
+              value={formatRupiah(stats.labaBersih)}
+              color={isLabaNegatif ? 'red' : 'green'}
+            />
+          </section>
+        )}
+
+        {/* ── CHART + SALDO PANEL ───────────────────────────────────── */}
+        {role !== 'ADMIN' && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <SalesDashboardClient sales={stats.salesData} expenses={stats.expensesData} />
             </div>
 
-            {/* Kanan: 3 Kartu Kuantitas — lebih sempit, tinggi sama */}
-            <div className="flex flex-col gap-4 w-40 shrink-0">
-              <div className="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col items-center text-center gap-2.5">
-                <div className="p-2.5 rounded-xl w-fit bg-indigo-50 text-indigo-600">
-                  <Package className="h-4 w-4" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs text-gray-500 font-medium truncate">Stok Aki</p>
-                  <p className="text-xl font-bold text-gray-900 mt-1">{stats.totalStokAki}</p>
-                  <p className="text-xs text-gray-500 mt-1">unit</p>
-                </div>
+            {/* Saldo Panel */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col">
+              <div className="border-b border-gray-100 pb-4 mb-4">
+                <h2 className="font-semibold text-gray-900">Saldo Kas &amp; Bank</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Posisi saldo terkini</p>
               </div>
-              <div className="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col items-center text-center gap-2.5">
-                <div className="p-2.5 rounded-xl w-fit bg-cyan-50 text-cyan-600">
-                  <Package className="h-4 w-4" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs text-gray-500 font-medium truncate">Stok Air Aki</p>
-                  <p className="text-xl font-bold text-gray-900 mt-1">{stats.totalStokAirAki}</p>
-                  <p className="text-xs text-gray-500 mt-1">botol</p>
-                </div>
+              <div className="mb-5">
+                <p className="text-xs text-gray-400 font-medium">Total Saldo</p>
+                <p className="text-2xl font-bold text-gray-900 mt-0.5">{formatRupiah(stats.totalSaldo)}</p>
               </div>
-              <div className="flex-1 bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col items-center text-center gap-2.5">
-                <div className="p-2.5 rounded-xl w-fit bg-gray-100 text-gray-600">
-                  <Package className="h-4 w-4" />
+              <div className="space-y-3 flex-1">
+                <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
+                  <div className="flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                      <Wallet className="w-4 h-4 text-amber-600" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Kas Tunai</p>
+                      <p className="text-[11px] text-gray-400">Laci toko</p>
+                    </div>
+                  </div>
+                  <span className="font-semibold text-sm text-gray-900">{formatRupiah(stats.saldoKas)}</span>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-xs text-gray-500 font-medium truncate">Produk Aktif</p>
-                  <p className="text-xl font-bold text-gray-900 mt-1">{stats.produkAktif}</p>
-                  <p className="text-xs text-gray-500 mt-1">jenis</p>
+                <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
+                  <div className="flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                      <Banknote className="w-4 h-4 text-blue-600" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Bank Mandiri</p>
+                      <p className="text-[11px] text-gray-400">Penerimaan Transfer</p>
+                    </div>
+                  </div>
+                  <span className="font-semibold text-sm text-gray-900">{formatRupiah(stats.saldoMandiri)}</span>
+                </div>
+                <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
+                  <div className="flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center shrink-0">
+                      <CreditCard className="w-4 h-4 text-cyan-600" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">BSI / QRIS</p>
+                      <p className="text-[11px] text-gray-400">Penerimaan QRIS & Transfer</p>
+                    </div>
+                  </div>
+                  <span className="font-semibold text-sm text-gray-900">{formatRupiah(stats.saldoBsiQris)}</span>
+                </div>
+                <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
+                  <div className="flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
+                      <CreditCard className="w-4 h-4 text-indigo-600" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Bank BNI</p>
+                      <p className="text-[11px] text-gray-400">Penerimaan Transfer</p>
+                    </div>
+                  </div>
+                  <span className="font-semibold text-sm text-gray-900">{formatRupiah(stats.saldoBni)}</span>
+                </div>
+                <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
+                  <div className="flex items-center gap-3">
+                    <span className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                      <Battery className="w-4 h-4 text-emerald-600" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-medium text-gray-700">Brankas</p>
+                      <p className="text-[11px] text-gray-400">Simpanan toko</p>
+                    </div>
+                  </div>
+                  <span className="font-semibold text-sm text-gray-900">{formatRupiah(stats.saldoBrankas)}</span>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-
-        {/* Interactive Sales Dashboard Component */}
+        {/* ── DAFTAR HUTANG SUPPLIER ───────────────────────────────── */}
         {role !== 'ADMIN' && (
-          <SalesDashboardClient sales={stats.salesData} />
+          <section className="mt-6">
+            <HutangSupplierClient data={stats.debtList} />
+          </section>
         )}
 
-        {/* Low Stock Warning Tables */}
-        <div className={role === 'ADMIN' ? "grid grid-cols-1 grid-rows-2 gap-6 flex-1 min-h-0" : "grid grid-cols-1 lg:grid-cols-3 gap-6"}>
-          <div className={role === 'ADMIN' ? "order-2 h-full min-h-0" : "lg:col-span-2"}>
-            <div className={`bg-white border rounded-xl shadow-sm overflow-hidden flex flex-col ${role === 'ADMIN' ? 'h-full' : 'h-[340px]'} ${stats.stokRendah.length > 0 ? 'border-red-200' : 'border-gray-200'}`}>
-              <div className={`px-6 py-4 border-b flex items-center justify-between ${stats.stokRendah.length > 0 ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className={`h-5 w-5 ${stats.stokRendah.length > 0 ? 'text-red-600' : 'text-gray-400'}`} />
-                  <h3 className={`font-semibold ${stats.stokRendah.length > 0 ? 'text-red-900' : 'text-gray-700'}`}>
-                    Stok Aki
-                  </h3>
-                </div>
-                {stats.stokRendah.length > 0 && (
-                  <span className="bg-red-100 text-red-700 text-xs font-bold px-2.5 py-1 rounded-full">
-                    {stats.stokRendah.length} Warning
-                  </span>
-                )}
+        {/* ── INVENTORI SUMMARY ─────────────────────────────────────── */}
+        {role !== 'ADMIN' && (
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h2 className="font-semibold text-gray-900">Ringkasan Inventori</h2>
+                <p className="text-xs text-gray-500">Nilai dan ketersediaan stok produk</p>
               </div>
-              <div className="overflow-auto w-full flex-1">
-                <table className="w-full text-left text-sm whitespace-nowrap">
-                  <thead className="bg-gray-50 border-b border-gray-100 text-gray-500">
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 flex items-center gap-4">
+                <span className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0">
+                  <Battery className="h-6 w-6 text-indigo-600" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-gray-500">Total nilai stok aki</p>
+                  <p className="text-lg font-bold text-gray-900">{formatRupiah(stats.totalNilaiStokAki)}</p>
+                  <p className="text-[11px] text-gray-400">Modal seluruh stok aki</p>
+                </div>
+                <span className="text-right shrink-0">
+                  <span className="text-2xl font-bold text-gray-800">{stats.totalStokAki}</span>
+                  <span className="text-xs text-gray-400 ml-1">pcs</span>
+                </span>
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 flex items-center gap-4">
+                <span className="w-12 h-12 rounded-xl bg-cyan-100 flex items-center justify-center shrink-0">
+                  <Droplets className="h-6 w-6 text-cyan-600" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-gray-500">Stok air aki</p>
+                  <p className="text-lg font-bold text-gray-900">{stats.totalStokAirAki} botol</p>
+                  <p className="text-[11px] text-gray-400">Semua jenis air aki</p>
+                </div>
+                <span className="text-right shrink-0">
+                  <span className="text-2xl font-bold text-gray-800">{stats.totalStokAirAki}</span>
+                  <span className="text-xs text-gray-400 ml-1">btl</span>
+                </span>
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 flex items-center gap-4">
+                <span className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
+                  <Package className="h-6 w-6 text-gray-600" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-gray-500">Produk aktif</p>
+                  <p className="text-lg font-bold text-gray-900">{stats.produkAktif} produk</p>
+                  <p className="text-[11px] text-gray-400">{stats.produkAki} aki &amp; {stats.produkAirAki} air aki</p>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold shrink-0">Aktif</span>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* ── STOK WARNING TABLES ───────────────────────────────────── */}
+        <div className={role === 'ADMIN' ? 'grid grid-cols-1 gap-6 flex-1' : 'grid grid-cols-1 lg:grid-cols-2 gap-6'}>
+
+          {/* Tabel Stok Aki */}
+          <div className={`bg-white border rounded-2xl shadow-sm overflow-hidden flex flex-col ${stats.stokRendah.length > 0 ? 'border-red-200' : 'border-gray-200'}`}>
+            <div className={`px-6 py-4 border-b flex items-center justify-between ${stats.stokRendah.length > 0 ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
+              <div className="flex items-center gap-2">
+                <Battery className={`h-5 w-5 ${stats.stokRendah.length > 0 ? 'text-red-600' : 'text-gray-400'}`} />
+                <div>
+                  <h3 className={`font-semibold ${stats.stokRendah.length > 0 ? 'text-red-900' : 'text-gray-700'}`}>Stok Aki Menipis</h3>
+                  <p className="text-xs text-gray-400">Segera lakukan restock</p>
+                </div>
+              </div>
+              {stats.stokRendah.length > 0 && (
+                <span className="bg-red-100 text-red-700 text-xs font-bold px-2.5 py-1 rounded-full">{stats.stokRendah.length} Warning</span>
+              )}
+            </div>
+            <div className="overflow-auto w-full flex-1">
+              <table className="w-full text-left text-sm whitespace-nowrap">
+                <thead className="bg-gray-50 border-b border-gray-100 text-gray-500">
+                  <tr>
+                    <th className="px-6 py-3 font-medium">Produk</th>
+                    <th className="px-6 py-3 font-medium">Kategori</th>
+                    <th className="px-6 py-3 font-medium text-center">Kode</th>
+                    <th className="px-6 py-3 font-medium text-center">Sisa Stok</th>
+                    <th className="px-6 py-3 font-medium text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {stats.stokRendah.length === 0 ? (
                     <tr>
-                      <th className="px-6 py-3 font-medium">Merk</th>
-                      <th className="px-6 py-3 font-medium">Kategori</th>
-                      <th className="px-6 py-3 font-medium text-center">Kode Baterai</th>
-                      <th className="px-6 py-3 font-medium text-center">Kapasitas (AH)</th>
-                      <th className="px-6 py-3 font-medium text-center">Sisa Stok</th>
+                      <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                        Semua stok dalam batas aman.
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {stats.stokRendah.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                          Semua stok produk saat ini dalam batas aman (tidak ada yang di bawah 3 pcs).
+                  ) : (
+                    stats.stokRendah.map(p => (
+                      <tr key={p.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-3 font-medium text-gray-900">{p.merk}</td>
+                        <td className="px-6 py-3 text-gray-600">{p.kategori}</td>
+                        <td className="px-6 py-3 text-center text-gray-600">{p.kode_baterai ?? '-'}</td>
+                        <td className="px-6 py-3 text-center">
+                          <span className="font-bold text-red-600 text-lg">{p.qty_stok}</span>
+                        </td>
+                        <td className="px-6 py-3 text-center">
+                          <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-[11px] font-semibold px-2 py-0.5 rounded-full">
+                            <AlertTriangle className="w-3 h-3" /> Menipis
+                          </span>
                         </td>
                       </tr>
-                    ) : (
-                      stats.stokRendah.map((p) => (
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Tabel Stok Air Aki */}
+          <div className={`bg-white border rounded-2xl shadow-sm overflow-hidden flex flex-col ${stats.airAkiList.some(p => (p.qty_stok ?? 0) < 20) ? 'border-red-200' : 'border-gray-200'}`}>
+            <div className={`px-6 py-4 border-b flex items-center justify-between ${stats.airAkiList.some(p => (p.qty_stok ?? 0) < 20) ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
+              <div className="flex items-center gap-2">
+                <Droplets className={`h-5 w-5 ${stats.airAkiList.some(p => (p.qty_stok ?? 0) < 20) ? 'text-red-600' : 'text-gray-400'}`} />
+                <div>
+                  <h3 className={`font-semibold ${stats.airAkiList.some(p => (p.qty_stok ?? 0) < 20) ? 'text-red-900' : 'text-gray-700'}`}>Stok Air Aki</h3>
+                  <p className="text-xs text-gray-400">Di bawah 20 botol = kritis</p>
+                </div>
+              </div>
+              {stats.airAkiList.filter(p => (p.qty_stok ?? 0) < 20).length > 0 && (
+                <span className="bg-red-100 text-red-700 text-xs font-bold px-2.5 py-1 rounded-full">
+                  {stats.airAkiList.filter(p => (p.qty_stok ?? 0) < 20).length} Warning
+                </span>
+              )}
+            </div>
+            <div className="overflow-auto w-full flex-1">
+              <table className="w-full text-left text-sm whitespace-nowrap">
+                <thead className="bg-gray-50 border-b border-gray-100 text-gray-500">
+                  <tr>
+                    <th className="px-6 py-3 font-medium">Produk</th>
+                    <th className="px-6 py-3 font-medium text-center">Stok</th>
+                    <th className="px-6 py-3 font-medium text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {stats.airAkiList.length === 0 ? (
+                    <tr>
+                      <td colSpan={3} className="px-6 py-8 text-center text-gray-500">Tidak ada produk Air Aki aktif.</td>
+                    </tr>
+                  ) : (
+                    stats.airAkiList.map(p => {
+                      const qty = p.qty_stok ?? 0
+                      const isKritis = qty < 20
+                      return (
                         <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                           <td className="px-6 py-3 font-medium text-gray-900">{p.merk}</td>
-                          <td className="px-6 py-3 text-gray-600">{p.kategori}</td>
-                          <td className="px-6 py-3 text-center text-gray-600">{p.kode_baterai ?? '-'}</td>
-                          <td className="px-6 py-3 text-center text-gray-600">{p.kapasitas_ah ?? '-'}</td>
                           <td className="px-6 py-3 text-center">
-                            <span className="font-bold text-red-600 text-lg">{p.qty_stok}</span>
+                            <span className={`font-bold text-lg ${isKritis ? 'text-red-600' : 'text-gray-900'}`}>{qty}</span>
+                            <span className="text-xs text-gray-400 ml-1">btl</span>
+                          </td>
+                          <td className="px-6 py-3 text-center">
+                            {isKritis ? (
+                              <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-[11px] font-semibold px-2 py-0.5 rounded-full">
+                                <AlertTriangle className="w-3 h-3" /> Menipis
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-700 text-[11px] font-semibold px-2 py-0.5 rounded-full">
+                                Aman
+                              </span>
+                            )}
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                      )
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
 
-          <div className={role === 'ADMIN' ? "order-1 h-full min-h-0" : "lg:col-span-1"}>
-            <div className={`bg-white border rounded-xl shadow-sm overflow-hidden flex flex-col ${role === 'ADMIN' ? 'h-full' : 'h-[340px]'} ${stats.airAkiList.some(p => (p.qty_stok ?? 0) < 20) ? 'border-red-200' : 'border-gray-200'}`}>
-              <div className={`px-6 py-4 border-b flex items-center justify-between ${stats.airAkiList.some(p => (p.qty_stok ?? 0) < 20) ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className={`h-5 w-5 ${stats.airAkiList.some(p => (p.qty_stok ?? 0) < 20) ? 'text-red-600' : 'text-gray-400'}`} />
-                  <h3 className={`font-semibold ${stats.airAkiList.some(p => (p.qty_stok ?? 0) < 20) ? 'text-red-900' : 'text-gray-700'}`}>
-                    Stok Air Aki
-                  </h3>
-                </div>
-                {stats.airAkiList.filter(p => (p.qty_stok ?? 0) < 20).length > 0 && (
-                  <span className="bg-red-100 text-red-700 text-xs font-bold px-2.5 py-1 rounded-full">
-                    {stats.airAkiList.filter(p => (p.qty_stok ?? 0) < 20).length} Warning
-                  </span>
-                )}
-              </div>
-              <div className="overflow-auto w-full flex-1">
-                <table className="w-full text-left text-sm whitespace-nowrap">
-                  <thead className="bg-gray-50 border-b border-gray-100 text-gray-500">
-                    <tr>
-                      <th className="px-6 py-3 font-medium text-center">Merk</th>
-                      <th className="px-6 py-3 font-medium text-center">Stok</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {stats.airAkiList.length === 0 ? (
-                      <tr>
-                        <td colSpan={3} className="px-6 py-8 text-center text-gray-500">
-                          Tidak ada produk Air Aki aktif.
-                        </td>
-                      </tr>
-                    ) : (
-                      stats.airAkiList.map((p) => {
-                        const qty = p.qty_stok ?? 0
-                        const isKritis = qty < 20
-                        return (
-                          <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-6 py-3 font-medium text-gray-900 text-center">{p.merk}</td>
-                            <td className="px-6 py-3 text-center">
-                              <span className={`font-bold ${isKritis ? 'text-red-600' : 'text-gray-900'}`}>{qty}</span>
-                            </td>
-                          </tr>
-                        )
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>
