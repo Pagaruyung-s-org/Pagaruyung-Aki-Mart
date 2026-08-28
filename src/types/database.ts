@@ -77,6 +77,12 @@ export interface PurchaseTransaction {
   status_pembayaran: StatusPembayaran
   status_transaksi: StatusTransaksi
   keterangan: string | null
+  nama_sales: string | null
+  nomor_faktur: string | null
+  tanggal_faktur: string | null
+  tanggal_jatuh_tempo: string | null
+  tanggal_sampai: string | null
+  foto_faktur_url: string | null
   created_by: string | null
   created_at: string
   // Joined
@@ -264,6 +270,12 @@ export interface CreatePurchaseInput {
   supplier_id: string
   status_pembayaran: StatusPembayaran
   keterangan?: string
+  nama_sales?: string
+  nomor_faktur?: string
+  tanggal_faktur?: string
+  tanggal_jatuh_tempo?: string
+  tanggal_sampai?: string
+  foto_faktur_url?: string
   items: PurchaseItemInput[]
 }
 

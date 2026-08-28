@@ -23,6 +23,12 @@ const CreatePurchaseSchema = z.object({
   supplier_id: z.string().uuid('Supplier tidak valid'),
   status_pembayaran: z.enum(['LUNAS', 'HUTANG', 'PARSIAL']),
   keterangan: z.string().optional(),
+  nama_sales: z.string().optional(),
+  nomor_faktur: z.string().optional(),
+  tanggal_faktur: z.string().optional(),
+  tanggal_jatuh_tempo: z.string().optional(),
+  tanggal_sampai: z.string().optional(),
+  foto_faktur_url: z.string().optional(),
   items: z.array(PurchaseItemSchema).min(1, 'Minimal 1 item'),
 })
 
@@ -129,6 +135,12 @@ export async function createPurchase(input: CreatePurchaseInput): Promise<Action
       status_pembayaran: data.status_pembayaran,
       status_transaksi: 'POSTED',
       keterangan: data.keterangan,
+      nama_sales: data.nama_sales || null,
+      nomor_faktur: data.nomor_faktur || null,
+      tanggal_faktur: data.tanggal_faktur || null,
+      tanggal_jatuh_tempo: data.tanggal_jatuh_tempo || null,
+      tanggal_sampai: data.tanggal_sampai || null,
+      foto_faktur_url: data.foto_faktur_url || null,
       created_by: user.id,
     })
     .select()

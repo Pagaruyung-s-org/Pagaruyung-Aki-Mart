@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { formatRupiah, formatDateTime } from '@/lib/utils'
+import { formatRupiah, formatDateTime, formatDate } from '@/lib/utils'
 import { StatusBadge } from '@/components/ui/Badge'
 import { Pagination } from '@/components/ui/Pagination'
 import { usePagination } from '@/hooks/usePagination'
@@ -9,6 +9,7 @@ import { Modal } from '@/components/ui/Modal'
 import { useState } from 'react'
 import { voidPurchase } from '@/actions/void-transactions'
 import { useToast } from '@/components/ui/Toast'
+import { User, FileText, Calendar, Clock, Truck, ImageIcon } from 'lucide-react'
 
 export function RiwayatPembelianTable({ purchases }: { purchases: any[] }) {
   const {
@@ -26,6 +27,7 @@ export function RiwayatPembelianTable({ purchases }: { purchases: any[] }) {
   const [voidReason, setVoidReason] = useState('')
   const [isVoiding, setIsVoiding] = useState(false)
   const [showVoidPrompt, setShowVoidPrompt] = useState(false)
+  const [showFoto, setShowFoto] = useState(false)
   const { showToast } = useToast()
 
   const handleVoid = async () => {
@@ -118,23 +120,115 @@ export function RiwayatPembelianTable({ purchases }: { purchases: any[] }) {
         setCurrentPage={setCurrentPage}
       />
 
-      <Modal isOpen={!!selectedPurchase} onClose={() => setSelectedPurchase(null)} title="Detail Pembelian" size="lg">
+      {/* Detail Modal */}
+      <Modal isOpen={!!selectedPurchase} onClose={() => { setSelectedPurchase(null); setShowVoidPrompt(false); setVoidReason('') }} title="Detail Pembelian" size="xl">
         {selectedPurchase && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
+          <div className="space-y-5">
+
+            {/* Info utama */}
+            <div className="grid grid-cols-3 gap-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
               <div>
-                <p className="text-xs text-gray-500 mb-1">Kode Faktur</p>
-                <p className="font-mono text-sm font-medium text-gray-900">{selectedPurchase.kode_pembelian}</p>
+                <p className="text-xs text-gray-500 mb-1">Kode Pembelian</p>
+                <p className="font-mono text-sm font-semibold text-blue-700">{selectedPurchase.kode_pembelian}</p>
               </div>
               <div>
-                <p className="text-xs text-gray-500 mb-1">Tanggal</p>
+                <p className="text-xs text-gray-500 mb-1">Tanggal Pembelian</p>
                 <p className="text-sm font-medium text-gray-900">{formatDateTime(selectedPurchase.tanggal)}</p>
               </div>
               <div>
                 <p className="text-xs text-gray-500 mb-1">Supplier</p>
                 <p className="text-sm font-medium text-gray-900">{(selectedPurchase.suppliers as any)?.nama_supplier || '—'}</p>
               </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Status Pembayaran</p>
+                <StatusBadge status={selectedPurchase.status_pembayaran} />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-1">Status Transaksi</p>
+                <StatusBadge status={selectedPurchase.status_transaksi} />
+              </div>
             </div>
+
+            {/* Info Faktur — tampil hanya jika ada minimal 1 field */}
+            {(selectedPurchase.nama_sales || selectedPurchase.nomor_faktur || selectedPurchase.tanggal_faktur || selectedPurchase.tanggal_jatuh_tempo || selectedPurchase.tanggal_sampai || selectedPurchase.foto_faktur_url) && (
+              <div className="border border-blue-100 rounded-xl overflow-hidden">
+                <div className="bg-blue-50 px-4 py-2.5 border-b border-blue-100 flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-blue-600" />
+                  <h4 className="text-sm font-semibold text-blue-800">Informasi Faktur Supplier</h4>
+                </div>
+                <div className="p-4 grid grid-cols-2 gap-x-6 gap-y-3">
+                  {selectedPurchase.nama_sales && (
+                    <div className="flex items-start gap-2">
+                      <User className="h-4 w-4 text-gray-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-xs text-gray-500">Nama Sales</p>
+                        <p className="text-sm font-medium text-gray-900">{selectedPurchase.nama_sales}</p>
+                      </div>
+                    </div>
+                  )}
+                  {selectedPurchase.nomor_faktur && (
+                    <div className="flex items-start gap-2">
+                      <FileText className="h-4 w-4 text-gray-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-xs text-gray-500">Nomor Faktur</p>
+                        <p className="text-sm font-medium text-gray-900 font-mono">{selectedPurchase.nomor_faktur}</p>
+                      </div>
+                    </div>
+                  )}
+                  {selectedPurchase.tanggal_faktur && (
+                    <div className="flex items-start gap-2">
+                      <Calendar className="h-4 w-4 text-gray-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-xs text-gray-500">Tanggal Faktur</p>
+                        <p className="text-sm font-medium text-gray-900">{formatDate(selectedPurchase.tanggal_faktur)}</p>
+                      </div>
+                    </div>
+                  )}
+                  {selectedPurchase.tanggal_jatuh_tempo && (
+                    <div className="flex items-start gap-2">
+                      <Clock className="h-4 w-4 text-orange-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-xs text-gray-500">Jatuh Tempo Pembayaran</p>
+                        <p className="text-sm font-semibold text-orange-600">{formatDate(selectedPurchase.tanggal_jatuh_tempo)}</p>
+                      </div>
+                    </div>
+                  )}
+                  {selectedPurchase.tanggal_sampai && (
+                    <div className="flex items-start gap-2">
+                      <Truck className="h-4 w-4 text-gray-400 mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-xs text-gray-500">Tanggal Sampai Barang</p>
+                        <p className="text-sm font-medium text-gray-900">{formatDate(selectedPurchase.tanggal_sampai)}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Foto Faktur */}
+                  {selectedPurchase.foto_faktur_url && (
+                    <div className="col-span-2 flex items-start gap-2 pt-1 border-t border-gray-100 mt-1">
+                      <ImageIcon className="h-4 w-4 text-gray-400 mt-0.5 shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500 mb-2">Foto Faktur</p>
+                        <button
+                          type="button"
+                          onClick={() => setShowFoto(true)}
+                          className="relative group"
+                        >
+                          <img
+                            src={selectedPurchase.foto_faktur_url}
+                            alt="Foto faktur"
+                            className="h-28 w-auto rounded-lg border border-gray-200 object-cover group-hover:opacity-80 transition-opacity"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <span className="bg-black/60 text-white text-xs px-2 py-1 rounded">Lihat penuh</span>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div>
               <h4 className="font-medium text-gray-900 mb-3 border-b pb-2">Item Pembelian</h4>
@@ -232,6 +326,27 @@ export function RiwayatPembelianTable({ purchases }: { purchases: any[] }) {
           </div>
         )}
       </Modal>
+
+      {/* Lightbox foto faktur */}
+      {showFoto && selectedPurchase?.foto_faktur_url && (
+        <div
+          className="fixed inset-0 z-[9999] bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setShowFoto(false)}
+        >
+          <img
+            src={selectedPurchase.foto_faktur_url}
+            alt="Foto faktur penuh"
+            className="max-h-[90vh] max-w-[90vw] object-contain rounded-xl shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            onClick={() => setShowFoto(false)}
+            className="absolute top-4 right-4 text-white bg-white/20 hover:bg-white/30 rounded-full p-2 transition"
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   )
 }

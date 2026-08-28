@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Trash2, Calculator } from 'lucide-react'
+import { Plus, Trash2, Calculator, FileImage, X } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { InputCurrency } from '@/components/ui/InputCurrency'
@@ -11,6 +11,7 @@ import { Card, CardBody, CardFooter, CardHeader } from '@/components/ui/Card'
 import { formatRupiah, hitungHargaModalUnit, toInputDate } from '@/lib/utils'
 import { createPurchase } from '@/actions/transactions'
 import { useToast } from '@/components/ui/Toast'
+import { createClient } from '@/lib/supabase/client'
 
 interface Product {
   id: string; merk: string; kategori: string; type: string | null
@@ -46,6 +47,17 @@ export function FormPembelian({
   const [statusPembayaran, setStatusPembayaran] = useState<'LUNAS' | 'HUTANG'>('HUTANG')
   const [keterangan, setKeterangan] = useState('')
   const [items, setItems] = useState<PurchaseItem[]>([{ product_id: '', qty: 0, nominal: 0 }])
+
+  // Faktur fields
+  const [namaSales, setNamaSales] = useState('')
+  const [nomorFaktur, setNomorFaktur] = useState('')
+  const [tanggalFaktur, setTanggalFaktur] = useState('')
+  const [tanggalJatuhTempo, setTanggalJatuhTempo] = useState('')
+  const [tanggalSampai, setTanggalSampai] = useState('')
+  const [fotoFile, setFotoFile] = useState<File | null>(null)
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   const { showToast } = useToast()
 
   // Dropdown bertingkat — filter produk berdasarkan pilihan
@@ -83,11 +95,34 @@ export function FormPembelian({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     startTransition(async () => {
+      // Upload foto faktur jika ada
+      let fotoUrl: string | undefined
+      if (fotoFile) {
+        const supabase = createClient()
+        const ext = fotoFile.name.split('.').pop()
+        const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+        const { error: uploadError } = await supabase.storage
+          .from('faktur-pembelian')
+          .upload(path, fotoFile, { upsert: false })
+        if (uploadError) {
+          showToast('error', 'Gagal upload foto faktur: ' + uploadError.message)
+          return
+        }
+        const { data: urlData } = supabase.storage.from('faktur-pembelian').getPublicUrl(path)
+        fotoUrl = urlData.publicUrl
+      }
+
       const result = await createPurchase({
         tanggal,
         supplier_id: supplierId,
         status_pembayaran: statusPembayaran,
         keterangan,
+        nama_sales: namaSales || undefined,
+        nomor_faktur: nomorFaktur || undefined,
+        tanggal_faktur: tanggalFaktur || undefined,
+        tanggal_jatuh_tempo: tanggalJatuhTempo || undefined,
+        tanggal_sampai: tanggalSampai || undefined,
+        foto_faktur_url: fotoUrl,
         items: items.filter(i => i.product_id && i.qty > 0 && i.nominal > 0),
       })
 
@@ -145,6 +180,93 @@ export function FormPembelian({
             onChange={(e) => setKeterangan(e.target.value)}
             placeholder="Catatan pembelian..."
           />
+        </CardBody>
+      </Card>
+
+      {/* Informasi Faktur */}
+      <Card>
+        <CardHeader><h2 className="text-sm font-semibold text-gray-900">Informasi Faktur <span className="text-xs font-normal text-gray-400">(opsional)</span></h2></CardHeader>
+        <CardBody className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Nama Sales"
+              id="nama_sales"
+              value={namaSales}
+              onChange={(e) => setNamaSales(e.target.value)}
+              placeholder="Nama sales supplier..."
+            />
+            <Input
+              label="Nomor Faktur"
+              id="nomor_faktur"
+              value={nomorFaktur}
+              onChange={(e) => setNomorFaktur(e.target.value)}
+              placeholder="No. faktur dari supplier..."
+            />
+            <Input
+              label="Tanggal Faktur"
+              id="tanggal_faktur"
+              type="date"
+              value={tanggalFaktur}
+              onChange={(e) => setTanggalFaktur(e.target.value)}
+            />
+            <Input
+              label="Jatuh Tempo Pembayaran"
+              id="tanggal_jatuh_tempo"
+              type="date"
+              value={tanggalJatuhTempo}
+              onChange={(e) => setTanggalJatuhTempo(e.target.value)}
+            />
+            <Input
+              label="Tanggal Sampai Barang"
+              id="tanggal_sampai"
+              type="date"
+              value={tanggalSampai}
+              onChange={(e) => setTanggalSampai(e.target.value)}
+            />
+          </div>
+
+          {/* Upload foto faktur */}
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-1.5">Foto Faktur</label>
+            {fotoPreview ? (
+              <div className="relative inline-block">
+                <img src={fotoPreview} alt="Preview faktur" className="h-32 w-auto rounded-lg border border-gray-200 object-cover" />
+                <button
+                  type="button"
+                  onClick={() => { setFotoFile(null); setFotoPreview(null); if (fileInputRef.current) fileInputRef.current.value = '' }}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-0.5 hover:bg-red-600"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <label
+                htmlFor="foto_faktur"
+                className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition-colors"
+              >
+                <FileImage className="h-6 w-6 text-gray-400 mb-1" />
+                <span className="text-xs text-gray-500">Klik untuk upload foto faktur</span>
+                <span className="text-xs text-gray-400">JPG, PNG, WEBP — maks 5MB</span>
+              </label>
+            )}
+            <input
+              ref={fileInputRef}
+              id="foto_faktur"
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                if (file.size > 5 * 1024 * 1024) {
+                  showToast('error', 'Ukuran foto maksimal 5MB')
+                  return
+                }
+                setFotoFile(file)
+                setFotoPreview(URL.createObjectURL(file))
+              }}
+            />
+          </div>
         </CardBody>
       </Card>
 
