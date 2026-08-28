@@ -2,7 +2,7 @@
 
 import { useRef, useEffect } from 'react'
 import { X, Printer } from 'lucide-react'
-import { formatRupiah, formatDateTime } from '@/lib/utils'
+import { formatRupiah, formatDateTime, getBestDateForDisplay } from '@/lib/utils'
 
 interface FakturSaleItem {
   qty: number
@@ -73,7 +73,7 @@ export function FakturModal({ isOpen, onClose, sale, autoPrint = false }: Faktur
   }
 
   const formatTanggal = () => {
-    return formatDateTime(sale.created_at || sale.tanggal)
+    return getBestDateForDisplay(sale.tanggal, sale.created_at)
   }
 
   const containerClass = autoPrint

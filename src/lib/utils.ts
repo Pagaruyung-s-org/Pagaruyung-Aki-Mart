@@ -48,6 +48,7 @@ export function formatDateShort(dateStr: string): string {
 }
 
 export function formatDateTime(dateStr: string): string {
+  if (!dateStr) return '-'
   const date = new Date(dateStr)
   return new Intl.DateTimeFormat('id-ID', {
     day: '2-digit',
@@ -57,6 +58,19 @@ export function formatDateTime(dateStr: string): string {
     minute: '2-digit',
     timeZone: 'Asia/Jakarta',
   }).format(date)
+}
+
+export function getBestDateForDisplay(tanggalStr: string, createdAtStr?: string): string {
+  if (!createdAtStr) return formatDateTime(tanggalStr)
+  const t = new Date(tanggalStr)
+  const c = new Date(createdAtStr)
+  
+  // Jika tahun, bulan, dan tanggal sama (berarti input hari ini), gunakan created_at karena jamnya lebih akurat
+  if (t.getFullYear() === c.getFullYear() && t.getMonth() === c.getMonth() && t.getDate() === c.getDate()) {
+    return formatDateTime(createdAtStr)
+  }
+  // Jika beda (berarti backdate/edit tanggal sebelum hari ini), gunakan tanggal yang diinput
+  return formatDateTime(tanggalStr)
 }
 
 // Format date for input[type="date"]
