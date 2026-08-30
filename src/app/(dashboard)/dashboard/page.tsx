@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { getUserRole } from '@/actions/users'
 import { SalesDashboardClient } from '@/components/dashboard/SalesDashboardClient'
+import { AkiBekasDashboardClient } from '@/components/dashboard/AkiBekasDashboardClient'
 import { HutangSupplierClient } from '@/components/dashboard/HutangSupplierClient'
 
 async function getDashboardStats() {
@@ -184,6 +185,20 @@ async function getDashboardStats() {
 
   const expensesData = (expensesRaw ?? []).map(e => ({ tanggal: e.tanggal, nominal: e.nominal }))
 
+  // Penjualan Aki Bekas
+  const { data: akiBekasSales } = await supabase
+    .from('aki_bekas_sales')
+    .select('tanggal, qty, harga_jual_unit, laba')
+    .gte('tanggal', firstDayOfYear)
+    .order('tanggal', { ascending: true })
+
+  const akiBekasSalesData = (akiBekasSales ?? []).map(s => ({
+    tanggal: s.tanggal,
+    qty: s.qty,
+    harga_jual_unit: s.harga_jual_unit,
+    laba: s.laba,
+  }))
+
   return {
     // KPI bulan ini
     totalAkiTerjualBulan,
@@ -195,6 +210,7 @@ async function getDashboardStats() {
     totalHutang,
     salesData,
     expensesData,
+    akiBekasSalesData,
     totalSaldo,
     accountBalances,
     // Stok
@@ -261,54 +277,17 @@ export default async function DashboardPage() {
       <div className="p-6 space-y-6 max-w-7xl w-full">
 
         {/* ── METRIC CARDS ─────────────────────────────────────────── */}
-        {role !== 'ADMIN' && (
-          <section className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-            <MetricCard
-              icon={ShoppingCart}
-              label="Aki terjual bulan ini"
-              value={`${stats.totalAkiTerjualBulan} pcs`}
-              color="blue"
-            />
-            <MetricCard
-              icon={Droplets}
-              label="Stok air aki"
-              value={`${stats.totalStokAirAki} botol`}
-              color="teal"
-            />
-            <MetricCard
-              icon={CircleDollarSign}
-              label="Omzet bulan ini"
-              value={formatRupiah(stats.omzetBulanIni)}
-              color="violet"
-            />
-            <MetricCard
-              icon={BarChart3}
-              label="Laba kotor bulan ini"
-              value={formatRupiah(stats.labaKotorBulanIni)}
-              color="orange"
-            />
-            <MetricCard
-              icon={Wallet}
-              label="Pengeluaran operasional"
-              value={formatRupiah(stats.totalOps)}
-              sub="Bulan ini"
-              color="slate"
-            />
-            <MetricCard
-              icon={isLabaNegatif ? ArrowDownRight : ArrowDownRight}
-              label="Laba bersih bulan ini"
-              value={formatRupiah(stats.labaBersih)}
-              color={isLabaNegatif ? 'red' : 'green'}
-            />
-          </section>
-        )}
+        {/* Metric Cards removed per user request */}
 
         {/* ── CHART + SALDO PANEL ───────────────────────────────────── */}
         {role !== 'ADMIN' && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <SalesDashboardClient sales={stats.salesData} expenses={stats.expensesData} />
-            </div>
+          <div className="flex flex-col gap-6">
+            <SalesDashboardClient sales={stats.salesData} expenses={stats.expensesData} />
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <AkiBekasDashboardClient sales={stats.akiBekasSalesData} />
+              </div>
 
             {/* Saldo Panel */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col">
@@ -345,6 +324,7 @@ export default async function DashboardPage() {
                     </div>
                   )
                 })}
+              </div>
               </div>
             </div>
           </div>

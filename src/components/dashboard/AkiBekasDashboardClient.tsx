@@ -7,40 +7,25 @@ import {
   TrendingUp,
   SlidersHorizontal,
   Package,
-  Droplets,
   CircleDollarSign,
   BarChart3,
-  Wallet,
-  CreditCard,
-  QrCode,
-  Banknote,
   Activity,
-  X,
   ArrowDownRight,
+  Battery,
 } from 'lucide-react'
 
-interface SaleData {
+interface AkiBekasSaleData {
   tanggal: string
-  total: number
-  total_qty: number
-  qty_aki: number
-  qty_air_aki: number
-  payment_method?: string
-  keterangan?: string
-  laba_kotor?: number
-}
-
-interface ExpenseData {
-  tanggal: string
-  nominal: number
+  qty: number
+  harga_jual_unit: number
+  laba: number
 }
 
 interface Props {
-  sales: SaleData[]
-  expenses?: ExpenseData[]
+  sales: AkiBekasSaleData[]
 }
 
-export function SalesDashboardClient({ sales, expenses = [] }: Props) {
+export function AkiBekasDashboardClient({ sales }: Props) {
   const [startDate, setStartDate] = useState<string>(() => {
     const d = new Date()
     return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0]
@@ -77,36 +62,11 @@ export function SalesDashboardClient({ sales, expenses = [] }: Props) {
     sales.filter(s => { const d = s.tanggal.split('T')[0]; return d >= startDate && d <= endDate }),
     [sales, startDate, endDate]
   )
-  const filteredExpenses = useMemo(() =>
-    expenses.filter(e => { const d = e.tanggal.split('T')[0]; return d >= startDate && d <= endDate }),
-    [expenses, startDate, endDate]
-  )
 
   // Summaries
-  const totalOmzet = filteredSales.reduce((a, s) => a + s.total, 0)
-  const totalQtyAki = filteredSales.reduce((a, s) => a + (s.qty_aki ?? 0), 0)
-  const totalQtyAirAki = filteredSales.reduce((a, s) => a + (s.qty_air_aki ?? 0), 0)
-  const totalLabaKotor = filteredSales.reduce((a, s) => a + (s.laba_kotor ?? 0), 0)
-  const totalOperasional = filteredExpenses.reduce((a, e) => a + e.nominal, 0)
-  const labaBersih = totalLabaKotor - totalOperasional
-
-  const totalTunai = filteredSales.filter(s => s.payment_method === 'CASH').reduce((a, s) => a + s.total, 0)
-  const totalQris = filteredSales.filter(s => s.payment_method === 'QRIS').reduce((a, s) => a + s.total, 0)
-
-  const transferSales = filteredSales.filter(s => s.payment_method === 'TRANSFER')
-  const transferByBank = useMemo(() => {
-    const groups: Record<string, number> = {}
-    transferSales.forEach(s => {
-      let bank = 'Lainnya'
-      if (s.keterangan) {
-        const m = s.keterangan.match(/Bank:\s*(.+?)(?:\)|$)/i)
-        if (m?.[1]) bank = m[1].trim().toUpperCase()
-      }
-      groups[bank] = (groups[bank] || 0) + s.total
-    })
-    return Object.entries(groups).map(([bank, total]) => ({ bank, total }))
-  }, [transferSales])
-  const totalTransfer = transferByBank.reduce((a, b) => a + b.total, 0)
+  const totalQty = filteredSales.reduce((a, s) => a + (s.qty ?? 0), 0)
+  const totalOmzet = filteredSales.reduce((a, s) => a + ((s.qty ?? 0) * (s.harga_jual_unit ?? 0)), 0)
+  const totalLabaKotor = filteredSales.reduce((a, s) => a + (s.laba ?? 0), 0)
 
   // Bar chart data
   const chartData = useMemo(() => {
@@ -121,8 +81,8 @@ export function SalesDashboardClient({ sales, expenses = [] }: Props) {
     filteredSales.forEach(s => {
       let key = s.tanggal.split('T')[0]
       if (groupBy === 'month') key = key.substring(0, 7)
-      omzetGroups[key] = (omzetGroups[key] || 0) + s.total
-      labaGroups[key] = (labaGroups[key] || 0) + (s.laba_kotor ?? 0)
+      omzetGroups[key] = (omzetGroups[key] || 0) + ((s.qty ?? 0) * (s.harga_jual_unit ?? 0))
+      labaGroups[key] = (labaGroups[key] || 0) + (s.laba ?? 0)
     })
 
     const keys = Object.keys(omzetGroups).sort()
@@ -132,8 +92,6 @@ export function SalesDashboardClient({ sales, expenses = [] }: Props) {
       label: groupBy === 'month' ? formatMonth(k) : formatDay(k),
       omzet: omzetGroups[k],
       laba: labaGroups[k] ?? 0,
-      pctOmzet: (omzetGroups[k] / maxVal) * 100,
-      pctLaba: ((labaGroups[k] ?? 0) / maxVal) * 100,
     }))
   }, [filteredSales, startDate, endDate])
 
@@ -153,16 +111,16 @@ export function SalesDashboardClient({ sales, expenses = [] }: Props) {
       <div className="flex items-center justify-between border-b border-gray-100 pb-5">
         <div>
           <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-blue-600" />
-            Performa Penjualan Aki
+            <Battery className="h-5 w-5 text-indigo-600" />
+            Performa Penjualan Aki Bekas
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5">Perbandingan omzet dan laba kotor</p>
+          <p className="text-xs text-gray-500 mt-0.5">Perbandingan omzet dan laba kotor aki bekas</p>
         </div>
         <div className="relative" ref={filterRef}>
           <button
             onClick={() => setShowFilter(f => !f)}
             className={`flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-xl border transition-all ${showFilter
-              ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+              ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
               : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
               }`}
           >
@@ -178,7 +136,7 @@ export function SalesDashboardClient({ sales, expenses = [] }: Props) {
                   <button
                     key={p}
                     onClick={() => { setPreset(p); setShowFilter(false) }}
-                    className="flex-1 px-2 py-2 text-xs font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition"
+                    className="flex-1 px-2 py-2 text-xs font-medium text-gray-600 bg-gray-50 border border-gray-200 rounded-lg hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition"
                   >
                     {p === 'minggu' ? '7 Hari' : p === 'bulan' ? 'Bulan Ini' : 'Tahun Ini'}
                   </button>
@@ -189,17 +147,17 @@ export function SalesDashboardClient({ sales, expenses = [] }: Props) {
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-500 w-8 shrink-0">Dari</span>
                   <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
-                    className="flex-1 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-blue-500 outline-none" />
+                    className="flex-1 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 outline-none" />
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-500 w-8 shrink-0">Ke</span>
                   <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
-                    className="flex-1 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-blue-500 outline-none" />
+                    className="flex-1 border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs focus:ring-2 focus:ring-indigo-500 outline-none" />
                 </div>
               </div>
               <button
                 onClick={() => setShowFilter(false)}
-                className="mt-4 w-full py-2 text-xs font-medium bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition"
+                className="mt-4 w-full py-2 text-xs font-medium bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition"
               >
                 Terapkan
               </button>
@@ -209,20 +167,13 @@ export function SalesDashboardClient({ sales, expenses = [] }: Props) {
       </div>
 
       {/* KPI Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-        <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
-          <div className="flex items-center gap-2 mb-1.5 text-blue-700">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-100">
+          <div className="flex items-center gap-2 mb-1.5 text-indigo-700">
             <Package className="w-4 h-4" />
-            <span className="text-[11px] font-medium">Aki Terjual</span>
+            <span className="text-[11px] font-medium">Unit Terjual</span>
           </div>
-          <p className="text-xl font-bold text-blue-800">{totalQtyAki} <span className="text-xs font-medium text-blue-500">pcs</span></p>
-        </div>
-        <div className="bg-teal-50 rounded-xl p-4 border border-teal-100">
-          <div className="flex items-center gap-2 mb-1.5 text-teal-700">
-            <Droplets className="w-4 h-4" />
-            <span className="text-[11px] font-medium">Air Aki Terjual</span>
-          </div>
-          <p className="text-xl font-bold text-teal-800">{totalQtyAirAki} <span className="text-xs font-medium text-teal-500">btl</span></p>
+          <p className="text-xl font-bold text-indigo-800">{totalQty} <span className="text-xs font-medium text-indigo-500">pcs</span></p>
         </div>
         <div className="bg-violet-50 rounded-xl p-4 border border-violet-100">
           <div className="flex items-center gap-2 mb-1.5 text-violet-700">
@@ -237,21 +188,6 @@ export function SalesDashboardClient({ sales, expenses = [] }: Props) {
             <span className="text-[11px] font-medium">Laba Kotor</span>
           </div>
           <p className="text-sm font-bold text-orange-900">{formatRupiah(totalLabaKotor)}</p>
-        </div>
-        <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-          <div className="flex items-center gap-2 mb-1.5 text-slate-700">
-            <Wallet className="w-4 h-4" />
-            <span className="text-[11px] font-medium">Operasional</span>
-          </div>
-          <p className="text-sm font-bold text-slate-900">{formatRupiah(totalOperasional)}</p>
-        </div>
-        <div className={`${labaBersih < 0 ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'} rounded-xl p-4 border`}>
-          <div className={`flex items-center gap-2 mb-1.5 ${labaBersih < 0 ? 'text-red-700' : 'text-green-700'}`}>
-            {labaBersih < 0 ? <ArrowDownRight className="w-4 h-4" /> : <Activity className="w-4 h-4" />}
-            <span className="text-[11px] font-medium">Laba Bersih</span>
-          </div>
-          <p className={`text-sm font-bold ${labaBersih < 0 ? 'text-red-900' : 'text-green-900'}`}>{formatRupiah(labaBersih)}</p>
-          <p className="text-[9px] text-gray-500 mt-0.5 leading-tight">laba kotor - operasional</p>
         </div>
       </div>
 
@@ -304,20 +240,20 @@ export function SalesDashboardClient({ sales, expenses = [] }: Props) {
                   type="monotone"
                   dataKey="omzet"
                   name="Omzet"
-                  stroke="#3b82f6"
+                  stroke="#4f46e5"
                   strokeWidth={3}
                   dot={{ r: 4, strokeWidth: 2, fill: '#fff' }}
-                  activeDot={{ r: 6, strokeWidth: 0, fill: '#3b82f6' }}
+                  activeDot={{ r: 6, strokeWidth: 0, fill: '#4f46e5' }}
                 />
                 <Line
                   yAxisId="right"
                   type="monotone"
                   dataKey="laba"
                   name="Laba Kotor"
-                  stroke="#10b981"
+                  stroke="#f97316"
                   strokeWidth={3}
                   dot={{ r: 4, strokeWidth: 2, fill: '#fff' }}
-                  activeDot={{ r: 6, strokeWidth: 0, fill: '#10b981' }}
+                  activeDot={{ r: 6, strokeWidth: 0, fill: '#f97316' }}
                 />
               </LineChart>
             </ResponsiveContainer>
