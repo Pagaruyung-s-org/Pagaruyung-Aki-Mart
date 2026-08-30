@@ -9,7 +9,7 @@ import { RiwayatOperasionalTable } from '@/components/tables/RiwayatOperasionalT
 export default async function OperasionalPage() {
   const supabase = await createClient()
 
-  const [role, { data: categories }, { data: employees }, { data: expenses }] = await Promise.all([
+  const [role, { data: categories }, { data: employees }, { data: expenses }, { data: accounts }] = await Promise.all([
     getUserRole(),
     supabase.from('expense_categories').select('*').eq('status', true).order('nama_kategori').order('id', { ascending: true }),
     supabase.from('employees').select('*').eq('status', true).order('nama_karyawan').order('id', { ascending: true }),
@@ -18,6 +18,7 @@ export default async function OperasionalPage() {
       expense_categories(nama_kategori),
       employees(nama_karyawan)
     `).order('tanggal', { ascending: false }).order('created_at', { ascending: false }).limit(50),
+    supabase.from('accounts').select('id, name, type').eq('is_active', true).order('sort_order', { ascending: true })
   ])
 
   return (
@@ -25,7 +26,7 @@ export default async function OperasionalPage() {
       <Header title="Biaya Operasional" subtitle="Kelola pengeluaran operasional usaha" />
       <div className="p-6 space-y-6">
         {role !== 'ADMIN' && (
-          <OperasionalClient categories={categories ?? []} employees={employees ?? []} />
+          <OperasionalClient categories={categories ?? []} employees={employees ?? []} accounts={accounts || []} />
         )}
 
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">

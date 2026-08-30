@@ -23,13 +23,21 @@ interface SaleItem {
   product_id: string; qty: number; harga_jual: number; discount: number
 }
 
+interface Account {
+  id: string
+  name: string
+  type: string
+  is_active: boolean
+}
+
 export function FormPenjualan({
   products,
   airAkiProducts = [],
   showAirAkiCheckbox = false,
   onSuccess,
   onCancel,
-  role
+  role,
+  accounts = []
 }: {
   products: Product[]
   airAkiProducts?: Product[]
@@ -37,14 +45,17 @@ export function FormPenjualan({
   onSuccess?: (saleData?: { id: string; kode: string; isIndent?: boolean }) => void
   onCancel?: () => void
   role?: string | null
+  accounts?: Account[]
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
+  const defaultKas = accounts?.find(a => a.type === 'KAS')?.id || ''
+
   const [tanggal, setTanggal] = useState(toInputDate())
   const [customerName, setCustomerName] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'TRANSFER' | 'QRIS'>('CASH')
-  const [bank, setBank] = useState('')
+  const [accountId, setAccountId] = useState(defaultKas)
   const [keterangan, setKeterangan] = useState('')
   const [items, setItems] = useState<SaleItem[]>([{ product_id: '', qty: 1, harga_jual: 0, discount: 0 }])
   const [isIndent, setIsIndent] = useState(false)
@@ -134,16 +145,13 @@ export function FormPenjualan({
     }
 
     startTransition(async () => {
-      const finalKeterangan = paymentMethod === 'TRANSFER' && bank
-        ? (keterangan ? `${keterangan} (Bank: ${bank})` : `Bank: ${bank}`)
-        : keterangan;
-
       const result = await createSale({
         tanggal,
         customer_name: customerName || undefined,
         payment_method: paymentMethod,
+        account_id: accountId,
         discount: 0,
-        keterangan: finalKeterangan || undefined,
+        keterangan: keterangan || undefined,
         is_indent: isIndent,
         dp_amount: isIndent ? (Number(dpAmount) || 0) : 0,
         items: validItems.map(i => ({ product_id: i.product_id, qty: i.qty, harga_jual: i.harga_jual, discount: i.discount })),
@@ -188,20 +196,22 @@ export function FormPenjualan({
           <Select label="Metode Pembayaran" id="payment_method" value={paymentMethod} onChange={(e) => {
             const val = e.target.value as 'CASH' | 'TRANSFER' | 'QRIS';
             setPaymentMethod(val);
-            if (val !== 'TRANSFER') setBank('');
+            if (val === 'CASH') {
+              setAccountId(accounts?.find(a => a.type === 'KAS')?.id || '');
+            } else {
+              setAccountId(accounts?.find(a => a.type === 'BANK')?.id || '');
+            }
           }} options={[{ value: 'CASH', label: 'Tunai' }, { value: 'TRANSFER', label: 'Transfer Bank' }, { value: 'QRIS', label: 'QRIS' }]} />
           <Select
-            label="Pilih Bank"
-            id="bank"
-            value={bank}
-            onChange={(e) => setBank(e.target.value)}
-            disabled={paymentMethod !== 'TRANSFER'}
+            label="Simpan Ke Akun"
+            id="account_id"
+            value={accountId}
+            onChange={(e) => setAccountId(e.target.value)}
             options={[
-              { value: '', label: '-- Pilih Bank --' },
-              { value: 'BRI', label: 'BRI' },
-              { value: 'MANDIRI', label: 'MANDIRI' },
-              { value: 'BSI', label: 'BSI' },
-              { value: 'BNI', label: 'BNI' }
+              { value: '', label: '-- Pilih Akun --' },
+              ...(accounts || [])
+                .filter(a => paymentMethod === 'CASH' ? a.type === 'KAS' : a.type === 'BANK')
+                .map(a => ({ value: a.id, label: a.name }))
             ]}
           />
           {isIndent && (

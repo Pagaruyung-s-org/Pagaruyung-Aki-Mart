@@ -12,26 +12,32 @@ import { createExpense } from '@/actions/transactions'
 
 interface Category { id: string; nama_kategori: string; kode_kategori: string }
 interface Employee { id: string; nama_karyawan: string }
+interface Account { id: string; name: string; type: string; is_active: boolean }
 
 export function FormOperasional({ 
   categories, 
   employees,
+  accounts = [],
   onSuccess,
-  onCancel
+  onCancel 
 }: { 
   categories: Category[]; 
   employees: Employee[];
+  accounts?: Account[];
   onSuccess?: () => void;
-  onCancel?: () => void;
+  onCancel?: () => void 
 }) {
   const [isPending, startTransition] = useTransition()
   const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
   const [tanggal, setTanggal] = useState(toInputDate())
   const [categoryId, setCategoryId] = useState('')
+  const defaultKas = accounts?.find(a => a.type === 'KAS')?.id || ''
+
   const [employeeId, setEmployeeId] = useState('')
   const [keterangan, setKeterangan] = useState('')
   const [nominal, setNominal] = useState('')
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'TRANSFER' | 'QRIS' | 'BRANKAS'>('CASH')
+  const [accountId, setAccountId] = useState(defaultKas)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -44,6 +50,7 @@ export function FormOperasional({
         keterangan: keterangan || undefined,
         nominal: Number(nominal),
         payment_method: paymentMethod,
+        account_id: accountId,
       })
 
       if (!result.success) { setToast({ type: 'error', msg: result.error }); return }
@@ -90,12 +97,34 @@ export function FormOperasional({
               label="Metode Bayar"
               id="payment_method_ops"
               value={paymentMethod}
-              onChange={(e) => setPaymentMethod(e.target.value as 'CASH' | 'TRANSFER' | 'QRIS' | 'BRANKAS')}
+              onChange={(e) => {
+                const val = e.target.value as 'CASH' | 'TRANSFER' | 'QRIS' | 'BRANKAS';
+                setPaymentMethod(val);
+                if (val === 'CASH') {
+                  setAccountId(accounts?.find(a => a.type === 'KAS')?.id || '');
+                } else if (val === 'BRANKAS') {
+                  setAccountId(accounts?.find(a => a.type === 'BRANKAS')?.id || '');
+                } else {
+                  setAccountId(accounts?.find(a => a.type === 'BANK')?.id || '');
+                }
+              }}
               options={[
                 { value: 'CASH', label: 'Tunai (Kas Laci)' },
                 { value: 'BRANKAS', label: 'Brankas Toko' },
                 { value: 'TRANSFER', label: 'Transfer Bank' },
                 { value: 'QRIS', label: 'QRIS' },
+              ]}
+            />
+            <Select
+              label="Sumber Dana (Akun)"
+              id="account_id"
+              value={accountId}
+              onChange={(e) => setAccountId(e.target.value)}
+              options={[
+                { value: '', label: '-- Pilih Akun --' },
+                ...(accounts || [])
+                  .filter(a => paymentMethod === 'CASH' ? a.type === 'KAS' : paymentMethod === 'BRANKAS' ? a.type === 'BRANKAS' : a.type === 'BANK')
+                  .map(a => ({ value: a.id, label: a.name }))
               ]}
             />
           </div>

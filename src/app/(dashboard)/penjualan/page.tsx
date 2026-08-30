@@ -11,7 +11,7 @@ import { getUserRole } from '@/actions/users'
 export default async function PenjualanPage() {
   const supabase = await createClient()
 
-  const [role, { data: sales }, { data: products }, { data: batches }] = await Promise.all([
+  const [role, { data: sales }, { data: products }, { data: batches }, { data: accounts }] = await Promise.all([
     getUserRole(),
     supabase
       .from('sales')
@@ -30,7 +30,8 @@ export default async function PenjualanPage() {
       .order('created_at', { ascending: false })
       .limit(200),
     supabase.from('products').select('id, merk, kategori, type, kode_baterai, kapasitas_ah, kode_produk, harga_jual, qty_stok, status').order('merk').order('id', { ascending: true }),
-    supabase.from('inventory_batches').select('product_id, harga_modal_unit').gt('qty_tersedia', 0).order('tanggal_masuk', { ascending: true })
+    supabase.from('inventory_batches').select('product_id, harga_modal_unit').gt('qty_tersedia', 0).order('tanggal_masuk', { ascending: true }),
+    supabase.from('accounts').select('id, name, type, is_active').eq('is_active', true).order('sort_order', { ascending: true })
   ])
 
   const modalMap: Record<string, number> = {}
@@ -57,6 +58,7 @@ export default async function PenjualanPage() {
             <PenjualanModalButton 
               type="aki" 
               products={productsWithModal}
+              accounts={accounts || []}
               label="Buat Penjualan" 
               role={role}
             />

@@ -9,9 +9,10 @@ import { FormOperasional } from '@/components/forms/FormOperasional'
 interface OperasionalClientProps {
   categories: any[]
   employees: any[]
+  accounts?: any[]
 }
 
-export function OperasionalClient({ categories, employees }: OperasionalClientProps) {
+export function OperasionalClient({ categories, employees, accounts = [] }: OperasionalClientProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   return (
@@ -33,6 +34,7 @@ export function OperasionalClient({ categories, employees }: OperasionalClientPr
         <FormOperasional 
           categories={categories} 
           employees={employees} 
+          accounts={accounts}
           onSuccess={() => {
             setIsModalOpen(false)
             // Trigger refresh is already handled in router.refresh() inside action or can be handled by page.tsx auto-revalidation.

@@ -9,7 +9,7 @@ import { getUserRole } from '@/actions/users'
 export default async function BayarHutangPage() {
   const supabase = await createClient()
 
-  const [role, { data: purchases }, { data: paymentsHistory }] = await Promise.all([
+  const [role, { data: purchases }, { data: paymentsHistory }, { data: accounts }] = await Promise.all([
     getUserRole(),
     supabase
       .from('purchase_transactions')
@@ -35,7 +35,8 @@ export default async function BayarHutangPage() {
       `)
       .order('tanggal', { ascending: false })
       .order('created_at', { ascending: false })
-      .limit(50)
+      .limit(50),
+    supabase.from('accounts').select('id, name, type').eq('is_active', true).order('sort_order', { ascending: true })
   ])
 
   const mappedData: HutangItem[] = (purchases || []).map((p: any) => {
@@ -66,7 +67,7 @@ export default async function BayarHutangPage() {
         subtitle="Kelola dan lunasi hutang pembelian ke supplier" 
       />
       <div className="flex-1 p-6">
-        <HutangTable data={finalData} role={role ?? null} />
+        <HutangTable data={finalData} role={role ?? null} accounts={accounts || []} />
         
         <RiwayatPembayaranHutangTable payments={paymentsHistory || []} role={role ?? null} />
       </div>

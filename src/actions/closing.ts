@@ -18,6 +18,7 @@ const CreateClosingSchema = z.object({
 const CreateSetorSchema = z.object({
   tanggal: z.string().min(1, 'Tanggal wajib diisi'),
   nominal: z.number().positive('Nominal harus lebih dari 0'),
+  account_id: z.string().uuid('Rekening tujuan tidak valid'),
   keterangan: z.string().optional(),
 })
 
@@ -300,9 +301,14 @@ export async function submitClosing(id: string): Promise<ActionResult<null>> {
 
   // Catat perpindahan uang: KAS keluar (CREDIT) → BRANKAS masuk (DEBIT)
   if (closing.total_cash_drop > 0) {
+    const { data: accounts } = await supabase.from('accounts').select('id, type').in('type', ['KAS', 'BRANKAS'])
+    const kasId = accounts?.find(a => a.type === 'KAS')?.id
+    const brankasId = accounts?.find(a => a.type === 'BRANKAS')?.id
+
     await supabase.from('cash_transactions').insert([
       {
         tanggal: new Date().toISOString(),
+        account_id: kasId,
         account_type: 'KAS',
         transaction_type: 'CREDIT',
         reference_type: 'CASH_DROP',
@@ -313,13 +319,14 @@ export async function submitClosing(id: string): Promise<ActionResult<null>> {
       },
       {
         tanggal: new Date().toISOString(),
+        account_id: brankasId,
         account_type: 'BRANKAS',
         transaction_type: 'DEBIT',
         reference_type: 'CASH_DROP',
         reference_id: closing.id,
         debit: closing.total_cash_drop,
         credit: 0,
-        description: `Closing harian ${closing.tanggal} — uang masuk brankas`,
+        description: `Closing harian ${closing.tanggal} — kas masuk dari toko`,
       },
     ])
   }
@@ -374,10 +381,15 @@ export async function createSetor(input: CreateSetorInput): Promise<ActionResult
   // Generate ID referensi
   const refId = crypto.randomUUID()
 
+  // Ambil ID brankas
+  const { data: accounts } = await supabase.from('accounts').select('id, type').eq('type', 'BRANKAS')
+  const brankasId = accounts?.[0]?.id
+
   // Catat perpindahan: BRANKAS keluar → BANK masuk
   const { error } = await supabase.from('cash_transactions').insert([
     {
       tanggal: new Date().toISOString(),
+      account_id: brankasId,
       account_type: 'BRANKAS',
       transaction_type: 'CREDIT',
       reference_type: 'BANK_DEPOSIT',
@@ -388,14 +400,15 @@ export async function createSetor(input: CreateSetorInput): Promise<ActionResult
     },
     {
       tanggal: new Date().toISOString(),
+      account_id: data.account_id,
       account_type: 'BANK',
       transaction_type: 'DEBIT',
       reference_type: 'BANK_DEPOSIT',
       reference_id: refId,
       debit: data.nominal,
       credit: 0,
-      description: `Setor dari brankas — ${data.keterangan || 'Setoran'}`,
-    },
+      description: `Setoran dari brankas — ${data.keterangan || 'Setoran'}`,
+    }
   ])
 
   if (error) return { success: false, error: error.message }

@@ -228,13 +228,23 @@ export interface SupplierPayment {
   purchase_transactions?: PurchaseTransaction
 }
 
+export interface Account {
+  id: string
+  name: string
+  type: 'KAS' | 'BANK' | 'BRANKAS'
+  is_active: boolean
+  sort_order: number
+  created_at: string
+}
+
 export type AccountType = 'KAS' | 'BANK' | 'BRANKAS'
 export type TransactionType = 'DEBIT' | 'CREDIT'
 
 export interface CashTransaction {
   id: string
   tanggal: string
-  account_type: AccountType
+  account_id: string | null  // FK ke accounts.id
+  account_type: AccountType  // legacy, tetap ada untuk data lama
   transaction_type: TransactionType
   reference_type: string | null
   reference_id: string | null
@@ -269,6 +279,9 @@ export interface CreatePurchaseInput {
   tanggal: string
   supplier_id: string
   status_pembayaran: StatusPembayaran
+  payment_method?: PaymentMethod
+  account_id?: string
+
   keterangan?: string
   nama_sales?: string
   nomor_faktur?: string
@@ -290,6 +303,7 @@ export interface CreateSaleInput {
   tanggal: string
   customer_name?: string
   payment_method: PaymentMethod
+  account_id: string          // akun penerima pembayaran
   discount?: number
   keterangan?: string
   is_indent?: boolean
@@ -304,6 +318,7 @@ export interface CreateExpenseInput {
   keterangan?: string
   nominal: number
   payment_method: PaymentMethod
+  account_id: string          // akun sumber pembayaran
 }
 
 export interface CreateSupplierPaymentInput {
@@ -312,6 +327,7 @@ export interface CreateSupplierPaymentInput {
   tanggal: string
   nominal: number
   payment_method: PaymentMethod
+  account_id: string          // akun sumber pembayaran
   keterangan?: string
 }
 
@@ -347,6 +363,7 @@ export interface CreateClosingInput {
 export interface CreateSetorInput {
   tanggal: string
   nominal: number
+  account_id: string
   keterangan?: string
 }
 

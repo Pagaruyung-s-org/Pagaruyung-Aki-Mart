@@ -28,9 +28,10 @@ export interface HutangItem {
 interface HutangTableProps {
   data: HutangItem[]
   role?: string | null
+  accounts?: { id: string; name: string; type: string }[]
 }
 
-export function HutangTable({ data, role }: HutangTableProps) {
+export function HutangTable({ data, role, accounts = [] }: HutangTableProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [search, setSearch] = useState('')
@@ -39,6 +40,7 @@ export function HutangTable({ data, role }: HutangTableProps) {
   const { showToast } = useToast()
   const [nominalBayar, setNominalBayar] = useState<number | ''>('')
   const [paymentMethod, setPaymentMethod] = useState('CASH')
+  const [accountId, setAccountId] = useState(() => accounts.find(a => a.type === 'KAS')?.id || '')
 
   // Filter
   const filteredData = data.filter(item => 
@@ -71,6 +73,7 @@ export function HutangTable({ data, role }: HutangTableProps) {
       tanggal: formData.get('tanggal') as string,
       nominal: Number(nominalBayar),
       payment_method: formData.get('payment_method') as any,
+      account_id: accountId,
       keterangan: formData.get('keterangan') as string,
     }
 
@@ -161,6 +164,7 @@ export function HutangTable({ data, role }: HutangTableProps) {
                           setSelectedHutang(item)
                           setNominalBayar('')
                           setPaymentMethod('CASH')
+                          setAccountId(accounts.find(a => a.type === 'KAS')?.id || '')
                         }}
                         className="bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
                       >
@@ -244,12 +248,35 @@ export function HutangTable({ data, role }: HutangTableProps) {
                   name="payment_method"
                   required
                   value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    setPaymentMethod(val)
+                    if (val === 'CASH') {
+                      setAccountId(accounts.find(a => a.type === 'KAS')?.id || '')
+                    } else if (val === 'BRANKAS') {
+                      setAccountId(accounts.find(a => a.type === 'BRANKAS')?.id || '')
+                    } else {
+                      setAccountId(accounts.find(a => a.type === 'BANK')?.id || '')
+                    }
+                  }}
                   options={[
                     { value: 'CASH', label: 'Tunai (Kas Laci)' },
                     { value: 'BRANKAS', label: 'Brankas Toko' },
                     { value: 'TRANSFER', label: 'Transfer Bank' },
                     { value: 'QRIS', label: 'QRIS' },
+                  ]}
+                />
+
+                <Select
+                  label="Sumber Dana (Akun)"
+                  id="account_id_hutang"
+                  value={accountId}
+                  onChange={(e) => setAccountId(e.target.value)}
+                  options={[
+                    { value: '', label: '-- Pilih Akun --' },
+                    ...(accounts || [])
+                      .filter(a => paymentMethod === 'CASH' ? a.type === 'KAS' : paymentMethod === 'BRANKAS' ? a.type === 'BRANKAS' : a.type === 'BANK')
+                      .map(a => ({ value: a.id, label: a.name }))
                   ]}
                 />
 

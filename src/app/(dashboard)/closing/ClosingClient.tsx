@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, Fragment } from 'react'
-import { Plus, Send, Pencil, Trash2, AlertTriangle, CheckCircle, Clock, ArrowRightLeft, Info, ChevronDown, ChevronRight } from 'lucide-react'
+import { Plus, Send, Pencil, Trash2, AlertTriangle, CheckCircle, Clock, ArrowRightLeft, Info, ChevronDown, ChevronRight, Vault } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
@@ -22,9 +22,11 @@ function formatDateTime(dateStr: string) {
 
 interface ClosingClientProps {
   closings: DailyClosing[]
+  accounts?: { id: string; name: string; type: string; is_active: boolean }[]
+  saldoBrankas?: number
 }
 
-export function ClosingClient({ closings }: ClosingClientProps) {
+export function ClosingClient({ closings, accounts = [], saldoBrankas = 0 }: ClosingClientProps) {
   // ==========================================
   // STATE — Form Closing
   // ==========================================
@@ -71,7 +73,14 @@ export function ClosingClient({ closings }: ClosingClientProps) {
   const [setorTanggal, setSetorTanggal] = useState(new Date().toISOString().split('T')[0])
   const [setorNominal, setSetorNominal] = useState('')
   const [setorKeterangan, setSetorKeterangan] = useState('')
+  const [setorAccountId, setSetorAccountId] = useState('')
   const [setorLoading, setSetorLoading] = useState(false)
+
+  useEffect(() => {
+    if (accounts.length > 0 && !setorAccountId) {
+      setSetorAccountId(accounts[0].id)
+    }
+  }, [accounts])
 
   // ==========================================
   // EFFECT — Check if closing date is late
@@ -195,6 +204,7 @@ export function ClosingClient({ closings }: ClosingClientProps) {
       tanggal: setorTanggal,
       nominal,
       keterangan: setorKeterangan || undefined,
+      account_id: setorAccountId,
     })
     setSetorLoading(false)
     if (!result.success) {
@@ -215,6 +225,17 @@ export function ClosingClient({ closings }: ClosingClientProps) {
 
   return (
     <>
+      {/* ====== BRANKAS BALANCE CARD ====== */}
+      <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-xl p-5 flex items-center gap-4">
+        <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+          <Vault className="w-6 h-6 text-emerald-600" />
+        </div>
+        <div className="flex-1">
+          <p className="text-sm font-medium text-emerald-700">Saldo Brankas Toko</p>
+          <p className="text-2xl font-bold text-emerald-900">{formatRupiah(saldoBrankas)}</p>
+          <p className="text-xs text-emerald-600 mt-0.5">Uang tunai yang tersimpan di brankas. Bertambah dari closing harian, berkurang saat setor ke bank.</p>
+        </div>
+      </div>
       {/* ====== HEADER BUTTONS ====== */}
       <div className="flex flex-wrap gap-3 mb-6">
         <Button onClick={openNewForm}>
@@ -592,6 +613,21 @@ export function ClosingClient({ closings }: ClosingClientProps) {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               required
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Rekening Tujuan</label>
+            <select
+              value={setorAccountId}
+              onChange={(e) => setSetorAccountId(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              required
+            >
+              <option value="" disabled>-- Pilih Rekening Bank --</option>
+              {accounts.map(acc => (
+                <option key={acc.id} value={acc.id}>{acc.name}</option>
+              ))}
+            </select>
           </div>
 
           <InputCurrency

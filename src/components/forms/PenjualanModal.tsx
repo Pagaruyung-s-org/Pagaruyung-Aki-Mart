@@ -23,14 +23,22 @@ interface Product {
   harga_modal?: number
 }
 
+interface Account {
+  id: string
+  name: string
+  type: string
+  is_active: boolean
+}
+
 interface PenjualanModalButtonProps {
   type: 'aki' | 'air_aki'
   products?: Product[]
   label: string
   role?: string | null
+  accounts?: Account[]
 }
 
-export function PenjualanModalButton({ type, products = [], label, role }: PenjualanModalButtonProps) {
+export function PenjualanModalButton({ type, products = [], label, role, accounts = [] }: PenjualanModalButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [successData, setSuccessData] = useState<{ id: string; kode: string; isIndent?: boolean } | null>(null)
   const [showFaktur, setShowFaktur] = useState(false)
@@ -128,18 +136,20 @@ export function PenjualanModalButton({ type, products = [], label, role }: Penju
                     products={akiProducts} 
                     airAkiProducts={airAkiProducts}
                     showAirAkiCheckbox={true}
-                    onSuccess={handleSuccess}
-                    onCancel={handleClose}
+                    onSuccess={handleSuccess} 
+                    onCancel={() => setIsOpen(false)}
                     role={role}
+                    accounts={accounts}
                   />
                 ),
                 'air-aki': (
                   <FormPenjualan 
                     products={airAkiProducts} 
                     showAirAkiCheckbox={false}
-                    onSuccess={handleSuccess}
-                    onCancel={handleClose}
+                    onSuccess={handleSuccess} 
+                    onCancel={() => setIsOpen(false)} 
                     role={role}
+                    accounts={accounts}
                   />
                 )
               }}

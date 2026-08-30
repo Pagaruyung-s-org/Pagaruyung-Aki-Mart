@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState, useMemo } from 'react'
 import { formatRupiah } from '@/lib/utils'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import {
   TrendingUp,
   SlidersHorizontal,
@@ -81,15 +82,15 @@ export function SalesDashboardClient({ sales, expenses = [] }: Props) {
   )
 
   // Summaries
-  const totalOmzet    = filteredSales.reduce((a, s) => a + s.total, 0)
-  const totalQtyAki   = filteredSales.reduce((a, s) => a + (s.qty_aki ?? 0), 0)
+  const totalOmzet = filteredSales.reduce((a, s) => a + s.total, 0)
+  const totalQtyAki = filteredSales.reduce((a, s) => a + (s.qty_aki ?? 0), 0)
   const totalQtyAirAki = filteredSales.reduce((a, s) => a + (s.qty_air_aki ?? 0), 0)
-  const totalLabaKotor  = filteredSales.reduce((a, s) => a + (s.laba_kotor ?? 0), 0)
+  const totalLabaKotor = filteredSales.reduce((a, s) => a + (s.laba_kotor ?? 0), 0)
   const totalOperasional = filteredExpenses.reduce((a, e) => a + e.nominal, 0)
   const labaBersih = totalLabaKotor - totalOperasional
 
   const totalTunai = filteredSales.filter(s => s.payment_method === 'CASH').reduce((a, s) => a + s.total, 0)
-  const totalQris  = filteredSales.filter(s => s.payment_method === 'QRIS').reduce((a, s) => a + s.total, 0)
+  const totalQris = filteredSales.filter(s => s.payment_method === 'QRIS').reduce((a, s) => a + s.total, 0)
 
   const transferSales = filteredSales.filter(s => s.payment_method === 'TRANSFER')
   const transferByBank = useMemo(() => {
@@ -120,7 +121,7 @@ export function SalesDashboardClient({ sales, expenses = [] }: Props) {
       let key = s.tanggal.split('T')[0]
       if (groupBy === 'month') key = key.substring(0, 7)
       omzetGroups[key] = (omzetGroups[key] || 0) + s.total
-      labaGroups[key]  = (labaGroups[key]  || 0) + (s.laba_kotor ?? 0)
+      labaGroups[key] = (labaGroups[key] || 0) + (s.laba_kotor ?? 0)
     })
 
     const keys = Object.keys(omzetGroups).sort()
@@ -137,7 +138,7 @@ export function SalesDashboardClient({ sales, expenses = [] }: Props) {
 
   function formatMonth(ym: string) {
     const [y, m] = ym.split('-')
-    return ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'][parseInt(m)-1] + ' ' + y
+    return ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'][parseInt(m) - 1] + ' ' + y
   }
   function formatDay(ymd: string) {
     const [, m, d] = ymd.split('-')
@@ -159,11 +160,10 @@ export function SalesDashboardClient({ sales, expenses = [] }: Props) {
         <div className="relative" ref={filterRef}>
           <button
             onClick={() => setShowFilter(f => !f)}
-            className={`flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-xl border transition-all ${
-              showFilter
+            className={`flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-xl border transition-all ${showFilter
                 ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
                 : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
-            }`}
+              }`}
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
             Filter
@@ -173,7 +173,7 @@ export function SalesDashboardClient({ sales, expenses = [] }: Props) {
             <div className="absolute right-0 top-full mt-2 z-30 bg-white border border-gray-200 rounded-2xl shadow-xl p-4 min-w-[280px]">
               <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-3">Pilih Periode</p>
               <div className="flex gap-2 mb-4">
-                {(['minggu','bulan','tahun'] as const).map(p => (
+                {(['minggu', 'bulan', 'tahun'] as const).map(p => (
                   <button
                     key={p}
                     onClick={() => { setPreset(p); setShowFilter(false) }}
@@ -239,45 +239,72 @@ export function SalesDashboardClient({ sales, expenses = [] }: Props) {
         </div>
       </div>
 
-      {/* Bar Chart */}
+      {/* Line Chart */}
       <div>
-        <div className="flex items-center gap-4 text-xs text-gray-400 mb-3">
-          <span className="flex items-center gap-1.5"><i className="inline-block w-3 h-3 rounded-sm bg-blue-500" /> Omzet</span>
-          <span className="flex items-center gap-1.5"><i className="inline-block w-3 h-3 rounded-sm bg-gray-800" /> Laba Kotor</span>
-        </div>
-
         {chartData.length === 0 ? (
-          <div className="h-48 flex items-center justify-center text-gray-400 text-sm bg-gray-50 rounded-xl border border-gray-100">
+          <div className="h-72 flex items-center justify-center text-gray-400 text-sm bg-gray-50 rounded-xl border border-gray-100">
             Tidak ada data penjualan di rentang tanggal ini.
           </div>
         ) : (
-          <div className="relative">
-            <div className="overflow-x-auto">
-              <div className="flex items-end gap-1.5 h-48 min-w-0 px-1 pb-6">
-                {chartData.map((d, i) => (
-                  <div key={i} className="flex-1 min-w-[20px] flex flex-col items-center gap-0.5 group relative">
-                    {/* Tooltip */}
-                    <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 z-20 bg-gray-900 text-white text-[10px] px-2 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all shadow-xl whitespace-nowrap pointer-events-none">
-                      <div className="font-semibold">{d.label}</div>
-                      <div className="text-blue-300">Omzet: {formatRupiah(d.omzet)}</div>
-                      <div className="text-gray-300">Laba: {formatRupiah(d.laba)}</div>
-                    </div>
-                    {/* Bars */}
-                    <div className="w-full flex items-end gap-0.5 h-40">
-                      <div
-                        className="flex-1 bg-blue-500 rounded-t-sm transition-all duration-300 group-hover:bg-blue-600 min-h-[2px]"
-                        style={{ height: `${d.pctOmzet}%` }}
-                      />
-                      <div
-                        className="flex-1 bg-gray-700 rounded-t-sm transition-all duration-300 group-hover:bg-gray-900 min-h-[2px]"
-                        style={{ height: `${d.pctLaba}%` }}
-                      />
-                    </div>
-                    <span className="text-[9px] text-gray-400 whitespace-nowrap">{d.label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+          <div className="h-72 w-full mt-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 5, right: 10, left: 10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis
+                  dataKey="label"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: '#64748b' }}
+                  dy={10}
+                />
+                <YAxis
+                  yAxisId="left"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: '#64748b' }}
+                  tickFormatter={(value) => value >= 1000000 ? `${(value / 1000000).toFixed(1)}Jt` : value >= 1000 ? `${(value / 1000).toFixed(0)}Rb` : value}
+                  dx={-10}
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: '#64748b' }}
+                  tickFormatter={(value) => value >= 1000000 ? `${(value / 1000000).toFixed(1)}Jt` : value >= 1000 ? `${(value / 1000).toFixed(0)}Rb` : value}
+                  dx={10}
+                />
+                <Tooltip
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
+                  formatter={(value: any) => formatRupiah(value as number)}
+                  labelStyle={{ fontWeight: 'bold', color: '#0f172a', marginBottom: '4px' }}
+                />
+                <Legend
+                  wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
+                  iconType="circle"
+                />
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="omzet"
+                  name="Omzet"
+                  stroke="#3b82f6"
+                  strokeWidth={3}
+                  dot={{ r: 4, strokeWidth: 2, fill: '#fff' }}
+                  activeDot={{ r: 6, strokeWidth: 0, fill: '#3b82f6' }}
+                />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="laba"
+                  name="Laba Kotor"
+                  stroke="#10b981"
+                  strokeWidth={3}
+                  dot={{ r: 4, strokeWidth: 2, fill: '#fff' }}
+                  activeDot={{ r: 6, strokeWidth: 0, fill: '#10b981' }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         )}
       </div>

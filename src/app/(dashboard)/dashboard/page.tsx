@@ -12,7 +12,6 @@ import {
   Battery,
   Package,
   Banknote,
-  CreditCard,
 } from 'lucide-react'
 import { getUserRole } from '@/actions/users'
 import { SalesDashboardClient } from '@/components/dashboard/SalesDashboardClient'
@@ -54,19 +53,7 @@ async function getDashboardStats() {
 
   let totalHutang = debtList.reduce((s: number, d: any) => s + d.sisa_hutang, 0)
 
-  // Saldo kas, bank, brankas
-  const { data: kasData } = await supabase
-    .from('cash_transactions')
-    .select('account_type, debit, credit')
 
-  let saldoKas = 0
-  let saldoBank = 0
-  let saldoBrankas = 0
-  kasData?.forEach(i => {
-    if (i.account_type === 'KAS') saldoKas += (i.debit - i.credit)
-    else if (i.account_type === 'BANK') saldoBank += (i.debit - i.credit)
-    else if (i.account_type === 'BRANKAS') saldoBrankas += (i.debit - i.credit)
-  })
 
   // Produk aktif & stok
   const { data: activeProducts } = await supabase
@@ -146,33 +133,26 @@ async function getDashboardStats() {
     .gte('tanggal', firstDayOfYear)
     .order('tanggal', { ascending: true })
 
-  // All time bank balances based on sales (since expenses don't specify bank)
-  const { data: allSalesBank } = await supabase
-    .from('sales')
-    .select('total, payment_method, keterangan')
-    .eq('status_transaksi', 'PAID')
-    .in('payment_method', ['TRANSFER', 'QRIS'])
+  // Saldo per akun (dinamis)
+  const { data: accountsData } = await supabase
+    .from('accounts')
+    .select('id, name, type, sort_order')
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true })
 
-  let saldoMandiri = 0
-  let saldoBsiQris = 0
-  let saldoBni = 0
+  const { data: allLedger } = await supabase
+    .from('cash_transactions')
+    .select('account_id, debit, credit')
 
-  allSalesBank?.forEach(s => {
-    if (s.payment_method === 'QRIS') {
-      saldoBsiQris += s.total
-    } else if (s.payment_method === 'TRANSFER') {
-      const ket = s.keterangan?.toUpperCase() || ''
-      if (ket.includes('BSI')) {
-        saldoBsiQris += s.total
-      } else if (ket.includes('MANDIRI')) {
-        saldoMandiri += s.total
-      } else if (ket.includes('BNI')) {
-        saldoBni += s.total
-      } else {
-        // If there are other banks, we could put them somewhere, but following the requested layout
-      }
-    }
-  })
+  const accountBalances: { id: string; name: string; type: string; saldo: number }[] = []
+  for (const acc of (accountsData || [])) {
+    const saldo = (allLedger || [])
+      .filter(r => r.account_id === acc.id)
+      .reduce((sum, r) => sum + (r.debit || 0) - (r.credit || 0), 0)
+    accountBalances.push({ id: acc.id, name: acc.name, type: acc.type, saldo })
+  }
+
+  const totalSaldo = accountBalances.reduce((s, a) => s + a.saldo, 0)
 
   const salesData = (salesRaw ?? []).map(s => {
     const items = Array.isArray(s.sale_items) ? s.sale_items : []
@@ -215,13 +195,8 @@ async function getDashboardStats() {
     totalHutang,
     salesData,
     expensesData,
-    saldoBrankas,
-    totalSaldo: saldoKas + saldoBank + saldoBrankas,
-    saldoKas,
-    saldoBank,
-    saldoMandiri,
-    saldoBsiQris,
-    saldoBni,
+    totalSaldo,
+    accountBalances,
     // Stok
     totalNilaiStokAki,
     totalNilaiStokAirAki,
@@ -250,13 +225,13 @@ function MetricCard({
   color: string
 }) {
   const colorMap: Record<string, { bg: string; icon: string; text: string }> = {
-    blue:   { bg: 'bg-blue-50',   icon: 'bg-blue-100 text-blue-700',   text: 'text-blue-900' },
-    teal:   { bg: 'bg-teal-50',   icon: 'bg-teal-100 text-teal-700',   text: 'text-teal-900' },
+    blue: { bg: 'bg-blue-50', icon: 'bg-blue-100 text-blue-700', text: 'text-blue-900' },
+    teal: { bg: 'bg-teal-50', icon: 'bg-teal-100 text-teal-700', text: 'text-teal-900' },
     violet: { bg: 'bg-violet-50', icon: 'bg-violet-100 text-violet-700', text: 'text-violet-900' },
     orange: { bg: 'bg-orange-50', icon: 'bg-orange-100 text-orange-700', text: 'text-orange-900' },
-    slate:  { bg: 'bg-slate-50',  icon: 'bg-slate-100 text-slate-600',  text: 'text-slate-900' },
-    green:  { bg: 'bg-emerald-50', icon: 'bg-emerald-100 text-emerald-700', text: 'text-emerald-900' },
-    red:    { bg: 'bg-red-50',    icon: 'bg-red-100 text-red-700',      text: 'text-red-900' },
+    slate: { bg: 'bg-slate-50', icon: 'bg-slate-100 text-slate-600', text: 'text-slate-900' },
+    green: { bg: 'bg-emerald-50', icon: 'bg-emerald-100 text-emerald-700', text: 'text-emerald-900' },
+    red: { bg: 'bg-red-50', icon: 'bg-red-100 text-red-700', text: 'text-red-900' },
   }
   const c = colorMap[color] ?? colorMap.blue
 
@@ -346,66 +321,30 @@ export default async function DashboardPage() {
                 <p className="text-2xl font-bold text-gray-900 mt-0.5">{formatRupiah(stats.totalSaldo)}</p>
               </div>
               <div className="space-y-3 flex-1">
-                <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
-                  <div className="flex items-center gap-3">
-                    <span className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
-                      <Wallet className="w-4 h-4 text-amber-600" />
-                    </span>
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">Kas Tunai</p>
-                      <p className="text-[11px] text-gray-400">Laci toko</p>
+                {stats.accountBalances.map((acc, i) => {
+                  const isLast = i === stats.accountBalances.length - 1
+                  const iconColors: Record<string, string> = {
+                    KAS: 'bg-amber-100 text-amber-600',
+                    BRANKAS: 'bg-emerald-100 text-emerald-600',
+                    BANK: 'bg-blue-100 text-blue-600',
+                  }
+                  const iconColor = iconColors[acc.type] ?? 'bg-gray-100 text-gray-600'
+                  const Icon = acc.type === 'KAS' ? Wallet : acc.type === 'BRANKAS' ? Battery : Banknote
+                  return (
+                    <div key={acc.id} className={`flex items-center justify-between py-2.5 ${isLast ? '' : 'border-b border-gray-50'}`}>
+                      <div className="flex items-center gap-3">
+                        <span className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${iconColor}`}>
+                          <Icon className="w-4 h-4" />
+                        </span>
+                        <div>
+                          <p className="text-sm font-medium text-gray-700">{acc.name}</p>
+                          <p className="text-[11px] text-gray-400">{acc.type === 'KAS' ? 'Kas tunai' : acc.type === 'BRANKAS' ? 'Simpanan toko' : 'Rekening bank'}</p>
+                        </div>
+                      </div>
+                      <span className="font-semibold text-sm text-gray-900">{formatRupiah(acc.saldo)}</span>
                     </div>
-                  </div>
-                  <span className="font-semibold text-sm text-gray-900">{formatRupiah(stats.saldoKas)}</span>
-                </div>
-                <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
-                  <div className="flex items-center gap-3">
-                    <span className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                      <Banknote className="w-4 h-4 text-blue-600" />
-                    </span>
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">Bank Mandiri</p>
-                      <p className="text-[11px] text-gray-400">Penerimaan Transfer</p>
-                    </div>
-                  </div>
-                  <span className="font-semibold text-sm text-gray-900">{formatRupiah(stats.saldoMandiri)}</span>
-                </div>
-                <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
-                  <div className="flex items-center gap-3">
-                    <span className="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center shrink-0">
-                      <CreditCard className="w-4 h-4 text-cyan-600" />
-                    </span>
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">BSI / QRIS</p>
-                      <p className="text-[11px] text-gray-400">Penerimaan QRIS & Transfer</p>
-                    </div>
-                  </div>
-                  <span className="font-semibold text-sm text-gray-900">{formatRupiah(stats.saldoBsiQris)}</span>
-                </div>
-                <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
-                  <div className="flex items-center gap-3">
-                    <span className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center shrink-0">
-                      <CreditCard className="w-4 h-4 text-indigo-600" />
-                    </span>
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">Bank BNI</p>
-                      <p className="text-[11px] text-gray-400">Penerimaan Transfer</p>
-                    </div>
-                  </div>
-                  <span className="font-semibold text-sm text-gray-900">{formatRupiah(stats.saldoBni)}</span>
-                </div>
-                <div className="flex items-center justify-between py-2.5 border-b border-gray-50">
-                  <div className="flex items-center gap-3">
-                    <span className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                      <Battery className="w-4 h-4 text-emerald-600" />
-                    </span>
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">Brankas</p>
-                      <p className="text-[11px] text-gray-400">Simpanan toko</p>
-                    </div>
-                  </div>
-                  <span className="font-semibold text-sm text-gray-900">{formatRupiah(stats.saldoBrankas)}</span>
-                </div>
+                  )
+                })}
               </div>
             </div>
           </div>

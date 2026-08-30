@@ -24,15 +24,23 @@ interface Product {
   harga_jual: number
 }
 
+interface Account {
+  id: string
+  name: string
+  type: string
+  is_active: boolean
+}
+
 interface PembelianModalButtonProps {
   type: 'aki' | 'air_aki'
   suppliers: Supplier[]
   products?: Product[]
   label: string
   role?: string
+  accounts?: Account[]
 }
 
-export function PembelianModalButton({ type, suppliers, products = [], label, role }: PembelianModalButtonProps) {
+export function PembelianModalButton({ type, suppliers, products = [], label, role, accounts = [] }: PembelianModalButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
 
   const akiProducts = products.filter(p => p.kategori !== 'Air Aki')
@@ -63,6 +71,7 @@ export function PembelianModalButton({ type, suppliers, products = [], label, ro
                   suppliers={suppliers} 
                   products={akiProducts} 
                   role={role}
+                  accounts={accounts}
                   onSuccess={() => setIsOpen(false)}
                   onCancel={() => setIsOpen(false)}
                 />
@@ -73,6 +82,7 @@ export function PembelianModalButton({ type, suppliers, products = [], label, ro
                   products={airAkiProducts} 
                   isAirAki={true}
                   role={role}
+                  accounts={accounts}
                   onSuccess={() => setIsOpen(false)}
                   onCancel={() => setIsOpen(false)}
                 />

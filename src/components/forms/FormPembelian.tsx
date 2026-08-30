@@ -24,13 +24,21 @@ interface PurchaseItem {
   product_id: string; qty: number; nominal: number
 }
 
+interface Account {
+  id: string
+  name: string
+  type: string
+  is_active: boolean
+}
+
 export function FormPembelian({ 
   suppliers, 
   products,
   isAirAki = false,
   onSuccess,
   onCancel,
-  role
+  role,
+  accounts = []
 }: { 
   suppliers: Supplier[]; 
   products: Product[];
@@ -38,13 +46,18 @@ export function FormPembelian({
   onSuccess?: () => void;
   onCancel?: () => void;
   role?: string;
+  accounts?: Account[]
 }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
+  const defaultKas = accounts?.find(a => a.type === 'KAS')?.id || ''
+
   const [tanggal, setTanggal] = useState(toInputDate())
   const [supplierId, setSupplierId] = useState('')
   const [statusPembayaran, setStatusPembayaran] = useState<'LUNAS' | 'HUTANG'>('HUTANG')
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'TRANSFER' | 'QRIS'>('CASH')
+  const [accountId, setAccountId] = useState(defaultKas)
   const [keterangan, setKeterangan] = useState('')
   const [items, setItems] = useState<PurchaseItem[]>([{ product_id: '', qty: 0, nominal: 0 }])
 
@@ -121,6 +134,8 @@ export function FormPembelian({
         tanggal,
         supplier_id: supplierId,
         status_pembayaran: statusPembayaran,
+        payment_method: statusPembayaran === 'LUNAS' ? paymentMethod : undefined,
+        account_id: statusPembayaran === 'LUNAS' ? accountId : undefined,
         keterangan,
         nama_sales: namaSales || undefined,
         nomor_faktur: nomorFaktur || undefined,
@@ -178,6 +193,31 @@ export function FormPembelian({
               { value: 'LUNAS', label: 'Lunas (Bayar Langsung)' },
             ]}
           />
+          {statusPembayaran === 'LUNAS' && (
+            <>
+              <Select label="Metode Pembayaran" id="payment_method" value={paymentMethod} onChange={(e) => {
+                const val = e.target.value as 'CASH' | 'TRANSFER' | 'QRIS';
+                setPaymentMethod(val);
+                if (val === 'CASH') {
+                  setAccountId(accounts?.find(a => a.type === 'KAS')?.id || '');
+                } else {
+                  setAccountId(accounts?.find(a => a.type === 'BANK')?.id || '');
+                }
+              }} options={[{ value: 'CASH', label: 'Tunai' }, { value: 'TRANSFER', label: 'Transfer Bank' }, { value: 'QRIS', label: 'QRIS' }]} />
+              <Select
+                label="Sumber Dana (Akun)"
+                id="account_id"
+                value={accountId}
+                onChange={(e) => setAccountId(e.target.value)}
+                options={[
+                  { value: '', label: '-- Pilih Akun --' },
+                  ...(accounts || [])
+                    .filter(a => paymentMethod === 'CASH' ? a.type === 'KAS' : a.type === 'BANK')
+                    .map(a => ({ value: a.id, label: a.name }))
+                ]}
+              />
+            </>
+          )}
           <Input
             label="Keterangan (opsional)"
             id="keterangan"

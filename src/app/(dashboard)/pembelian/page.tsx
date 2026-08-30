@@ -11,7 +11,7 @@ import { getUserRole } from '@/actions/users'
 export default async function PembelianPage() {
   const supabase = await createClient()
 
-  const [role, { data: purchases }, { data: suppliers }, { data: products }] = await Promise.all([
+  const [role, { data: purchases }, { data: suppliers }, { data: products }, { data: accounts }] = await Promise.all([
     getUserRole(),
     supabase
       .from('purchase_transactions')
@@ -30,6 +30,7 @@ export default async function PembelianPage() {
       .limit(100),
     supabase.from('suppliers').select('id, nama_supplier, kode_supplier').eq('status', true).order('nama_supplier').order('id', { ascending: true }),
     supabase.from('products').select('id, merk, kategori, type, kode_baterai, kapasitas_ah, kode_produk, harga_jual').eq('status', true).order('merk').order('id', { ascending: true }),
+    supabase.from('accounts').select('id, name, type, is_active').eq('is_active', true).order('sort_order', { ascending: true })
   ])
 
   const productIds = (products ?? []).map(p => p.id)
@@ -46,6 +47,7 @@ export default async function PembelianPage() {
                 type="aki" 
                 suppliers={suppliers ?? []} 
                 products={products ?? []} 
+                accounts={accounts || []}
                 label="Buat Pembelian" 
                 role={role ?? undefined}
               />
@@ -63,6 +65,7 @@ export default async function PembelianPage() {
                       type="aki" 
                       suppliers={suppliers ?? []} 
                       products={products ?? []} 
+                      accounts={accounts || []}
                       label="Buat Pembelian Pertama" 
                       role={role ?? undefined}
                     />

@@ -22,6 +22,8 @@ const CreatePurchaseSchema = z.object({
   tanggal: z.string().min(1, 'Tanggal wajib diisi'),
   supplier_id: z.string().uuid('Supplier tidak valid'),
   status_pembayaran: z.enum(['LUNAS', 'HUTANG', 'PARSIAL']),
+  payment_method: z.enum(['CASH', 'TRANSFER', 'QRIS', 'BRANKAS']).optional(),
+  account_id: z.string().uuid().optional(),
   keterangan: z.string().optional(),
   nama_sales: z.string().optional(),
   nomor_faktur: z.string().optional(),
@@ -43,6 +45,7 @@ const CreateSaleSchema = z.object({
   tanggal: z.string().min(1, 'Tanggal wajib diisi'),
   customer_name: z.string().optional(),
   payment_method: z.enum(['CASH', 'TRANSFER', 'QRIS']),
+  account_id: z.string().uuid().optional(),
   discount: z.number().optional(),
   keterangan: z.string().optional(),
   is_indent: z.boolean().optional(),
@@ -57,6 +60,7 @@ const CreateExpenseSchema = z.object({
   keterangan: z.string().optional(),
   nominal: z.number().positive(),
   payment_method: z.enum(['CASH', 'TRANSFER', 'QRIS', 'BRANKAS']),
+  account_id: z.string().uuid().optional(),
 })
 
 const CreatePaymentSchema = z.object({
@@ -65,6 +69,7 @@ const CreatePaymentSchema = z.object({
   tanggal: z.string().min(1),
   nominal: z.number().positive(),
   payment_method: z.enum(['CASH', 'TRANSFER', 'QRIS', 'BRANKAS']),
+  account_id: z.string().uuid().optional(),
   keterangan: z.string().optional(),
 })
 
@@ -239,10 +244,11 @@ export async function createPurchase(input: CreatePurchaseInput): Promise<Action
   }
 
   // Jika LUNAS → catat kas keluar
-  if (data.status_pembayaran === 'LUNAS') {
+  if (data.status_pembayaran === 'LUNAS' && data.account_id) {
     await supabase.from('cash_transactions').insert({
       tanggal: new Date().toISOString(),
-      account_type: 'KAS',
+      account_id: data.account_id,
+      account_type: 'KAS', // fallback
       transaction_type: 'CREDIT',
       reference_type: 'PURCHASE',
       reference_id: purchase.id,
@@ -471,10 +477,11 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
 
   // Catat kas masuk dari penjualan
   const cashIn = data.is_indent ? dpAmount : total
-  if (cashIn > 0) {
+  if (cashIn > 0 && data.account_id) {
     await supabase.from('cash_transactions').insert({
       tanggal: new Date().toISOString(),
-      account_type: 'KAS',
+      account_id: data.account_id,
+      account_type: 'KAS', // fallback
       transaction_type: 'DEBIT',
       reference_type: 'SALE',
       reference_id: sale.id,
@@ -540,10 +547,10 @@ export async function createExpense(input: CreateExpenseInput): Promise<ActionRe
   }
 
   // Catat kas keluar
-  const accountType = data.payment_method === 'BRANKAS' ? 'BRANKAS' : (data.payment_method === 'TRANSFER' || data.payment_method === 'QRIS') ? 'BANK' : 'KAS'
   await supabase.from('cash_transactions').insert({
     tanggal: new Date().toISOString(),
-    account_type: accountType,
+    account_id: data.account_id,
+    account_type: 'KAS', // fallback
     transaction_type: 'CREDIT',
     reference_type: 'EXPENSE',
     reference_id: expense.id,
@@ -605,10 +612,10 @@ export async function createSupplierPayment(input: CreateSupplierPaymentInput): 
   }
 
   // Catat kas keluar
-  const paymentAccountType = data.payment_method === 'BRANKAS' ? 'BRANKAS' : (data.payment_method === 'TRANSFER' || data.payment_method === 'QRIS') ? 'BANK' : 'KAS'
   await supabase.from('cash_transactions').insert({
     tanggal: new Date().toISOString(),
-    account_type: paymentAccountType,
+    account_id: data.account_id,
+    account_type: 'KAS', // fallback
     transaction_type: 'CREDIT',
     reference_type: 'PAYMENT',
     reference_id: payment.id,
@@ -656,7 +663,7 @@ export async function createSupplierPayment(input: CreateSupplierPaymentInput): 
 // ============================================================
 // SERVER ACTION: SELESAIKAN INDENT (Pelunasan)
 // ============================================================
-export async function fulfillIndentSale(saleId: string, pelunasanMethod: 'CASH' | 'TRANSFER' | 'QRIS'): Promise<ActionResult<null>> {
+export async function fulfillIndentSale(saleId: string, pelunasanMethod: 'CASH' | 'TRANSFER' | 'QRIS', accountId?: string): Promise<ActionResult<null>> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { success: false, error: 'Tidak terautentikasi' }
@@ -754,10 +761,11 @@ export async function fulfillIndentSale(saleId: string, pelunasanMethod: 'CASH' 
 
   // Catat pelunasan kas jika ada sisa bayar
   const sisaBayar = sale.total - (sale.dp_amount ?? 0)
-  if (sisaBayar > 0) {
+  if (sisaBayar > 0 && accountId) {
     await supabase.from('cash_transactions').insert({
       tanggal: new Date().toISOString(),
-      account_type: 'KAS', // Kita asumsikan KAS dulu, idealnya ngikut payment_method pelunasan
+      account_id: accountId,
+      account_type: 'KAS', // fallback
       transaction_type: 'DEBIT',
       reference_type: 'SALE',
       reference_id: sale.id,
