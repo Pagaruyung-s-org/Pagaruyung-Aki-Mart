@@ -391,7 +391,7 @@ export default async function DashboardPage() {
         )}
 
         {/* ── STOK WARNING TABLES ───────────────────────────────────── */}
-        <div className={role === 'ADMIN' ? 'grid grid-cols-1 gap-6 flex-1' : 'grid grid-cols-1 lg:grid-cols-5 gap-6'}>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 flex-1">
 
           {/* Tabel Stok Aki */}
           <div className={`lg:col-span-3 bg-white border rounded-2xl shadow-sm flex flex-col h-[540px] ${stats.stokRendah.length > 0 ? 'border-red-200' : 'border-gray-200'}`}>
