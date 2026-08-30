@@ -184,7 +184,7 @@ export function HutangSupplierClient({ data }: HutangSupplierClientProps) {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto border border-gray-200 rounded-xl">
+        <div className="overflow-auto border border-gray-200 rounded-xl h-[315px]">
           <table className="w-full text-sm text-left">
             <thead className="text-xs text-gray-500 bg-gray-50 uppercase border-b border-gray-200">
               <tr>

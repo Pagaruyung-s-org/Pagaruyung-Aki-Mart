@@ -290,16 +290,16 @@ export default async function DashboardPage() {
               </div>
 
             {/* Saldo Panel */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col">
-              <div className="border-b border-gray-100 pb-4 mb-4">
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 flex flex-col h-[525px]">
+              <div className="border-b border-gray-100 pb-4 mb-4 shrink-0">
                 <h2 className="font-semibold text-gray-900">Saldo Kas &amp; Bank</h2>
                 <p className="text-xs text-gray-500 mt-0.5">Posisi saldo terkini</p>
               </div>
-              <div className="mb-5">
+              <div className="mb-5 shrink-0">
                 <p className="text-xs text-gray-400 font-medium">Total Saldo</p>
                 <p className="text-2xl font-bold text-gray-900 mt-0.5">{formatRupiah(stats.totalSaldo)}</p>
               </div>
-              <div className="space-y-3 flex-1">
+              <div className="space-y-3 flex-1 overflow-y-auto pr-2">
                 {stats.accountBalances.map((acc, i) => {
                   const isLast = i === stats.accountBalances.length - 1
                   const iconColors: Record<string, string> = {
@@ -391,11 +391,11 @@ export default async function DashboardPage() {
         )}
 
         {/* ── STOK WARNING TABLES ───────────────────────────────────── */}
-        <div className={role === 'ADMIN' ? 'grid grid-cols-1 gap-6 flex-1' : 'grid grid-cols-1 lg:grid-cols-2 gap-6'}>
+        <div className={role === 'ADMIN' ? 'grid grid-cols-1 gap-6 flex-1' : 'grid grid-cols-1 lg:grid-cols-5 gap-6'}>
 
           {/* Tabel Stok Aki */}
-          <div className={`bg-white border rounded-2xl shadow-sm overflow-hidden flex flex-col ${stats.stokRendah.length > 0 ? 'border-red-200' : 'border-gray-200'}`}>
-            <div className={`px-6 py-4 border-b flex items-center justify-between ${stats.stokRendah.length > 0 ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
+          <div className={`lg:col-span-3 bg-white border rounded-2xl shadow-sm flex flex-col h-[540px] ${stats.stokRendah.length > 0 ? 'border-red-200' : 'border-gray-200'}`}>
+            <div className={`px-6 py-4 border-b flex items-center justify-between shrink-0 ${stats.stokRendah.length > 0 ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
               <div className="flex items-center gap-2">
                 <Battery className={`h-5 w-5 ${stats.stokRendah.length > 0 ? 'text-red-600' : 'text-gray-400'}`} />
                 <div>
@@ -448,8 +448,8 @@ export default async function DashboardPage() {
           </div>
 
           {/* Tabel Stok Air Aki */}
-          <div className={`bg-white border rounded-2xl shadow-sm overflow-hidden flex flex-col ${stats.airAkiList.some(p => (p.qty_stok ?? 0) < 20) ? 'border-red-200' : 'border-gray-200'}`}>
-            <div className={`px-6 py-4 border-b flex items-center justify-between ${stats.airAkiList.some(p => (p.qty_stok ?? 0) < 20) ? 'bg-red-50 border-red-100' : 'bg-gray-50 border-gray-100'}`}>
+          <div className={`lg:col-span-2 bg-white border rounded-2xl shadow-sm flex flex-col h-[540px] ${stats.airAkiList.some(p => (p.qty_stok ?? 0) < 20) ? 'border-amber-200' : 'border-gray-200'}`}>
+            <div className={`px-6 py-4 border-b flex items-center justify-between shrink-0 ${stats.airAkiList.some(p => (p.qty_stok ?? 0) < 20) ? 'bg-amber-50 border-amber-100' : 'bg-gray-50 border-gray-100'}`}>
               <div className="flex items-center gap-2">
                 <Droplets className={`h-5 w-5 ${stats.airAkiList.some(p => (p.qty_stok ?? 0) < 20) ? 'text-red-600' : 'text-gray-400'}`} />
                 <div>
