@@ -842,6 +842,116 @@ export async function createManualHutang(input: z.infer<typeof CreateManualHutan
   }
 }
 
+// ============================================================
+// SERVER ACTION: BAYAR HUTANG BULANAN (MASSAL)
+// ============================================================
+const CreateBulkPaymentSchema = z.object({
+  supplier_id: z.string().uuid(),
+  purchases: z.array(z.object({
+    purchase_id: z.string().uuid(),
+    nominal: z.number().positive(),
+  })).min(1),
+  tanggal: z.string().min(1),
+  payment_method: z.enum(['CASH', 'TRANSFER', 'QRIS', 'BRANKAS']),
+  account_id: z.string().uuid().optional(),
+  keterangan: z.string().optional(),
+})
+
+export async function createBulkSupplierPayment(input: any): Promise<ActionResult<null>> {
+  const parsed = CreateBulkPaymentSchema.safeParse(input)
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message }
+  }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Tidak terautentikasi' }
+
+  const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', user.id).single()
+  if (roleData?.role === 'ADMIN') {
+    return { success: false, error: 'Admin tidak memiliki akses untuk membayar hutang' }
+  }
+
+  const data = parsed.data
+  
+  // Total up all nominals for the cash transaction
+  const totalNominal = data.purchases.reduce((sum, p) => sum + p.nominal, 0)
+  
+  // Create a single grouped description or just use a generic one
+  const kode_pembayaran_bulk = `BULK-PAY-${Date.now()}`
+
+  // Track if all went well
+  for (const p of data.purchases) {
+    const { data: kodeData } = await supabase.rpc('generate_kode_pembayaran')
+    const kode_pembayaran = kodeData as string
+
+    // 1. Insert ke supplier_payments
+    const { error: paymentError } = await supabase
+      .from('supplier_payments')
+      .insert({
+        kode_pembayaran,
+        supplier_id: data.supplier_id,
+        purchase_id: p.purchase_id,
+        tanggal: data.tanggal,
+        nominal: p.nominal,
+        payment_method: data.payment_method,
+        keterangan: data.keterangan ? `${data.keterangan} (Bulk)` : 'Pembayaran Tagihan Bulanan',
+        created_by: user.id,
+      })
+
+    if (paymentError) {
+      return { success: false, error: paymentError.message }
+    }
+
+    // 2. Update status_pembayaran purchase_transactions
+    const { data: purchase } = await supabase
+      .from('purchase_transactions')
+      .select('total')
+      .eq('id', p.purchase_id)
+      .single()
+
+    if (purchase) {
+      const { data: allPayments } = await supabase
+        .from('supplier_payments')
+        .select('nominal')
+        .eq('purchase_id', p.purchase_id)
+
+      const paidAmount = allPayments?.reduce((s, pay) => s + pay.nominal, 0) ?? 0
+
+      let newStatus: 'LUNAS' | 'PARSIAL' | 'HUTANG' = 'HUTANG'
+      if (paidAmount >= purchase.total) newStatus = 'LUNAS'
+      else if (paidAmount > 0) newStatus = 'PARSIAL'
+
+      await supabase
+        .from('purchase_transactions')
+        .update({ status_pembayaran: newStatus })
+        .eq('id', p.purchase_id)
+    }
+  }
+
+  // 3. Catat 1 Kas Keluar untuk total pembayarannya
+  await supabase.from('cash_transactions').insert({
+    tanggal: new Date().toISOString(),
+    account_id: data.account_id,
+    account_type: 'KAS', // fallback
+    transaction_type: 'CREDIT',
+    reference_type: 'PAYMENT', // Bisa buat tipe baru jika mau, tp pakai PAYMENT saja
+    reference_id: null, // Kita kosongkan atau pakai id dari salah satu payment (lebih baik kosong karena bulk)
+    debit: 0,
+    credit: totalNominal,
+    description: data.keterangan ? `Pembayaran tagihan supplier massal - ${data.keterangan}` : `Pembayaran tagihan supplier massal`,
+  })
+
+  revalidatePath('/hutang')
+  revalidatePath('/dashboard')
+
+  return {
+    success: true,
+    data: null,
+    message: `Pembayaran tagihan bulanan berhasil dicatat`,
+  }
+}
+
 /** Ambil harga beli terakhir per product_id dari inventory_batches */
 export async function getLastPurchasePrices(productIds: string[]): Promise<Record<string, number>> {
   if (!productIds.length) return {}

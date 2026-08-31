@@ -188,3 +188,14 @@ input[type="date"]:valid::-webkit-datetime-edit-year-field {
   }
 }
 
+/* ============================================================ */
+/* Animations                                                   */
+/* ============================================================ */
+@keyframes accordion-down {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-accordion-down {
+  animation: accordion-down 0.2s ease-out forwards;
+}
