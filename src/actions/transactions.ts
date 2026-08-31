@@ -106,10 +106,10 @@ export async function createPurchase(input: CreatePurchaseInput): Promise<Action
     if (!product) {
       return { success: false, error: 'Produk yang dipilih tidak ditemukan' }
     }
-    const productName = product.kategori === 'Air Aki' 
-      ? product.merk 
+    const productName = product.kategori === 'Air Aki'
+      ? product.merk
       : [product.merk, product.kategori, product.type, product.kode_baterai, `${product.kapasitas_ah}AH`].filter(Boolean).join(' · ')
-    
+
     if (!product.status) {
       return { success: false, error: `Produk ${productName} tidak aktif` }
     }
@@ -330,8 +330,8 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
       return { success: false, error: `Produk yang dipilih tidak ditemukan` }
     }
 
-    const productName = product.kategori === 'Air Aki' 
-      ? product.merk 
+    const productName = product.kategori === 'Air Aki'
+      ? product.merk
       : [product.merk, product.kategori, product.type, product.kode_baterai, `${product.kapasitas_ah}AH`].filter(Boolean).join(' · ')
 
     if (!data.is_indent && !product.status) {
@@ -353,7 +353,7 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
       fifoResult = result
       hpp_fifo = result.total_hpp
       laba_kotor = subtotal - hpp_fifo
-      
+
       // Lock opening balance
       await lockOpeningBalance(item.product_id)
     }
@@ -688,8 +688,8 @@ export async function fulfillIndentSale(saleId: string, pelunasanMethod: 'CASH' 
 
     if (!product) return { success: false, error: 'Produk pada nota tidak ditemukan di master data' }
 
-    const productName = product.kategori === 'Air Aki' 
-      ? product.merk 
+    const productName = product.kategori === 'Air Aki'
+      ? product.merk
       : [product.merk, product.kategori, product.type, product.kode_baterai, `${product.kapasitas_ah}AH`].filter(Boolean).join(' · ')
 
     if (!product.status) {
@@ -873,10 +873,10 @@ export async function createBulkSupplierPayment(input: any): Promise<ActionResul
   }
 
   const data = parsed.data
-  
+
   // Total up all nominals for the cash transaction
   const totalNominal = data.purchases.reduce((sum, p) => sum + p.nominal, 0)
-  
+
   // Create a single grouped description or just use a generic one
   const kode_pembayaran_bulk = `BULK-PAY-${Date.now()}`
 
@@ -886,7 +886,7 @@ export async function createBulkSupplierPayment(input: any): Promise<ActionResul
     const kode_pembayaran = kodeData as string
 
     // 1. Insert ke supplier_payments
-    const { error: paymentError } = await supabase
+    const { data: payment, error: paymentError } = await supabase
       .from('supplier_payments')
       .insert({
         kode_pembayaran,
@@ -898,12 +898,27 @@ export async function createBulkSupplierPayment(input: any): Promise<ActionResul
         keterangan: data.keterangan ? `${data.keterangan} (Bulk)` : 'Pembayaran Tagihan Bulanan',
         created_by: user.id,
       })
+      .select('id, kode_pembayaran')
+      .single()
 
-    if (paymentError) {
-      return { success: false, error: paymentError.message }
+    if (paymentError || !payment) {
+      return { success: false, error: paymentError?.message ?? 'Gagal membuat pembayaran' }
     }
 
-    // 2. Update status_pembayaran purchase_transactions
+    // 2. Catat Kas Keluar untuk pembayaran ini
+    await supabase.from('cash_transactions').insert({
+      tanggal: new Date().toISOString(),
+      account_id: data.account_id,
+      account_type: 'KAS', // fallback
+      transaction_type: 'CREDIT',
+      reference_type: 'PAYMENT', 
+      reference_id: payment.id, 
+      debit: 0,
+      credit: p.nominal,
+      description: data.keterangan ? `Pembayaran tagihan supplier massal - ${data.keterangan}` : `Pembayaran hutang ${payment.kode_pembayaran}`,
+    })
+
+    // 3. Update status_pembayaran purchase_transactions
     const { data: purchase } = await supabase
       .from('purchase_transactions')
       .select('total')
@@ -928,19 +943,6 @@ export async function createBulkSupplierPayment(input: any): Promise<ActionResul
         .eq('id', p.purchase_id)
     }
   }
-
-  // 3. Catat 1 Kas Keluar untuk total pembayarannya
-  await supabase.from('cash_transactions').insert({
-    tanggal: new Date().toISOString(),
-    account_id: data.account_id,
-    account_type: 'KAS', // fallback
-    transaction_type: 'CREDIT',
-    reference_type: 'PAYMENT', // Bisa buat tipe baru jika mau, tp pakai PAYMENT saja
-    reference_id: null, // Kita kosongkan atau pakai id dari salah satu payment (lebih baik kosong karena bulk)
-    debit: 0,
-    credit: totalNominal,
-    description: data.keterangan ? `Pembayaran tagihan supplier massal - ${data.keterangan}` : `Pembayaran tagihan supplier massal`,
-  })
 
   revalidatePath('/hutang')
   revalidatePath('/dashboard')

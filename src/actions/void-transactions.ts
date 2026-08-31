@@ -74,25 +74,26 @@ export async function voidSale(id: string, reason: string): Promise<ActionResult
 
   if (isIndent) {
     if ((sale.dp_amount || 0) > 0) {
-      const { data: originalCash } = await supabase
+      const { data: originalCashes } = await supabase
         .from('cash_transactions')
         .select('account_id, account_type, debit')
         .eq('reference_id', sale.id)
         .eq('reference_type', 'SALE')
-        .single()
 
-      if (originalCash) {
-        await supabase.from('cash_transactions').insert({
-          tanggal: new Date().toISOString(),
-          account_id: originalCash.account_id,
-          account_type: originalCash.account_type,
-          transaction_type: 'CREDIT',
-          reference_type: 'SALE_REVERSAL',
-          reference_id: sale.id,
-          debit: 0,
-          credit: originalCash.debit,
-          description: 'Refund DP pembatalan inden ' + sale.kode_penjualan
-        })
+      if (originalCashes && originalCashes.length > 0) {
+        for (const cash of originalCashes) {
+          await supabase.from('cash_transactions').insert({
+            tanggal: new Date().toISOString(),
+            account_id: cash.account_id,
+            account_type: cash.account_type,
+            transaction_type: 'CREDIT',
+            reference_type: 'SALE_REVERSAL',
+            reference_id: sale.id,
+            debit: 0,
+            credit: cash.debit,
+            description: 'Refund DP pembatalan inden ' + sale.kode_penjualan
+          })
+        }
       }
     }
 
@@ -139,7 +140,7 @@ export async function voidSale(id: string, reason: string): Promise<ActionResult
     .from('sale_items')
     .select('*, sale_batch_allocations(*)')
     .eq('sale_id', id)
-  
+
   if (saleItems) {
     for (const item of saleItems) {
       // restore batches
@@ -174,27 +175,28 @@ export async function voidSale(id: string, reason: string): Promise<ActionResult
   }
 
   // Create Reversal Cash transaction
-  const { data: originalCash } = await supabase
+  const { data: originalCashes } = await supabase
     .from('cash_transactions')
     .select('account_id, account_type, debit')
     .eq('reference_id', sale.id)
     .eq('reference_type', 'SALE')
-    .single()
 
-  if (originalCash) {
-    await supabase.from('cash_transactions').insert({
-      tanggal: new Date().toISOString(),
-      account_id: originalCash.account_id,
-      account_type: originalCash.account_type,
-      reference_id: reversalSale.id,
-      reference_type: 'SALE_REVERSAL',
-      transaction_type: 'CREDIT', // reversal of sale is money out
-      debit: 0,
-      credit: originalCash.debit,
-      description: 'Pembatalan penjualan ' + sale.kode_penjualan
-    })
+  if (originalCashes && originalCashes.length > 0) {
+    for (const cash of originalCashes) {
+      await supabase.from('cash_transactions').insert({
+        tanggal: new Date().toISOString(),
+        account_id: cash.account_id,
+        account_type: cash.account_type,
+        reference_id: reversalSale.id,
+        reference_type: 'SALE_REVERSAL',
+        transaction_type: 'CREDIT', // reversal of sale is money out
+        debit: 0,
+        credit: cash.debit,
+        description: 'Pembatalan penjualan ' + sale.kode_penjualan
+      })
+    }
   }
-  
+
   // Create Reversal Inventory movements
   if (saleItems) {
     for (const item of saleItems) {
@@ -265,13 +267,14 @@ export async function voidPurchase(id: string, reason: string): Promise<ActionRe
 
   // Check if any items have been sold
   const { data: purchaseItems } = await supabase.from('purchase_items').select('*').eq('purchase_id', id)
-  
+
   if (purchaseItems) {
     for (const item of purchaseItems) {
       const { data: batches } = await supabase
         .from('inventory_batches')
         .select('id, qty_awal, qty_tersedia')
-        .eq('purchase_item_id', item.id)
+        .eq('product_id', item.product_id)
+        .eq('harga_modal_unit', item.harga_modal_unit)
         .limit(1)
 
       const batch = batches?.[0]
@@ -327,14 +330,15 @@ export async function voidPurchase(id: string, reason: string): Promise<ActionRe
       const { data: batches } = await supabase
         .from('inventory_batches')
         .select('id, qty_awal, qty_tersedia')
-        .eq('purchase_item_id', item.id)
+        .eq('product_id', item.product_id)
+        .eq('harga_modal_unit', item.harga_modal_unit)
         .limit(1)
-      
+
       const batch = batches?.[0]
       if (batch) {
         const newQtyAwal = batch.qty_awal - item.qty
         const newQtyTersedia = batch.qty_tersedia - item.qty
-        
+
         await supabase.from('inventory_batches').update({
           qty_awal: newQtyAwal,
           qty_tersedia: newQtyTersedia
@@ -344,7 +348,7 @@ export async function voidPurchase(id: string, reason: string): Promise<ActionRe
         const { data: product } = await supabase.from('products').select('qty_stok').eq('id', item.product_id).single()
         if (product) {
           await supabase.from('products').update({
-            qty_stok: Math.max(0, product.qty_stok - item.qty)
+            qty_stok: product.qty_stok - item.qty
           }).eq('id', item.product_id)
         }
       }
@@ -371,25 +375,26 @@ export async function voidPurchase(id: string, reason: string): Promise<ActionRe
   }
 
   // 4. Reverse cash transaction if it exists
-  const { data: originalCash } = await supabase
+  const { data: originalCashes } = await supabase
     .from('cash_transactions')
     .select('account_id, account_type, credit')
     .eq('reference_id', id)
     .eq('reference_type', 'PURCHASE')
-    .single()
 
-  if (originalCash) {
-    await supabase.from('cash_transactions').insert({
-      tanggal: new Date().toISOString(),
-      account_id: originalCash.account_id,
-      account_type: originalCash.account_type,
-      reference_id: reversalPurchase.id,
-      reference_type: 'PURCHASE_REVERSAL',
-      transaction_type: 'DEBIT', 
-      debit: originalCash.credit, // Refund exactly what was paid out
-      credit: 0,
-      description: 'Pembatalan pembelian ' + purchase.kode_pembelian
-    })
+  if (originalCashes && originalCashes.length > 0) {
+    for (const cash of originalCashes) {
+      await supabase.from('cash_transactions').insert({
+        tanggal: new Date().toISOString(),
+        account_id: cash.account_id,
+        account_type: cash.account_type,
+        reference_id: reversalPurchase.id,
+        reference_type: 'PURCHASE_REVERSAL',
+        transaction_type: 'DEBIT',
+        debit: cash.credit, // Refund exactly what was paid out
+        credit: 0,
+        description: 'Pembatalan pembelian ' + purchase.kode_pembelian
+      })
+    }
   }
 
   revalidatePath('/pembelian')
@@ -468,25 +473,26 @@ export async function voidExpense(id: string, reason: string): Promise<ActionRes
   if (revError || !reversalExpense) return { success: false, error: 'Gagal membuat transaksi reversal: ' + (revError?.message || '') }
 
   // Create Reversal Cash transaction
-  const { data: originalCash } = await supabase
+  const { data: originalCashes } = await supabase
     .from('cash_transactions')
     .select('account_id, account_type, credit')
     .eq('reference_id', id)
     .eq('reference_type', 'EXPENSE')
-    .single()
 
-  if (originalCash) {
-    await supabase.from('cash_transactions').insert({
-      tanggal: new Date().toISOString(),
-      account_id: originalCash.account_id,
-      account_type: originalCash.account_type,
-      reference_id: reversalExpense.id,
-      reference_type: 'EXPENSE_REVERSAL',
-      transaction_type: 'DEBIT', // reversal of expense is money in
-      debit: originalCash.credit,
-      credit: 0,
-      description: 'Pembatalan pengeluaran ' + expense.kode_pengeluaran
-    })
+  if (originalCashes && originalCashes.length > 0) {
+    for (const cash of originalCashes) {
+      await supabase.from('cash_transactions').insert({
+        tanggal: new Date().toISOString(),
+        account_id: cash.account_id,
+        account_type: cash.account_type,
+        reference_id: reversalExpense.id,
+        reference_type: 'EXPENSE_REVERSAL',
+        transaction_type: 'DEBIT', // reversal of expense is money in
+        debit: cash.credit,
+        credit: 0,
+        description: 'Pembatalan pengeluaran ' + expense.kode_pengeluaran
+      })
+    }
   }
 
   revalidatePath('/operasional')
@@ -508,7 +514,7 @@ export async function voidExpense(id: string, reason: string): Promise<ActionRes
 // ============================================================
 // VOID SUPPLIER PAYMENT
 // ============================================================
-export async function voidSupplierPayment(id: string, reason: string): Promise<{success: boolean, error?: string, message?: string}> {
+export async function voidSupplierPayment(id: string, reason: string): Promise<{ success: boolean, error?: string, message?: string }> {
   const supabase = await createClient()
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -585,8 +591,8 @@ export async function voidSupplierPayment(id: string, reason: string): Promise<{
         .from('supplier_payments')
         .select('nominal')
         .eq('purchase_id', payment.purchase_id)
-        // Only sum non-voids, wait, reversal nominal is negative, so it cancels out the voided one!
-        // So we can just sum ALL nominals for this purchase.
+      // Only sum non-voids, wait, reversal nominal is negative, so it cancels out the voided one!
+      // So we can just sum ALL nominals for this purchase.
 
       const paidAmount = totalPaid?.reduce((s, p) => s + p.nominal, 0) ?? 0
 
@@ -602,25 +608,34 @@ export async function voidSupplierPayment(id: string, reason: string): Promise<{
   }
 
   // 4. Create Reversal Cash transaction
-  const { data: originalCash } = await supabase
+  let { data: originalCashes } = await supabase
     .from('cash_transactions')
     .select('account_id, account_type, credit')
     .eq('reference_id', id)
     .eq('reference_type', 'PAYMENT')
-    .single()
 
-  if (originalCash) {
-    await supabase.from('cash_transactions').insert({
-      tanggal: new Date().toISOString(),
-      account_id: originalCash.account_id,
-      account_type: originalCash.account_type,
-      transaction_type: 'DEBIT',
-      reference_type: 'PAYMENT',
-      reference_id: reversalPayment.id,
-      debit: originalCash.credit,
-      credit: 0,
-      description: 'Reversal pembayaran hutang ' + payment.kode_pembayaran
-    })
+  if (!originalCashes || originalCashes.length === 0) {
+    // Fallback for old bulk payments where reference_id was null
+    const { data: fallbackAccount } = await supabase.from('accounts').select('id, type').eq('type', 'KAS').limit(1).single()
+    if (fallbackAccount) {
+      originalCashes = [{ account_id: fallbackAccount.id, account_type: fallbackAccount.type, credit: payment.nominal }]
+    }
+  }
+
+  if (originalCashes && originalCashes.length > 0) {
+    for (const cash of originalCashes) {
+      await supabase.from('cash_transactions').insert({
+        tanggal: new Date().toISOString(),
+        account_id: cash.account_id,
+        account_type: cash.account_type,
+        transaction_type: 'DEBIT',
+        reference_type: 'PAYMENT_REVERSAL', // Use a distinct reversal type
+        reference_id: reversalPayment.id,
+        debit: cash.credit,
+        credit: 0,
+        description: 'Reversal pembayaran hutang ' + payment.kode_pembayaran
+      })
+    }
   }
 
   revalidatePath('/hutang/bayar')

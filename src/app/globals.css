@@ -27,7 +27,8 @@ body {
 
 /* Global Placeholder Styling */
 ::placeholder {
-  color: #9ca3af !important; /* gray-400 */
+  color: #9ca3af !important;
+  /* gray-400 */
   opacity: 1 !important;
 }
 
@@ -53,13 +54,15 @@ input[type="date"]:valid::-webkit-datetime-edit-text,
 input[type="date"]:valid::-webkit-datetime-edit-month-field,
 input[type="date"]:valid::-webkit-datetime-edit-day-field,
 input[type="date"]:valid::-webkit-datetime-edit-year-field {
-  color: #111827; /* gray-900 */
+  color: #111827;
+  /* gray-900 */
 }
 
 /* ============================================================ */
 /* PDF / Print Styles                                           */
 /* ============================================================ */
 @media print {
+
   /* ---- Faktur Modal Print Mode ---- */
   /* When faktur modal is open, hide EVERYTHING except the faktur */
   body:has(#faktur-print-area) * {
@@ -99,7 +102,7 @@ input[type="date"]:valid::-webkit-datetime-edit-year-field {
     display: grid !important;
   }
 
-  body:has(#faktur-print-area) .grid > * {
+  body:has(#faktur-print-area) .grid>* {
     border: none !important;
     padding: 0 !important;
     border-radius: 0 !important;
@@ -130,7 +133,8 @@ input[type="date"]:valid::-webkit-datetime-edit-year-field {
   }
 
   /* Full width content */
-  .p-6, [class*="p-6"] {
+  .p-6,
+  [class*="p-6"] {
     padding: 0 !important;
   }
 
@@ -150,7 +154,8 @@ input[type="date"]:valid::-webkit-datetime-edit-year-field {
     font-size: 9pt;
   }
 
-  th, td {
+  th,
+  td {
     border: 1px solid #ccc !important;
     padding: 4px 8px !important;
   }
@@ -168,7 +173,7 @@ input[type="date"]:valid::-webkit-datetime-edit-year-field {
     gap: 8px !important;
   }
 
-  .grid > * {
+  .grid>* {
     flex: 1 !important;
     min-width: 120px;
     border: 1px solid #ccc !important;
@@ -177,7 +182,12 @@ input[type="date"]:valid::-webkit-datetime-edit-year-field {
   }
 
   /* Avoid breaking tables across pages */
-  table, tr, td, th, thead, tbody {
+  table,
+  tr,
+  td,
+  th,
+  thead,
+  tbody {
     page-break-inside: avoid !important;
   }
 
@@ -192,40 +202,17 @@ input[type="date"]:valid::-webkit-datetime-edit-year-field {
 /* Animations                                                   */
 /* ============================================================ */
 @keyframes accordion-down {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-accordion-down {
   animation: accordion-down 0.2s ease-out forwards;
-}
-
-/* ============================================================ */
-/* Custom Scrollbar (Thin & Simple)                             */
-/* ============================================================ */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-::-webkit-scrollbar-button {
-  display: none;
-}
-
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 transparent;
 }
