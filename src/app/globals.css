@@ -199,3 +199,33 @@ input[type="date"]:valid::-webkit-datetime-edit-year-field {
 .animate-accordion-down {
   animation: accordion-down 0.2s ease-out forwards;
 }
+
+/* ============================================================ */
+/* Custom Scrollbar (Thin & Simple)                             */
+/* ============================================================ */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
