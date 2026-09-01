@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from 'react'
 import { formatRupiah, formatDate } from '@/lib/utils'
 import { AlertTriangle, Clock, WalletCards, ArrowDownRight, Search, ChevronRight } from 'lucide-react'
+import { Select } from '@/components/ui/Select'
 
 export interface DebtData {
   id: string
@@ -232,31 +233,34 @@ export function HutangSupplierClient({ data }: HutangSupplierClientProps) {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <select
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+          <Select
+            className="w-full sm:w-56"
             value={filterMonth}
             onChange={(e) => setFilterMonth(e.target.value)}
-          >
-            <option value="">Semua Bulan Tagihan</option>
-            {months.map(m => {
-              const [y, mo] = m.split('-')
-              const date = new Date(parseInt(y), parseInt(mo) - 1, 1)
-              return (
-                <option key={m} value={m}>
-                  {date.toLocaleString('id-ID', { month: 'long', year: 'numeric' })}
-                </option>
-              )
-            })}
-          </select>
-          <select
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+            placeholder="Semua Bulan Tagihan"
+            options={[
+              { value: '', label: 'Semua Bulan Tagihan' },
+              ...months.map(m => {
+                const [y, mo] = m.split('-')
+                const date = new Date(parseInt(y), parseInt(mo) - 1, 1)
+                return {
+                  value: m,
+                  label: date.toLocaleString('id-ID', { month: 'long', year: 'numeric' })
+                }
+              })
+            ]}
+          />
+          <Select
+            className="w-full sm:w-56"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value as any)}
-          >
-            <option value="ALL">Semua Status JT</option>
-            <option value="MENDEKATI">Mendekati Jatuh Tempo (H-7)</option>
-            <option value="LEWAT">Lewat Jatuh Tempo</option>
-          </select>
+            placeholder="Semua Status JT"
+            options={[
+              { value: 'ALL', label: 'Semua Status JT' },
+              { value: 'MENDEKATI', label: 'Mendekati Jatuh Tempo (H-7)' },
+              { value: 'LEWAT', label: 'Lewat Jatuh Tempo' }
+            ]}
+          />
         </div>
 
         {/* Table */}
