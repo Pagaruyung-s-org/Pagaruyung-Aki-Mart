@@ -227,13 +227,13 @@ export function HutangSupplierClient({ data }: HutangSupplierClientProps) {
             <input
               type="text"
               placeholder="Cari supplier atau faktur..."
-              className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 outline-none"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           <select
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+            className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
             value={filterMonth}
             onChange={(e) => setFilterMonth(e.target.value)}
           >
@@ -249,7 +249,7 @@ export function HutangSupplierClient({ data }: HutangSupplierClientProps) {
             })}
           </select>
           <select
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+            className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-gray-700 focus:ring-2 focus:ring-blue-500 outline-none bg-white"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value as any)}
           >
