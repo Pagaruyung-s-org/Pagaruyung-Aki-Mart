@@ -24,6 +24,7 @@ export function FormOperasional({
   categories: Category[]; 
   employees: Employee[];
   accounts?: Account[];
+  role?: string;
   onSuccess?: () => void;
   onCancel?: () => void 
 }) {
@@ -36,7 +37,9 @@ export function FormOperasional({
   const [employeeId, setEmployeeId] = useState('')
   const [keterangan, setKeterangan] = useState('')
   const [nominal, setNominal] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'TRANSFER' | 'QRIS' | 'BRANKAS'>('CASH')
+  const isAdmin = role === 'ADMIN'
+  const defaultPaymentMethod = isAdmin ? 'CASH' : 'CASH'
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'TRANSFER' | 'QRIS' | 'BRANKAS'>(defaultPaymentMethod)
   const [accountId, setAccountId] = useState(defaultKas)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -91,12 +94,16 @@ export function FormOperasional({
               value={employeeId}
               onChange={(e) => setEmployeeId(e.target.value)}
               placeholder="-- Pilih Karyawan --"
-              options={employees.map(e => ({ value: e.id, label: e.nama_karyawan }))}
+              options={[
+                { value: '', label: '-- Kosongkan --' },
+                ...employees.map(e => ({ value: e.id, label: e.nama_karyawan }))
+              ]}
             />
             <Select
               label="Metode Bayar"
               id="payment_method_ops"
               value={paymentMethod}
+              disabled={isAdmin}
               onChange={(e) => {
                 const val = e.target.value as 'CASH' | 'TRANSFER' | 'QRIS' | 'BRANKAS';
                 setPaymentMethod(val);
@@ -119,6 +126,7 @@ export function FormOperasional({
               label="Sumber Dana (Akun)"
               id="account_id"
               value={accountId}
+              disabled={isAdmin}
               onChange={(e) => setAccountId(e.target.value)}
               options={[
                 { value: '', label: '-- Pilih Akun --' },

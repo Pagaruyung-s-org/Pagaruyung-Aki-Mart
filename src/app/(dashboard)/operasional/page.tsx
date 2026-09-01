@@ -25,9 +25,7 @@ export default async function OperasionalPage() {
     <div>
       <Header title="Biaya Operasional" subtitle="Kelola pengeluaran operasional usaha" />
       <div className="p-6 space-y-6">
-        {role !== 'ADMIN' && (
-          <OperasionalClient categories={categories ?? []} employees={employees ?? []} accounts={accounts || []} />
-        )}
+        <OperasionalClient categories={categories ?? []} employees={employees ?? []} accounts={accounts || []} role={role || ''} />
 
         <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
           {!expenses || expenses.length === 0 ? (

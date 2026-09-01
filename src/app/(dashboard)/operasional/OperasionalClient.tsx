@@ -10,9 +10,10 @@ interface OperasionalClientProps {
   categories: any[]
   employees: any[]
   accounts?: any[]
+  role: string
 }
 
-export function OperasionalClient({ categories, employees, accounts = [] }: OperasionalClientProps) {
+export function OperasionalClient({ categories, employees, accounts = [], role }: OperasionalClientProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   return (
@@ -35,6 +36,7 @@ export function OperasionalClient({ categories, employees, accounts = [] }: Oper
           categories={categories} 
           employees={employees} 
           accounts={accounts}
+          role={role}
           onSuccess={() => {
             setIsModalOpen(false)
             // Trigger refresh is already handled in router.refresh() inside action or can be handled by page.tsx auto-revalidation.

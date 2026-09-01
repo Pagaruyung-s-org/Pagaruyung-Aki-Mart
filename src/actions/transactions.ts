@@ -517,11 +517,18 @@ export async function createExpense(input: CreateExpenseInput): Promise<ActionRe
   if (!user) return { success: false, error: 'Tidak terautentikasi' }
 
   const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', user.id).single()
-  if (roleData?.role === 'ADMIN') {
-    return { success: false, error: 'Admin tidak memiliki akses untuk mencatat biaya operasional' }
-  }
-
+  
   const data = parsed.data
+
+  if (roleData?.role === 'ADMIN') {
+    if (data.payment_method !== 'CASH') {
+      return { success: false, error: 'Admin hanya dapat mencatat pengeluaran menggunakan metode Tunai' }
+    }
+    const { data: kasToko } = await supabase.from('accounts').select('id').eq('type', 'KAS').limit(1).single()
+    if (data.account_id !== kasToko?.id) {
+      return { success: false, error: 'Admin hanya dapat mencatat pengeluaran yang bersumber dari Kas Toko' }
+    }
+  }
 
   const { data: kodeData } = await supabase.rpc('generate_kode_pengeluaran')
   const kode_pengeluaran = kodeData as string
