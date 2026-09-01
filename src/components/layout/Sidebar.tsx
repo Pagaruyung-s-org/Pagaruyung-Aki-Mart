@@ -235,7 +235,7 @@ export function Sidebar({ role }: { role: 'SUPER_ADMIN' | 'ADMIN' | 'OWNER' | nu
   const filteredNavItems = navItems.map(item => {
     if (item.label === 'Transaksi') {
       const filteredChildren = item.children?.filter(child => {
-        if (role === 'ADMIN' && (child.label === 'Operasional' || child.label === 'Bayar Hutang')) return false
+        if (role === 'ADMIN' && (child.label === 'Bayar Hutang')) return false
         return true
       })
       return { ...item, children: filteredChildren }
@@ -257,7 +257,7 @@ export function Sidebar({ role }: { role: 'SUPER_ADMIN' | 'ADMIN' | 'OWNER' | nu
     }
     if (item.label === 'Keuangan') {
       const filteredChildren = item.children?.filter(child => {
-        if (role === 'ADMIN' && (child.label === 'Hutang Supplier' || child.label === 'Kas/Bank')) return false
+        if (role === 'ADMIN' && (child.label === 'Hutang Supplier' || child.label === 'Kas/Bank' || child.label === 'Daftar Akun')) return false
         return true
       })
       return { ...item, children: filteredChildren }

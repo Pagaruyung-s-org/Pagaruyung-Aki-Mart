@@ -18,6 +18,7 @@ export function FormOperasional({
   categories, 
   employees,
   accounts = [],
+  role,
   onSuccess,
   onCancel 
 }: { 
