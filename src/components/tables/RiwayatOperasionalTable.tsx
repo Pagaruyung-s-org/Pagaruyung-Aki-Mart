@@ -1,5 +1,7 @@
 'use client'
 
+import { PaymentBadge } from '@/components/ui/Badge'
+
 import React from 'react'
 import { formatRupiah, formatDateTime } from '@/lib/utils'
 import { Pagination } from '@/components/ui/Pagination'
@@ -8,6 +10,7 @@ import { Modal } from '@/components/ui/Modal'
 import { useState } from 'react'
 import { voidExpense } from '@/actions/void-transactions'
 import { useToast } from '@/components/ui/Toast'
+import { FileText, Eye, Download } from 'lucide-react'
 
 export function RiwayatOperasionalTable({ expenses }: { expenses: any[] }) {
   const {
@@ -86,7 +89,9 @@ export function RiwayatOperasionalTable({ expenses }: { expenses: any[] }) {
                 <td className="px-4 py-3 text-gray-900">{e.expense_categories?.nama_kategori}</td>
                 <td className="px-4 py-3 text-gray-600">{e.keterangan ?? '—'}</td>
                 <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatRupiah(e.nominal)}</td>
-                <td className="px-4 py-3 text-center text-xs text-gray-600">{e.payment_method}</td>
+                <td className="px-4 py-3 text-center text-xs text-gray-600 font-medium">
+                  <PaymentBadge method={e.payment_method} keterangan={e.keterangan} />
+                </td>
               </tr>
             ))}
           </tbody>
@@ -122,7 +127,9 @@ export function RiwayatOperasionalTable({ expenses }: { expenses: any[] }) {
               </div>
               <div>
                 <p className="text-xs text-gray-500 mb-1">Metode Bayar</p>
-                <p className="text-sm font-medium text-gray-900">{selectedExpense.payment_method}</p>
+                <p className="text-sm font-medium text-gray-900">
+                  <PaymentBadge method={selectedExpense.payment_method} keterangan={selectedExpense.keterangan} />
+                </p>
               </div>
             </div>
 

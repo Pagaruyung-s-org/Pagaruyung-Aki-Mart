@@ -1,19 +1,12 @@
 'use client'
 
+import { PaymentBadge } from '@/components/ui/Badge'
+
 import React from 'react'
 import { formatRupiah, formatDate } from '@/lib/utils'
 import { Pagination } from '@/components/ui/Pagination'
 import { usePagination } from '@/hooks/usePagination'
 
-function getPaymentDisplay(method: string, keterangan?: string | null) {
-  if (method === 'TRANSFER' && keterangan) {
-    const match = keterangan.match(/Bank:\s*(BRI|MANDIRI)/i);
-    if (match) {
-      return `TRANSFER ${match[1].toUpperCase()}`;
-    }
-  }
-  return method;
-}
 
 export function PenjualanReportTable({ data }: { data: any[] }) {
   const {
@@ -67,7 +60,7 @@ export function PenjualanReportTable({ data }: { data: any[] }) {
                         row.payment_method === 'TRANSFER' ? 'bg-blue-50 text-blue-700 border-blue-200' :
                           'bg-purple-50 text-purple-700 border-purple-200'
                       }`}>
-                      {getPaymentDisplay(row.payment_method, row.keterangan)}
+                      <PaymentBadge method={row.payment_method} keterangan={row.keterangan} />
                     </span>
                   </td>
                   <td className="px-6 py-4 text-center font-medium">

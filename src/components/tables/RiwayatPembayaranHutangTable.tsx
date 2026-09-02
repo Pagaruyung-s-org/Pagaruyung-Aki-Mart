@@ -1,5 +1,7 @@
 'use client'
 
+import { PaymentBadge } from '@/components/ui/Badge'
+
 import React, { useState } from 'react'
 import { formatRupiah, formatDateTime } from '@/lib/utils'
 import { Pagination } from '@/components/ui/Pagination'
@@ -7,6 +9,7 @@ import { usePagination } from '@/hooks/usePagination'
 import { Modal } from '@/components/ui/Modal'
 import { useToast } from '@/components/ui/Toast'
 import { voidSupplierPayment } from '@/actions/void-transactions'
+
 
 export function RiwayatPembayaranHutangTable({ payments, role }: { payments: any[], role: string | null }) {
   const {
@@ -88,7 +91,11 @@ export function RiwayatPembayaranHutangTable({ payments, role }: { payments: any
                   <td className="px-4 py-3 text-gray-600">{formatDateTime(p.tanggal)}</td>
                   <td className="px-4 py-3 text-gray-600">{p.suppliers?.nama_supplier ?? '-'}</td>
                   <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatRupiah(p.nominal)}</td>
-                  <td className="px-4 py-3 text-center text-xs text-gray-600">{p.payment_method || p.metode_pembayaran || '-'}</td>
+                  <td className="px-4 py-3 text-center text-xs text-gray-600">
+                    {(p.payment_method || p.metode_pembayaran) ? (
+                      <PaymentBadge method={p.payment_method || p.metode_pembayaran} keterangan={p.keterangan} />
+                    ) : '-'}
+                  </td>
                 </tr>
               ))
             )}
@@ -147,7 +154,11 @@ export function RiwayatPembayaranHutangTable({ payments, role }: { payments: any
               </div>
               <div>
                 <p className="text-xs text-gray-500 mb-1">Metode Pembayaran</p>
-                <p className="text-sm font-medium text-gray-900">{selectedPayment.payment_method || selectedPayment.metode_pembayaran || '-'}</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {(selectedPayment.payment_method || selectedPayment.metode_pembayaran) ? (
+                    <PaymentBadge method={selectedPayment.payment_method || selectedPayment.metode_pembayaran} keterangan={selectedPayment.keterangan} />
+                  ) : '-'}
+                </p>
               </div>
               <div className="col-span-2">
                 <p className="text-xs text-gray-500 mb-1">Keterangan</p>

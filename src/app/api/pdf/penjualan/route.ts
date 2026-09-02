@@ -14,10 +14,10 @@ function fmtDateTime(d: string) {
   return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).format(new Date(d))
 }
 function getPaymentDisplay(method: string, keterangan?: string | null) {
-  if (method === 'TRANSFER' && keterangan) {
-    const match = keterangan.match(/Bank:\s*(BRI|MANDIRI)/i);
+  if (keterangan) {
+    const match = keterangan.match(/(?:Bank|Akun):\s*([^|]+)/i);
     if (match) {
-      return `TRANSFER ${match[1].toUpperCase()}`;
+      return `${method} - ${match[1].trim().toUpperCase()}`;
     }
   }
   return method;

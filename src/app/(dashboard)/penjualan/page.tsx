@@ -31,7 +31,7 @@ export default async function PenjualanPage() {
       .limit(200),
     supabase.from('products').select('id, merk, kategori, type, kode_baterai, kapasitas_ah, kode_produk, harga_jual, qty_stok, status').order('merk').order('id', { ascending: true }),
     supabase.from('inventory_batches').select('product_id, harga_modal_unit').gt('qty_tersedia', 0).order('tanggal_masuk', { ascending: true }),
-    supabase.from('accounts').select('id, name, type, is_active').eq('is_active', true).order('sort_order', { ascending: true })
+    supabase.from('accounts').select('id, name, type, is_active').order('sort_order', { ascending: true })
   ])
 
   const modalMap: Record<string, number> = {}
@@ -58,7 +58,7 @@ export default async function PenjualanPage() {
             <PenjualanModalButton
               type="aki"
               products={productsWithModal}
-              accounts={accounts || []}
+              accounts={accounts?.filter(a => a.is_active) || []}
               label="Buat Penjualan"
               role={role}
             />
@@ -75,6 +75,7 @@ export default async function PenjualanPage() {
                   <PenjualanModalButton
                     type="aki"
                     products={productsWithModal}
+                    accounts={accounts?.filter(a => a.is_active) || []}
                     label="Buat Penjualan Pertama"
                     role={role}
                   />
@@ -82,7 +83,7 @@ export default async function PenjualanPage() {
               )}
             </div>
           ) : (
-            <RiwayatPenjualanTable sales={sales} role={role} />
+            <RiwayatPenjualanTable sales={sales} role={role ?? null} />
           )}
         </div>
       </div>

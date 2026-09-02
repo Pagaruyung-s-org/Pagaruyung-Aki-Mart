@@ -1,5 +1,6 @@
 'use client'
 
+import { PaymentBadge } from '@/components/ui/Badge'
 import React from 'react'
 import { formatRupiah, formatDateTime, getBestDateForDisplay } from '@/lib/utils'
 import { Pagination } from '@/components/ui/Pagination'
@@ -11,16 +12,6 @@ import { voidSale } from '@/actions/void-transactions'
 import { fulfillIndentSale } from '@/actions/transactions'
 import { useToast } from '@/components/ui/Toast'
 import { FakturModal } from '@/components/print/FakturModal'
-
-function getPaymentDisplay(method: string, keterangan?: string | null) {
-  if (method === 'TRANSFER' && keterangan) {
-    const match = keterangan.match(/Bank:\s*(BRI|MANDIRI)/i);
-    if (match) {
-      return `TRANSFER ${match[1].toUpperCase()}`;
-    }
-  }
-  return method;
-}
 
 export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: string | null }) {
   const {
@@ -134,7 +125,9 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
                   {role !== 'ADMIN' && (
                     <td className="px-4 py-3 text-right font-semibold text-green-600">{formatRupiah(labaKotor)}</td>
                   )}
-                  <td className="px-4 py-3 text-center text-xs text-gray-600 font-medium">{getPaymentDisplay(s.payment_method, s.keterangan)}</td>
+                  <td className="px-4 py-3 text-center text-xs text-gray-600 font-medium">
+                    <PaymentBadge method={s.payment_method} keterangan={s.keterangan} />
+                  </td>
                 </tr>
               )
             })}
@@ -173,7 +166,9 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
               </div>
               <div>
                 <p className="text-xs text-gray-500 mb-1">Metode Bayar</p>
-                <p className="text-sm font-medium text-gray-900">{getPaymentDisplay(selectedSale.payment_method, selectedSale.keterangan)}</p>
+                <p className="text-sm font-medium text-gray-900">
+                  <PaymentBadge method={selectedSale.payment_method} keterangan={selectedSale.keterangan} />
+                </p>
               </div>
             </div>
 

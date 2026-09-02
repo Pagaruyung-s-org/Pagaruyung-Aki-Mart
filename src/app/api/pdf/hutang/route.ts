@@ -13,6 +13,18 @@ function formatRp(n: number) {
 function fmtDate(d: string) {
   return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Jakarta' }).format(new Date(d))
 }
+function fmtDateTime(d: string) {
+  return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).format(new Date(d))
+}
+function getPaymentDisplay(method: string, keterangan?: string | null) {
+  if (keterangan) {
+    const match = keterangan.match(/(?:Bank|Akun):\s*([^|]+)/i);
+    if (match) {
+      return `${method} - ${match[1].trim().toUpperCase()}`;
+    }
+  }
+  return method;
+}
 
 const baseStyle = `
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -90,6 +102,7 @@ export async function GET(req: NextRequest) {
     .lte('tanggal', endDate)
     .order('tanggal', { ascending: true })
 
+
   // Sisa hutang aktif (all time)
   const { data: activeDebts } = await supabase
     .from('purchase_transactions')
@@ -108,8 +121,13 @@ export async function GET(req: NextRequest) {
   const rows = (payments || []).map((p, i) => {
     totalPembayaran += p.nominal
     const supp = p.suppliers as any
-    const pt = p.purchase_transactions as any
-    return { ...p, no: i + 1, supplier_name: supp?.nama_supplier || '—', kode_pembelian: pt?.kode_pembelian || '—' }
+    const purchase = p.purchase_transactions as any
+    return {
+      ...p,
+      no: i + 1,
+      supplier_name: supp?.nama_supplier || '—',
+      kode_pembelian: purchase?.kode_pembelian || '—'
+    }
   })
 
   const printDate = new Intl.DateTimeFormat('id-ID', { dateStyle: 'full', timeStyle: 'short', timeZone: 'Asia/Jakarta' }).format(now)
@@ -122,7 +140,7 @@ export async function GET(req: NextRequest) {
     <td>${r.supplier_name}</td>
     <td class="mono">${r.kode_pembelian}</td>
     <td class="right bold green">${formatRp(r.nominal)}</td>
-    <td class="center">${r.payment_method}</td>
+    <td class="center">${getPaymentDisplay(r.payment_method, r.keterangan)}</td>
     <td>${r.keterangan || '—'}</td>
   </tr>`).join('')
 

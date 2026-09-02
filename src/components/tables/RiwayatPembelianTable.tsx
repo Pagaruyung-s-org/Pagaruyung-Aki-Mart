@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { formatRupiah, formatDateTime, formatDate } from '@/lib/utils'
-import { StatusBadge } from '@/components/ui/Badge'
+import { StatusBadge, PaymentBadge } from '@/components/ui/Badge'
 import { Pagination } from '@/components/ui/Pagination'
 import { usePagination } from '@/hooks/usePagination'
 import { Modal } from '@/components/ui/Modal'
@@ -102,7 +102,12 @@ export function RiwayatPembelianTable({ purchases }: { purchases: any[] }) {
                 <td className="px-4 py-3 text-right text-gray-700">{formatRupiah(p.nominal)}</td>
                 <td className="px-4 py-3 text-right font-semibold text-gray-900">{formatRupiah(p.total)}</td>
                 <td className="px-4 py-3 text-center">
-                  <StatusBadge status={p.status_pembayaran} />
+                  <div className="flex flex-col items-center gap-1">
+                    <StatusBadge status={p.status_pembayaran} />
+                    {p.status_pembayaran === 'LUNAS' && p.keterangan?.includes('Akun:') && (
+                      <PaymentBadge method="LUNAS" keterangan={p.keterangan} />
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -141,7 +146,12 @@ export function RiwayatPembelianTable({ purchases }: { purchases: any[] }) {
               </div>
               <div>
                 <p className="text-xs text-gray-500 mb-1">Status Pembayaran</p>
-                <StatusBadge status={selectedPurchase.status_pembayaran} />
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={selectedPurchase.status_pembayaran} />
+                  {selectedPurchase.status_pembayaran === 'LUNAS' && selectedPurchase.keterangan?.includes('Akun:') && (
+                    <PaymentBadge method="LUNAS" keterangan={selectedPurchase.keterangan} />
+                  )}
+                </div>
               </div>
               <div>
                 <p className="text-xs text-gray-500 mb-1">Status Transaksi</p>

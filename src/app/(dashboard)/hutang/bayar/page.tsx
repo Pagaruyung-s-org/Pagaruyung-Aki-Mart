@@ -69,7 +69,9 @@ export default async function BayarHutangPage() {
       <div className="flex-1 p-6">
         <HutangTable data={finalData} role={role ?? null} accounts={accounts || []} />
 
-        <RiwayatPembayaranHutangTable payments={paymentsHistory || []} role={role ?? null} />
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden mt-6">
+          <RiwayatPembayaranHutangTable payments={paymentsHistory || []} role={role ?? null} />
+        </div>
       </div>
     </div>
   )

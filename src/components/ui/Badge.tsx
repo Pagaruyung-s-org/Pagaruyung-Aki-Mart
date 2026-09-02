@@ -51,3 +51,31 @@ export function StatusBadge({ status }: StatusBadgeProps) {
 
   return <Badge variant={conf.variant}>{conf.label}</Badge>
 }
+
+// Payment badge
+interface PaymentBadgeProps {
+  method: string
+  keterangan?: string | null
+}
+
+export function PaymentBadge({ method, keterangan }: PaymentBadgeProps) {
+  let display = method
+  if (keterangan) {
+    const match = keterangan.match(/(?:Bank|Akun):\s*([^|]+)/i)
+    if (match) {
+      display = `${method} - ${match[1].trim().toUpperCase()}`
+    }
+  }
+
+  let variant: BadgeProps['variant'] = 'default'
+  const textLower = display.toLowerCase()
+  if (textLower.includes('mandiri') || textLower.includes('bca') || textLower.includes('bri')) {
+    variant = 'info'
+  } else if (textLower.includes('bni') || textLower.includes('qris')) {
+    variant = 'warning'
+  } else if (textLower.includes('cash') || textLower.includes('kas')) {
+    variant = 'success'
+  }
+
+  return <Badge variant={variant}>{display}</Badge>
+}

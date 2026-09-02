@@ -1,5 +1,7 @@
 'use client'
 
+import { PaymentBadge } from '@/components/ui/Badge'
+
 import React from 'react'
 import { formatRupiah, formatDateTime } from '@/lib/utils'
 import { Pagination } from '@/components/ui/Pagination'

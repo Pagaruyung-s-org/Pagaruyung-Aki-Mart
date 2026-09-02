@@ -133,6 +133,15 @@ export async function createPurchase(input: CreatePurchaseInput): Promise<Action
   const { data: kodeData } = await supabase.rpc('generate_kode_pembelian')
   const kode_pembelian = kodeData as string
 
+  // Cari nama akun (hanya jika LUNAS dan ada account_id)
+  let accountName = ''
+  if (data.status_pembayaran === 'LUNAS' && data.account_id) {
+    const { data: acc } = await supabase.from('accounts').select('name').eq('id', data.account_id).single()
+    if (acc) accountName = acc.name
+  }
+  const tag = accountName ? `Akun: ${accountName}` : ''
+  const finalKeterangan = [data.keterangan, tag].filter(Boolean).join(' | ')
+
   // Insert purchase_transaction
   const { data: purchase, error: purchaseError } = await supabase
     .from('purchase_transactions')
@@ -145,7 +154,7 @@ export async function createPurchase(input: CreatePurchaseInput): Promise<Action
       total,
       status_pembayaran: data.status_pembayaran,
       status_transaksi: 'POSTED',
-      keterangan: data.keterangan,
+      keterangan: finalKeterangan,
       nama_sales: data.nama_sales || null,
       nomor_faktur: data.nomor_faktur || null,
       tanggal_faktur: data.tanggal_faktur || null,
@@ -389,6 +398,15 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
   const { data: kodeData } = await supabase.rpc('generate_kode_penjualan')
   const kode_penjualan = kodeData as string
 
+  // Cari nama akun
+  let accountName = ''
+  if (data.account_id) {
+    const { data: acc } = await supabase.from('accounts').select('name').eq('id', data.account_id).single()
+    if (acc) accountName = acc.name
+  }
+  const tag = accountName ? `Akun: ${accountName}` : ''
+  const finalKeterangan = [data.keterangan, tag].filter(Boolean).join(' | ')
+
   // Insert sale header
   const { data: sale, error: saleError } = await supabase
     .from('sales')
@@ -402,7 +420,7 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
       dp_amount: dpAmount,
       payment_method: data.payment_method,
       status_transaksi: data.is_indent ? 'INDENT' : 'PAID',
-      keterangan: data.keterangan,
+      keterangan: finalKeterangan,
       created_by: user.id,
       include_air_aki: false, // legacy compat
       jumlah_air_aki: 0,
@@ -523,7 +541,7 @@ export async function createExpense(input: CreateExpenseInput): Promise<ActionRe
   if (!user) return { success: false, error: 'Tidak terautentikasi' }
 
   const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', user.id).single()
-  
+
   const data = parsed.data
 
   if (roleData?.role === 'ADMIN') {
@@ -536,24 +554,29 @@ export async function createExpense(input: CreateExpenseInput): Promise<ActionRe
     }
   }
 
-  const { data: kodeData } = await supabase.rpc('generate_kode_pengeluaran')
-  const kode_pengeluaran = kodeData as string
+  const { data: kodeData } = await supabase.rpc('generate_kode_expense')
+  const kode_expense = kodeData as string
 
-  // Use current time if the input date is today's date, otherwise use input date
-  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })
-  const finalTanggal = data.tanggal === todayStr ? new Date().toISOString() : data.tanggal
+  // Cari nama akun
+  let accountName = ''
+  if (data.account_id) {
+    const { data: acc } = await supabase.from('accounts').select('name').eq('id', data.account_id).single()
+    if (acc) accountName = acc.name
+  }
+  const tag = accountName ? `Akun: ${accountName}` : ''
+  const finalKeterangan = [data.keterangan, tag].filter(Boolean).join(' | ')
 
   const { data: expense, error } = await supabase
     .from('expenses')
     .insert({
-      kode_pengeluaran,
-      tanggal: finalTanggal,
+      kode_expense,
+      tanggal: data.tanggal,
       category_id: data.category_id,
-      employee_id: data.employee_id ?? null,
-      keterangan: data.keterangan,
+      employee_id: data.employee_id,
+      keterangan: finalKeterangan,
       nominal: data.nominal,
       payment_method: data.payment_method,
-      status_transaksi: 'POSTED',
+      status_expense: 'POSTED',
       created_by: user.id,
     })
     .select()
@@ -573,7 +596,7 @@ export async function createExpense(input: CreateExpenseInput): Promise<ActionRe
     reference_id: expense.id,
     debit: 0,
     credit: data.nominal,
-    description: `Biaya operasional ${kode_pengeluaran}`,
+    description: `Biaya operasional ${kode_expense}`,
   })
 
   revalidatePath('/operasional')
@@ -581,8 +604,8 @@ export async function createExpense(input: CreateExpenseInput): Promise<ActionRe
 
   return {
     success: true,
-    data: { id: expense.id, kode: kode_pengeluaran },
-    message: `Biaya operasional ${kode_pengeluaran} berhasil dicatat`,
+    data: { id: expense.id, kode: kode_expense },
+    message: `Biaya operasional ${kode_expense} berhasil dicatat`,
   }
 }
 
@@ -606,19 +629,29 @@ export async function createSupplierPayment(input: CreateSupplierPaymentInput): 
 
   const data = parsed.data
 
-  const { data: kodeData } = await supabase.rpc('generate_kode_pembayaran')
-  const kode_pembayaran = kodeData as string
+  const { data: kodeData } = await supabase.rpc('generate_kode_supplier_payment')
+  const kode_payment = kodeData as string
+
+  // Cari nama akun
+  let accountName = ''
+  if (data.account_id) {
+    const { data: acc } = await supabase.from('accounts').select('name').eq('id', data.account_id).single()
+    if (acc) accountName = acc.name
+  }
+  const tag = accountName ? `Akun: ${accountName}` : ''
+  const finalKeterangan = [data.keterangan, tag].filter(Boolean).join(' | ')
 
   const { data: payment, error } = await supabase
     .from('supplier_payments')
     .insert({
-      kode_pembayaran,
+      kode_payment,
       supplier_id: data.supplier_id,
-      purchase_id: data.purchase_id ?? null,
+      purchase_id: data.purchase_id,
       tanggal: data.tanggal,
       nominal: data.nominal,
       payment_method: data.payment_method,
-      keterangan: data.keterangan,
+      keterangan: finalKeterangan,
+      status_payment: 'POSTED',
       created_by: user.id,
     })
     .select()
@@ -638,7 +671,7 @@ export async function createSupplierPayment(input: CreateSupplierPaymentInput): 
     reference_id: payment.id,
     debit: 0,
     credit: data.nominal,
-    description: `Pembayaran hutang ${kode_pembayaran}`,
+    description: `Pembayaran hutang ${kode_payment}`,
   })
 
   // Update status pembayaran purchase jika terkait
@@ -673,8 +706,8 @@ export async function createSupplierPayment(input: CreateSupplierPaymentInput): 
 
   return {
     success: true,
-    data: { id: payment.id, kode: kode_pembayaran },
-    message: `Pembayaran hutang ${kode_pembayaran} berhasil dicatat`,
+    data: { id: payment.id, kode: kode_payment },
+    message: `Pembayaran hutang ${kode_payment} berhasil dicatat`,
   }
 }
 // ============================================================
@@ -928,8 +961,8 @@ export async function createBulkSupplierPayment(input: any): Promise<ActionResul
       account_id: data.account_id,
       account_type: await getAccountType(supabase, data.account_id),
       transaction_type: 'CREDIT',
-      reference_type: 'PAYMENT', 
-      reference_id: payment.id, 
+      reference_type: 'PAYMENT',
+      reference_id: payment.id,
       debit: 0,
       credit: p.nominal,
       description: data.keterangan ? `Pembayaran tagihan supplier massal - ${data.keterangan}` : `Pembayaran hutang ${payment.kode_pembayaran}`,

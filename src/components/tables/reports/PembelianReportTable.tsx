@@ -4,6 +4,7 @@ import React from 'react'
 import { formatRupiah, formatDate } from '@/lib/utils'
 import { Pagination } from '@/components/ui/Pagination'
 import { usePagination } from '@/hooks/usePagination'
+import { PaymentBadge } from '@/components/ui/Badge'
 
 export function PembelianReportTable({ data }: { data: any[] }) {
   const {
@@ -53,13 +54,18 @@ export function PembelianReportTable({ data }: { data: any[] }) {
                     {row.supplier_name}
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${
-                      row.status_pembayaran === 'LUNAS' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                      row.status_pembayaran === 'PARSIAL' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                      'bg-red-50 text-red-700 border-red-200'
-                    }`}>
-                      {row.status_pembayaran}
-                    </span>
+                    <div className="flex flex-col items-center gap-1">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${
+                        row.status_pembayaran === 'LUNAS' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                        row.status_pembayaran === 'PARSIAL' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                        'bg-red-50 text-red-700 border-red-200'
+                      }`}>
+                        {row.status_pembayaran}
+                      </span>
+                      {row.status_pembayaran === 'LUNAS' && row.keterangan?.includes('Akun:') && (
+                        <PaymentBadge method="LUNAS" keterangan={row.keterangan} />
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-center font-medium">
                     {row.total_qty}

@@ -13,6 +13,15 @@ function formatRp(n: number) {
 function fmtDate(d: string) {
   return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Jakarta' }).format(new Date(d))
 }
+function getPaymentDisplay(method: string, keterangan?: string | null) {
+  if (keterangan) {
+    const match = keterangan.match(/(?:Bank|Akun):\s*([^|]+)/i);
+    if (match) {
+      return `${method} - ${match[1].trim().toUpperCase()}`;
+    }
+  }
+  return method;
+}
 
 const baseStyle = `
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -108,7 +117,7 @@ export async function GET(req: NextRequest) {
     <td>${r.karyawan_name}</td>
     <td>${r.keterangan || '—'}</td>
     <td class="right bold red">${formatRp(r.nominal)}</td>
-    <td class="center">${r.payment_method}</td>
+    <td class="center">${getPaymentDisplay(r.payment_method, r.keterangan)}</td>
   </tr>`).join('')
 
   const kategoriRows = Object.entries(byKategori)
