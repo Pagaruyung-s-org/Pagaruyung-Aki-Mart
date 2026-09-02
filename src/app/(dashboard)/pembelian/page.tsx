@@ -43,12 +43,12 @@ export default async function PembelianPage() {
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-500">{purchases?.length ?? 0} transaksi</p>
             {role !== 'OWNER' && (
-              <PembelianModalButton 
-                type="aki" 
-                suppliers={suppliers ?? []} 
-                products={products ?? []} 
+              <PembelianModalButton
+                type="aki"
+                suppliers={suppliers ?? []}
+                products={products ?? []}
                 accounts={accounts || []}
-                label="Buat Pembelian" 
+                label="Buat Pembelian"
                 role={role ?? undefined}
               />
             )}
@@ -61,12 +61,12 @@ export default async function PembelianPage() {
                 <p className="text-sm">Belum ada transaksi pembelian</p>
                 {role !== 'OWNER' && (
                   <div className="mt-3">
-                    <PembelianModalButton 
-                      type="aki" 
-                      suppliers={suppliers ?? []} 
-                      products={products ?? []} 
+                    <PembelianModalButton
+                      type="aki"
+                      suppliers={suppliers ?? []}
+                      products={products ?? []}
                       accounts={accounts || []}
-                      label="Buat Pembelian Pertama" 
+                      label="Buat Pembelian Pertama"
                       role={role ?? undefined}
                     />
                   </div>

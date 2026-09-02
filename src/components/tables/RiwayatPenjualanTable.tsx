@@ -111,8 +111,8 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
               const qtyItems = (s.sale_items?.reduce((sum: number, i: any) => sum + (i.qty || 0), 0) ?? 0) + (s.include_air_aki ? s.jumlah_air_aki : 0)
 
               return (
-                <tr 
-                  key={s.id} 
+                <tr
+                  key={s.id}
                   className={`border-b hover:bg-gray-50 cursor-pointer ${(s.status_transaksi === 'VOID' || s.status_transaksi === 'VOID INDENT') ? 'bg-red-50/30 opacity-70' : s.status_transaksi === 'REVERSAL' ? 'bg-yellow-50/30' : 'border-gray-50'}`}
                   onClick={() => setSelectedSale(s)}
                 >
@@ -243,7 +243,7 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
                 </>
               )}
             </div>
-            
+
             {(selectedSale.keterangan || selectedSale.kendaraan_nopol) && (
               <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-800">
                 {selectedSale.kendaraan_nopol && (
@@ -263,7 +263,7 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
 
             {!showVoidPrompt && selectedSale.status_transaksi !== 'VOID' && selectedSale.status_transaksi !== 'VOID INDENT' && selectedSale.status_transaksi !== 'REVERSAL' && (
               <div className="pt-4 border-t border-gray-100 flex justify-between">
-                <button 
+                <button
                   onClick={(e) => { e.stopPropagation(); setShowVoidPrompt(true) }}
                   className="px-4 py-3 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors cursor-pointer"
                 >
@@ -271,7 +271,7 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
                 </button>
                 <div className="flex gap-2">
                   {selectedSale.status_transaksi === 'INDENT' && (
-                    <button 
+                    <button
                       onClick={handleFulfillIndent}
                       disabled={isFulfilling}
                       className="px-4 py-3 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors cursor-pointer disabled:opacity-50"
@@ -280,8 +280,8 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
                     </button>
                   )}
                   {selectedSale.status_transaksi !== 'INDENT' && (
-                    <button 
-                      onClick={(e) => { 
+                    <button
+                      onClick={(e) => {
                         e.stopPropagation()
                         setShowFaktur(true)
                       }}
@@ -300,7 +300,7 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
               <div className="pt-4 border-t border-gray-100 space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Alasan Pembatalan (Wajib)</label>
-                  <textarea 
+                  <textarea
                     value={voidReason}
                     onChange={(e) => setVoidReason(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 text-sm text-gray-900 placeholder-gray-400 bg-white"
@@ -309,14 +309,14 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
                   />
                 </div>
                 <div className="flex justify-end gap-2">
-                  <button 
+                  <button
                     onClick={() => { setShowVoidPrompt(false); setVoidReason('') }}
                     className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer disabled:cursor-not-allowed"
                     disabled={isVoiding}
                   >
                     Tutup
                   </button>
-                  <button 
+                  <button
                     onClick={handleVoid}
                     disabled={isVoiding || !voidReason.trim()}
                     className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"

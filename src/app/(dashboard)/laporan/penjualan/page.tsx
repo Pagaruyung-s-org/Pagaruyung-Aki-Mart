@@ -14,7 +14,7 @@ interface PageProps {
 
 export default async function LaporanPenjualanPage({ searchParams }: PageProps) {
   const params = await searchParams
-  
+
   const currentDate = new Date()
   const currentMonth = (currentDate.getMonth() + 1).toString()
   const currentYear = currentDate.getFullYear().toString()
@@ -56,7 +56,7 @@ export default async function LaporanPenjualanPage({ searchParams }: PageProps) 
   const tableData = (sales || []).map(sale => {
     totalTransaksi++
     totalPenjualan += sale.total
-    
+
     // Sum qty and laba kotor for this sale
     let saleQty = 0
     let saleLabaKotor = 0
@@ -83,19 +83,19 @@ export default async function LaporanPenjualanPage({ searchParams }: PageProps) 
 
   return (
     <div className="flex flex-col h-full bg-gray-50/50">
-      <Header 
-        title="Laporan Penjualan" 
-        subtitle="Analisa performa dan riwayat penjualan" 
+      <Header
+        title="Laporan Penjualan"
+        subtitle="Analisa performa dan riwayat penjualan"
       />
-      
+
       <div className="p-6 space-y-6">
-        
+
         {/* Filter Form */}
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
           <div className="flex items-center gap-3 text-sm">
             <span className="font-medium text-gray-700">Filter Periode:</span>
             <form className="flex items-center gap-2">
-                            <Select
+              <Select
                 name="m"
                 defaultValue={filterMonth}
                 className="w-36"
@@ -114,15 +114,15 @@ export default async function LaporanPenjualanPage({ searchParams }: PageProps) 
                   { value: "12", label: "Desember" }
                 ]}
               />
-              
-                            <Select
+
+              <Select
                 name="y"
                 defaultValue={filterYear}
                 className="w-24"
                 options={yearOptions.map(y => ({ value: String(y), label: String(y) }))}
               />
 
-              <button 
+              <button
                 type="submit"
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-2"
               >
@@ -145,7 +145,7 @@ export default async function LaporanPenjualanPage({ searchParams }: PageProps) 
               <h3 className="text-2xl font-bold text-gray-900">{totalTransaksi}</h3>
             </div>
           </div>
-          
+
           {/* Card 2 */}
           <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col gap-3">
             <div className="p-3 bg-amber-50 text-amber-600 rounded-lg w-fit">
@@ -156,7 +156,7 @@ export default async function LaporanPenjualanPage({ searchParams }: PageProps) 
               <h3 className="text-2xl font-bold text-gray-900">{totalProdukTerjual}</h3>
             </div>
           </div>
-          
+
           {/* Card 3 */}
           <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col gap-3">
             <div className="p-3 bg-green-50 text-green-600 rounded-lg w-fit">

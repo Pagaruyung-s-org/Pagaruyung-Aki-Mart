@@ -14,7 +14,7 @@ interface PageProps {
 
 export default async function LaporanHutangPage({ searchParams }: PageProps) {
   const params = await searchParams
-  
+
   const currentDate = new Date()
   const currentMonth = (currentDate.getMonth() + 1).toString()
   const currentYear = currentDate.getFullYear().toString()
@@ -90,19 +90,19 @@ export default async function LaporanHutangPage({ searchParams }: PageProps) {
 
   return (
     <div className="flex flex-col h-full bg-gray-50/50">
-      <Header 
-        title="Laporan Hutang" 
-        subtitle="Riwayat pembayaran hutang ke supplier" 
+      <Header
+        title="Laporan Hutang"
+        subtitle="Riwayat pembayaran hutang ke supplier"
       />
-      
+
       <div className="p-6 space-y-6">
-        
+
         {/* Filter Form */}
         <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
           <div className="flex items-center gap-3 text-sm">
             <span className="font-medium text-gray-700">Filter Periode:</span>
             <form className="flex items-center gap-2">
-                            <Select
+              <Select
                 name="m"
                 defaultValue={filterMonth}
                 className="w-36"
@@ -121,15 +121,15 @@ export default async function LaporanHutangPage({ searchParams }: PageProps) {
                   { value: "12", label: "Desember" }
                 ]}
               />
-              
-                            <Select
+
+              <Select
                 name="y"
                 defaultValue={filterYear}
                 className="w-24"
                 options={yearOptions.map(y => ({ value: String(y), label: String(y) }))}
               />
 
-              <button 
+              <button
                 type="submit"
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-lg font-medium transition-colors flex items-center gap-2"
               >
@@ -152,7 +152,7 @@ export default async function LaporanHutangPage({ searchParams }: PageProps) {
               <h3 className="text-xl font-bold text-gray-900 truncate">{formatRupiah(totalPembayaran)}</h3>
             </div>
           </div>
-          
+
           {/* Card 2 */}
           <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col gap-3">
             <div className="p-3 bg-blue-50 text-blue-600 rounded-lg w-fit">
@@ -163,7 +163,7 @@ export default async function LaporanHutangPage({ searchParams }: PageProps) {
               <h3 className="text-xl font-bold text-gray-900 truncate">{frekuensiBayar} <span className="text-sm font-normal text-gray-500">kali</span></h3>
             </div>
           </div>
-          
+
           {/* Card 3 */}
           <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col gap-3">
             <div className="p-3 bg-red-50 text-red-600 rounded-lg w-fit">

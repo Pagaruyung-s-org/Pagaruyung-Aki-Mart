@@ -62,13 +62,13 @@ export default async function BayarHutangPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Header 
-        title="Pembayaran Hutang" 
-        subtitle="Kelola dan lunasi hutang pembelian ke supplier" 
+      <Header
+        title="Pembayaran Hutang"
+        subtitle="Kelola dan lunasi hutang pembelian ke supplier"
       />
       <div className="flex-1 p-6">
         <HutangTable data={finalData} role={role ?? null} accounts={accounts || []} />
-        
+
         <RiwayatPembayaranHutangTable payments={paymentsHistory || []} role={role ?? null} />
       </div>
     </div>

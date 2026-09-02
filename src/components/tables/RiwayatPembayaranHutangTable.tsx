@@ -73,8 +73,8 @@ export function RiwayatPembayaranHutangTable({ payments, role }: { payments: any
               </tr>
             ) : (
               currentData.map((p) => (
-                <tr 
-                  key={p.id} 
+                <tr
+                  key={p.id}
                   className={`border-b hover:bg-gray-50 cursor-pointer ${p.status_transaksi === 'VOID' ? 'bg-red-50/30 opacity-70' : p.status_transaksi === 'REVERSAL' ? 'bg-yellow-50/30' : 'border-gray-50'}`}
                   onClick={() => setSelectedPayment(p)}
                 >
@@ -165,7 +165,7 @@ export function RiwayatPembayaranHutangTable({ payments, role }: { payments: any
 
             {!showVoidPrompt && selectedPayment.status_transaksi !== 'VOID' && selectedPayment.status_transaksi !== 'REVERSAL' && (
               <div className="pt-4 border-t border-gray-100 flex justify-end">
-                <button 
+                <button
                   onClick={(e) => { e.stopPropagation(); setShowVoidPrompt(true) }}
                   className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-100 rounded-lg hover:bg-red-100 transition-colors shadow-sm cursor-pointer"
                 >
@@ -178,7 +178,7 @@ export function RiwayatPembayaranHutangTable({ payments, role }: { payments: any
               <div className="pt-4 border-t border-gray-100 space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Alasan Pembatalan (Wajib)</label>
-                  <textarea 
+                  <textarea
                     value={voidReason}
                     onChange={(e) => setVoidReason(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 text-sm text-gray-900 placeholder-gray-400 bg-white"
@@ -187,14 +187,14 @@ export function RiwayatPembayaranHutangTable({ payments, role }: { payments: any
                   />
                 </div>
                 <div className="flex justify-end gap-2">
-                  <button 
+                  <button
                     onClick={() => { setShowVoidPrompt(false); setVoidReason('') }}
                     className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors border border-transparent hover:border-gray-200 cursor-pointer disabled:cursor-not-allowed"
                     disabled={isVoiding}
                   >
                     Tutup
                   </button>
-                  <button 
+                  <button
                     onClick={handleVoid}
                     disabled={isVoiding || !voidReason.trim()}
                     className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors shadow-sm disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
