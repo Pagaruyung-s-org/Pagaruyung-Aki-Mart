@@ -30,7 +30,7 @@ export default async function LaporanArusKasPage({ searchParams }: PageProps) {
   // Fetch cash transactions
   const { data: cashFlow } = await supabase
     .from('cash_transactions')
-    .select('*')
+    .select('*, accounts(name)')
     .gte('tanggal', startDate)
     .lte('tanggal', endDate)
     .order('tanggal', { ascending: false })

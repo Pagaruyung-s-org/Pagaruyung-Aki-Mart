@@ -46,8 +46,8 @@ export function RiwayatKasTable({ recentTransactions }: { recentTransactions: an
                     <div className="font-medium text-gray-900">{formatDateTime(row.tanggal)}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${row.account_type === 'KAS' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
-                      {row.account_type}
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border uppercase ${row.account_type === 'KAS' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+                      {row.accounts?.name || row.account_type}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-center">

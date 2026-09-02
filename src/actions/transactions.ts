@@ -248,7 +248,7 @@ export async function createPurchase(input: CreatePurchaseInput): Promise<Action
     await supabase.from('cash_transactions').insert({
       tanggal: new Date().toISOString(),
       account_id: data.account_id,
-      account_type: 'KAS', // fallback
+      account_type: await getAccountType(supabase, data.account_id),
       transaction_type: 'CREDIT',
       reference_type: 'PURCHASE',
       reference_id: purchase.id,
@@ -481,7 +481,7 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
     await supabase.from('cash_transactions').insert({
       tanggal: new Date().toISOString(),
       account_id: data.account_id,
-      account_type: 'KAS', // fallback
+      account_type: await getAccountType(supabase, data.account_id),
       transaction_type: 'DEBIT',
       reference_type: 'SALE',
       reference_id: sale.id,
@@ -557,7 +557,7 @@ export async function createExpense(input: CreateExpenseInput): Promise<ActionRe
   await supabase.from('cash_transactions').insert({
     tanggal: new Date().toISOString(),
     account_id: data.account_id,
-    account_type: 'KAS', // fallback
+    account_type: await getAccountType(supabase, data.account_id),
     transaction_type: 'CREDIT',
     reference_type: 'EXPENSE',
     reference_id: expense.id,
@@ -622,7 +622,7 @@ export async function createSupplierPayment(input: CreateSupplierPaymentInput): 
   await supabase.from('cash_transactions').insert({
     tanggal: new Date().toISOString(),
     account_id: data.account_id,
-    account_type: 'KAS', // fallback
+    account_type: await getAccountType(supabase, data.account_id),
     transaction_type: 'CREDIT',
     reference_type: 'PAYMENT',
     reference_id: payment.id,
@@ -772,7 +772,7 @@ export async function fulfillIndentSale(saleId: string, pelunasanMethod: 'CASH' 
     await supabase.from('cash_transactions').insert({
       tanggal: new Date().toISOString(),
       account_id: accountId,
-      account_type: 'KAS', // fallback
+      account_type: await getAccountType(supabase, accountId),
       transaction_type: 'DEBIT',
       reference_type: 'SALE',
       reference_id: sale.id,
@@ -916,7 +916,7 @@ export async function createBulkSupplierPayment(input: any): Promise<ActionResul
     await supabase.from('cash_transactions').insert({
       tanggal: new Date().toISOString(),
       account_id: data.account_id,
-      account_type: 'KAS', // fallback
+      account_type: await getAccountType(supabase, data.account_id),
       transaction_type: 'CREDIT',
       reference_type: 'PAYMENT', 
       reference_id: payment.id, 

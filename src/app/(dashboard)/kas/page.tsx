@@ -53,7 +53,7 @@ export default async function KasBankPage() {
   // 4. Fetch Recent Transactions (last 50)
   const { data: recentTransactions } = await supabase
     .from('cash_transactions')
-    .select('*')
+    .select('*, accounts(name)')
     .order('tanggal', { ascending: false })
     .limit(50)
 
