@@ -6,7 +6,13 @@ import { createClient } from '@/lib/supabase/server'
 import { hitungHargaModalUnit } from '@/lib/utils'
 import { calculateFifo, applyFifoAllocations } from '@/lib/fifo'
 import { lockOpeningBalance } from '@/actions/opening-balance'
-import type { CreatePurchaseInput, CreateSaleInput, CreateExpenseInput, CreateSupplierPaymentInput } from '@/types/database'
+import type { CreatePurchaseInput, CreateSaleInput, CreateExpenseInput, CreateSupplierPaymentInput, AccountType } from '@/types/database'
+
+async function getAccountType(supabase: any, accountId: string | null | undefined): Promise<AccountType> {
+  if (!accountId) return 'KAS'
+  const { data } = await supabase.from('accounts').select('type').eq('id', accountId).single()
+  return (data?.type as AccountType) || 'KAS'
+}
 
 // ============================================================
 // SCHEMA VALIDASI ZOD
@@ -533,11 +539,15 @@ export async function createExpense(input: CreateExpenseInput): Promise<ActionRe
   const { data: kodeData } = await supabase.rpc('generate_kode_pengeluaran')
   const kode_pengeluaran = kodeData as string
 
+  // Use current time if the input date is today's date, otherwise use input date
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' })
+  const finalTanggal = data.tanggal === todayStr ? new Date().toISOString() : data.tanggal
+
   const { data: expense, error } = await supabase
     .from('expenses')
     .insert({
       kode_pengeluaran,
-      tanggal: data.tanggal,
+      tanggal: finalTanggal,
       category_id: data.category_id,
       employee_id: data.employee_id ?? null,
       keterangan: data.keterangan,
