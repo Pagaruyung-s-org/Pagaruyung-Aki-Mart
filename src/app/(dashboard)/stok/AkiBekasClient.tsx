@@ -33,7 +33,7 @@ export function AkiBekasClient({
     <div className="space-y-6">
       {/* Top Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="bg-blue-600 bg-gradient-to-br from-blue-600 to-blue-800 text-white shadow-md">
+        <Card className="bg-blue-800 text-white shadow-md border border-blue-900">
           <CardBody className="p-6">
             <div className="flex justify-between items-start">
               <div>
