@@ -576,7 +576,7 @@ export async function createExpense(input: CreateExpenseInput): Promise<ActionRe
       keterangan: finalKeterangan,
       nominal: data.nominal,
       payment_method: data.payment_method,
-      status_expense: 'POSTED',
+      status_transaksi: 'POSTED',
       created_by: user.id,
     })
     .select()
