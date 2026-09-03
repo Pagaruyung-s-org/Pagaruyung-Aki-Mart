@@ -140,23 +140,23 @@ CREATE POLICY "auth insert aki_bekas_allocations" ON public.aki_bekas_sale_alloc
 -- ============================================================
 CREATE OR REPLACE FUNCTION generate_kode_aki_bekas_purchase()
 RETURNS TEXT AS $$
-DECLARE prefix TEXT; seq INT; kode TEXT;
+DECLARE prefix TEXT; seq INT; new_kode TEXT;
 BEGIN
     prefix := 'AB-' || TO_CHAR(NOW(), 'YYYYMM') || '-';
     SELECT COUNT(*) + 1 INTO seq FROM public.aki_bekas_purchases WHERE kode LIKE prefix || '%';
-    kode := prefix || LPAD(seq::TEXT, 4, '0');
-    RETURN kode;
+    new_kode := prefix || LPAD(seq::TEXT, 4, '0');
+    RETURN new_kode;
 END;
 $$ LANGUAGE plpgsql;
 
 -- Function: Generate kode penjualan aki bekas (SB-YYYYMM-XXXX)
 CREATE OR REPLACE FUNCTION generate_kode_aki_bekas_sale()
 RETURNS TEXT AS $$
-DECLARE prefix TEXT; seq INT; kode TEXT;
+DECLARE prefix TEXT; seq INT; new_kode TEXT;
 BEGIN
     prefix := 'SB-' || TO_CHAR(NOW(), 'YYYYMM') || '-';
     SELECT COUNT(*) + 1 INTO seq FROM public.aki_bekas_sales WHERE kode LIKE prefix || '%';
-    kode := prefix || LPAD(seq::TEXT, 4, '0');
-    RETURN kode;
+    new_kode := prefix || LPAD(seq::TEXT, 4, '0');
+    RETURN new_kode;
 END;
 $$ LANGUAGE plpgsql;

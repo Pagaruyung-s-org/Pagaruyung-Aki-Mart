@@ -239,7 +239,7 @@ export async function createPurchase(input: CreatePurchaseInput): Promise<Action
       reference_type: 'PURCHASE',
       qty_in: item.qty,
       qty_out: 0,
-      transaction_date: new Date().toISOString(),
+      transaction_date: data.tanggal,
       keterangan: `Pembelian ${kode_pembelian}`,
     })
 
@@ -261,7 +261,7 @@ export async function createPurchase(input: CreatePurchaseInput): Promise<Action
   // Jika LUNAS → catat kas keluar
   if (data.status_pembayaran === 'LUNAS' && data.account_id) {
     await supabase.from('cash_transactions').insert({
-      tanggal: new Date().toISOString(),
+      tanggal: data.tanggal,
       account_id: data.account_id,
       account_type: await getAccountType(supabase, data.account_id),
       transaction_type: 'CREDIT',
@@ -478,7 +478,7 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
         reference_type: 'SALE',
         qty_in: 0,
         qty_out: itemData.qty,
-        transaction_date: new Date().toISOString(),
+        transaction_date: data.tanggal,
         keterangan: `Penjualan ${kode_penjualan}`,
       })
 
@@ -503,7 +503,7 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
   const cashIn = data.is_indent ? dpAmount : total
   if (cashIn > 0 && data.account_id) {
     await supabase.from('cash_transactions').insert({
-      tanggal: new Date().toISOString(),
+      tanggal: data.tanggal,
       account_id: data.account_id,
       account_type: await getAccountType(supabase, data.account_id),
       transaction_type: 'DEBIT',
@@ -588,7 +588,7 @@ export async function createExpense(input: CreateExpenseInput): Promise<ActionRe
 
   // Catat kas keluar
   await supabase.from('cash_transactions').insert({
-    tanggal: new Date().toISOString(),
+    tanggal: data.tanggal,
     account_id: data.account_id,
     account_type: await getAccountType(supabase, data.account_id),
     transaction_type: 'CREDIT',
@@ -663,7 +663,7 @@ export async function createSupplierPayment(input: CreateSupplierPaymentInput): 
 
   // Catat kas keluar
   await supabase.from('cash_transactions').insert({
-    tanggal: new Date().toISOString(),
+    tanggal: data.tanggal,
     account_id: data.account_id,
     account_type: await getAccountType(supabase, data.account_id),
     transaction_type: 'CREDIT',
@@ -790,7 +790,7 @@ export async function fulfillIndentSale(saleId: string, pelunasanMethod: 'CASH' 
       reference_type: 'SALE',
       qty_in: 0,
       qty_out: item.qty,
-      transaction_date: new Date().toISOString(),
+      transaction_date: sale.tanggal,
       keterangan: `Penyelesaian Inden ${sale.kode_penjualan}`,
     })
 
@@ -813,7 +813,7 @@ export async function fulfillIndentSale(saleId: string, pelunasanMethod: 'CASH' 
   const sisaBayar = sale.total - (sale.dp_amount ?? 0)
   if (sisaBayar > 0 && accountId) {
     await supabase.from('cash_transactions').insert({
-      tanggal: new Date().toISOString(),
+      tanggal: sale.tanggal,
       account_id: accountId,
       account_type: await getAccountType(supabase, accountId),
       transaction_type: 'DEBIT',
@@ -957,7 +957,7 @@ export async function createBulkSupplierPayment(input: any): Promise<ActionResul
 
     // 2. Catat Kas Keluar untuk pembayaran ini
     await supabase.from('cash_transactions').insert({
-      tanggal: new Date().toISOString(),
+      tanggal: data.tanggal,
       account_id: data.account_id,
       account_type: await getAccountType(supabase, data.account_id),
       transaction_type: 'CREDIT',
