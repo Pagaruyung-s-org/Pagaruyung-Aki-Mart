@@ -2,9 +2,9 @@
 
 import { useEffect, useState, useCallback, createContext, useContext, ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { CheckCircle, AlertCircle, Info, X } from 'lucide-react'
+import { CheckCircle, AlertCircle, Info, X, AlertTriangle } from 'lucide-react'
 
-type ToastType = 'success' | 'error' | 'info'
+type ToastType = 'success' | 'error' | 'info' | 'warning'
 
 interface Toast {
   id: string
@@ -39,12 +39,14 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
     success: <CheckCircle className="h-5 w-5 text-green-500 shrink-0" />,
     error: <AlertCircle className="h-5 w-5 text-red-500 shrink-0" />,
     info: <Info className="h-5 w-5 text-blue-500 shrink-0" />,
+    warning: <AlertTriangle className="h-5 w-5 text-yellow-500 shrink-0" />,
   }
 
   const borders = {
     success: 'border-l-green-500',
     error: 'border-l-red-500',
     info: 'border-l-blue-500',
+    warning: 'border-l-yellow-500',
   }
 
   return (
