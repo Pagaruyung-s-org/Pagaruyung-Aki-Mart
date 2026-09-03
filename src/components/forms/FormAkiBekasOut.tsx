@@ -1,13 +1,20 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { Button } from '@/components/ui/Button'
-import { Select } from '@/components/ui/Select'
 import { Input } from '@/components/ui/Input'
 import { InputCurrency } from '@/components/ui/InputCurrency'
 import { useToast } from '@/components/ui/Toast'
 import { createAkiBekasSale } from '@/actions/aki-bekas'
 import { toInputDate } from '@/lib/utils'
+
+interface SaleItem {
+  kapasitas_ah: number;
+  qty: number;
+  maxQty: number;
+  hargaJual: number;
+  selected: boolean;
+}
 
 export function FormAkiBekasOut({
   summary,
@@ -24,49 +31,94 @@ export function FormAkiBekasOut({
   const { showToast } = useToast()
 
   const [tanggal, setTanggal] = useState(toInputDate())
-  const [kapasitasAh, setKapasitasAh] = useState('')
-  const [qty, setQty] = useState(1)
-  const [hargaJual, setHargaJual] = useState(0)
   const [keterangan, setKeterangan] = useState('')
+  
+  const [items, setItems] = useState<SaleItem[]>([])
 
-  const handleKapasitasChange = (val: string) => {
-    setKapasitasAh(val)
-    const cat = categories.find(c => String(c.kapasitas_ah) === val)
-    if (cat) {
-      setHargaJual(Number(cat.harga_jual))
-    } else {
-      setHargaJual(0)
-    }
+  useEffect(() => {
+    setItems(
+      summary.map(s => {
+        const cat = categories.find(c => String(c.kapasitas_ah) === String(s.kapasitas_ah));
+        return {
+          kapasitas_ah: s.kapasitas_ah,
+          qty: s.qty,
+          maxQty: s.qty,
+          hargaJual: cat ? Number(cat.harga_jual) : 0,
+          selected: false,
+        };
+      })
+    );
+  }, [summary, categories]);
+
+  const allSelected = items.length > 0 && items.every(i => i.selected)
+
+  const toggleAll = () => {
+    setItems(items.map(i => ({
+      ...i,
+      selected: !allSelected,
+      qty: !allSelected ? i.maxQty : i.qty
+    })))
   }
 
-  // Cari max qty yang tersedia untuk kapasitas ini
-  const maxQty = summary.find(s => String(s.kapasitas_ah) === kapasitasAh)?.qty || 0
+  const toggleItem = (kapasitas_ah: number) => {
+    setItems(items.map(i => i.kapasitas_ah === kapasitas_ah ? { ...i, selected: !i.selected } : i))
+  }
+
+  const updateItemQty = (kapasitas_ah: number, val: number) => {
+    setItems(items.map(i => i.kapasitas_ah === kapasitas_ah ? { ...i, qty: val, selected: true } : i))
+  }
+
+  const updateItemHarga = (kapasitas_ah: number, val: number) => {
+    setItems(items.map(i => i.kapasitas_ah === kapasitas_ah ? { ...i, hargaJual: val } : i))
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!kapasitasAh) return showToast('error', 'Kapasitas AH harus dipilih')
-    if (qty <= 0) return showToast('error', 'Qty harus lebih dari 0')
-    if (qty > maxQty) return showToast('error', `Qty melebihi stok (Maks: ${maxQty})`)
-    if (hargaJual <= 0) return showToast('error', 'Harga jual harus lebih dari 0')
+    const selectedItems = items.filter(i => i.selected)
+    
+    if (selectedItems.length === 0) return showToast('error', 'Pilih minimal 1 aki yang akan dijual')
+    
+    for (const item of selectedItems) {
+      if (item.qty <= 0) return showToast('error', `Qty untuk ${item.kapasitas_ah} AH harus lebih dari 0`)
+      if (item.qty > item.maxQty) return showToast('error', `Qty ${item.kapasitas_ah} AH melebihi stok (Maks: ${item.maxQty})`)
+      if (item.hargaJual <= 0) return showToast('error', `Harga jual untuk ${item.kapasitas_ah} AH harus lebih dari 0`)
+    }
 
     startTransition(async () => {
-      const res = await createAkiBekasSale({
-        tanggal,
-        kapasitas_ah: Number(kapasitasAh),
-        qty,
-        harga_jual_unit: hargaJual,
-        keterangan
-      })
+      let successCount = 0;
+      let errorMsg = '';
+      
+      for (const item of selectedItems) {
+        const res = await createAkiBekasSale({
+          tanggal,
+          kapasitas_ah: item.kapasitas_ah,
+          qty: item.qty,
+          harga_jual_unit: item.hargaJual,
+          keterangan
+        });
+        
+        if (res.success) {
+          successCount++;
+        } else {
+          errorMsg = res.error || 'Gagal menyimpan penjualan';
+          break;
+        }
+      }
 
-      if (res.success) {
-        showToast('success', res.message || 'Berhasil menyimpan penjualan')
+      if (successCount === selectedItems.length) {
+        showToast('success', 'Berhasil menyimpan penjualan aki bekas')
         onSuccess?.()
+      } else if (successCount > 0) {
+        showToast('warning', `Sebagian penjualan berhasil disimpan, namun terjadi error: ${errorMsg}`)
+        onSuccess?.() // still trigger success to refresh data
       } else {
-        showToast('error', res.error || 'Gagal menyimpan penjualan')
+        showToast('error', errorMsg)
       }
     })
   }
+
+  const totalKeseluruhan = items.filter(i => i.selected).reduce((sum, item) => sum + (item.qty * item.hargaJual), 0)
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -80,51 +132,74 @@ export function FormAkiBekasOut({
         />
       </div>
 
-      <div className="space-y-1">
-        <label className="text-sm font-medium text-gray-700">Kapasitas (AH)</label>
-        <Select
-          value={kapasitasAh}
-          onChange={(e) => handleKapasitasChange(e.target.value)}
-          options={[
-            { label: 'Pilih Kapasitas AH', value: '' },
-            ...summary.map(s => ({
-              label: `${s.kapasitas_ah} AH (Stok: ${s.qty})`,
-              value: String(s.kapasitas_ah)
-            }))
-          ]}
-          required
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-gray-700">Qty (Unit)</label>
-          <Input
-            type="number"
-            min="1"
-            max={maxQty || 1}
-            value={qty}
-            onChange={(e) => setQty(Number(e.target.value))}
-            required
-            disabled={!kapasitasAh}
-          />
-          {kapasitasAh && (
-            <p className="text-xs text-gray-500 mt-1">Stok Tersedia: {maxQty}</p>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+          <label className="text-sm font-medium text-gray-700">Pilih Aki Bekas</label>
+          {items.length > 0 && (
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="select-all"
+                checked={allSelected}
+                onChange={toggleAll}
+                className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <label htmlFor="select-all" className="text-sm cursor-pointer text-gray-600 hover:text-gray-900 font-medium">Pilih Semua</label>
+            </div>
           )}
         </div>
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-gray-700">Harga Jual Satuan</label>
-          <InputCurrency
-            value={hargaJual}
-            onChange={(val) => setHargaJual(Number(val) || 0)}
-          />
-        </div>
+
+        {items.length === 0 ? (
+          <div className="text-center py-4 text-gray-500 text-sm">Tidak ada stok aki bekas tersedia</div>
+        ) : (
+          <div className="space-y-3 max-h-[40vh] overflow-y-auto pr-1">
+            {items.map((item) => (
+              <div key={item.kapasitas_ah} className={`p-3 border rounded-lg transition-colors ${item.selected ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'}`}>
+                <div className="flex items-center space-x-3 mb-2">
+                  <input
+                    type="checkbox"
+                    id={`item-${item.kapasitas_ah}`}
+                    checked={item.selected}
+                    onChange={() => toggleItem(item.kapasitas_ah)}
+                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <label htmlFor={`item-${item.kapasitas_ah}`} className="font-semibold text-gray-800 cursor-pointer flex-1">
+                    {item.kapasitas_ah} AH (Stok: {item.maxQty})
+                  </label>
+                </div>
+                
+                {item.selected && (
+                  <div className="grid grid-cols-2 gap-3 pl-7 mt-2">
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-gray-600">Qty</label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max={item.maxQty}
+                        value={item.qty}
+                        onChange={(e) => updateItemQty(item.kapasitas_ah, Number(e.target.value))}
+                        className="h-8 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium text-gray-600">Harga Satuan</label>
+                      <InputCurrency
+                        value={item.hargaJual}
+                        onChange={(val) => updateItemHarga(item.kapasitas_ah, Number(val) || 0)}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="space-y-1">
-        <label className="text-sm font-medium text-gray-700">Total Harga</label>
+        <label className="text-sm font-medium text-gray-700">Total Penjualan</label>
         <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-right font-semibold text-lg text-green-600">
-          Rp {(qty * hargaJual).toLocaleString('id-ID')}
+          Rp {totalKeseluruhan.toLocaleString('id-ID')}
         </div>
       </div>
 
@@ -143,7 +218,7 @@ export function FormAkiBekasOut({
             Batal
           </Button>
         )}
-        <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white" loading={isPending}>
+        <Button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white" loading={isPending} disabled={items.filter(i => i.selected).length === 0}>
           Simpan Penjualan
         </Button>
       </div>
