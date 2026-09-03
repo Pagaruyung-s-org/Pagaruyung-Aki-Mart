@@ -554,7 +554,7 @@ export async function createExpense(input: CreateExpenseInput): Promise<ActionRe
     }
   }
 
-  const { data: kodeData } = await supabase.rpc('generate_kode_expense')
+  const { data: kodeData } = await supabase.rpc('generate_kode_pengeluaran')
   const kode_expense = kodeData as string
 
   // Cari nama akun
