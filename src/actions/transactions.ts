@@ -569,7 +569,7 @@ export async function createExpense(input: CreateExpenseInput): Promise<ActionRe
   const { data: expense, error } = await supabase
     .from('expenses')
     .insert({
-      kode_expense,
+      kode_pengeluaran: kode_expense,
       tanggal: data.tanggal,
       category_id: data.category_id,
       employee_id: data.employee_id,
