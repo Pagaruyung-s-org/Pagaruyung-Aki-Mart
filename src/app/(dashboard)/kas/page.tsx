@@ -6,7 +6,8 @@ import { formatRupiah } from '@/lib/utils'
 import { WalletCards, Landmark, CreditCard, ArrowRightLeft, Vault, QrCode } from 'lucide-react'
 import Link from 'next/link'
 import { RiwayatKasTable } from '@/components/tables/RiwayatKasTable'
-
+import { MutasiKasButton } from '@/components/forms/MutasiKasButton'
+import { IncomingSalesFilterCard } from '@/components/dashboard/IncomingSalesFilterCard'
 const accountIcons: Record<string, React.ReactNode> = {
   KAS:     <WalletCards className="h-5 w-5" />,
   BRANKAS: <Vault className="h-5 w-5" />,
@@ -61,7 +62,8 @@ export default async function KasBankPage() {
     <div className="flex flex-col h-full bg-gray-50/50">
       <Header 
         title="Kas & Bank" 
-        subtitle="Posisi saldo riil dan riwayat transaksi tunai" 
+        subtitle="Posisi saldo riil dan riwayat transaksi tunai"
+        actions={<MutasiKasButton accounts={accounts ?? []} />}
       />
       
       <div className="p-6 space-y-6">
@@ -106,6 +108,9 @@ export default async function KasBankPage() {
           })}
 
         </div>
+
+        {/* Incoming Sales Kalkulator */}
+        <IncomingSalesFilterCard />
 
         {/* Recent Transactions Table */}
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex flex-col">

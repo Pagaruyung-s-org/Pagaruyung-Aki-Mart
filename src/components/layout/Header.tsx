@@ -8,9 +8,10 @@ import { useState, useEffect } from 'react'
 interface HeaderProps {
   title: string
   subtitle?: string
+  actions?: React.ReactNode
 }
 
-export function Header({ title, subtitle }: HeaderProps) {
+export function Header({ title, subtitle, actions }: HeaderProps) {
   const router = useRouter()
   const supabase = createClient()
   const [showLogoutModal, setShowLogoutModal] = useState(false)
@@ -40,6 +41,7 @@ export function Header({ title, subtitle }: HeaderProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          {actions}
           {/* Profile Dropdown */}
           <div className="relative">
             <button 

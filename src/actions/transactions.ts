@@ -1004,6 +1004,53 @@ export async function createBulkSupplierPayment(input: any): Promise<ActionResul
   }
 }
 
+// ============================================================
+// SERVER ACTION: MUTASI KAS MANUAL (Masuk / Keluar)
+// ============================================================
+const MutasiKasSchema = z.object({
+  tanggal: z.string().min(1, 'Tanggal wajib diisi'),
+  account_id: z.string().uuid('Akun wajib dipilih'),
+  jenis: z.enum(['MASUK', 'KELUAR']),
+  nominal: z.number().positive('Nominal harus lebih dari 0'),
+  keterangan: z.string().min(1, 'Keterangan wajib diisi'),
+})
+
+export async function createMutasiKas(input: z.infer<typeof MutasiKasSchema>): Promise<ActionResult<null>> {
+  const parsed = MutasiKasSchema.safeParse(input)
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message }
+  }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Tidak terautentikasi' }
+
+  const data = parsed.data
+  const isMasuk = data.jenis === 'MASUK'
+
+  const { error } = await supabase.from('cash_transactions').insert({
+    tanggal: data.tanggal,
+    account_id: data.account_id,
+    account_type: await getAccountType(supabase, data.account_id),
+    transaction_type: isMasuk ? 'DEBIT' : 'CREDIT',
+    reference_type: 'MANUAL',
+    debit: isMasuk ? data.nominal : 0,
+    credit: isMasuk ? 0 : data.nominal,
+    description: data.keterangan,
+  })
+
+  if (error) return { success: false, error: error.message }
+
+  revalidatePath('/kas')
+  revalidatePath('/dashboard')
+
+  return {
+    success: true,
+    data: null,
+    message: `Mutasi kas ${isMasuk ? 'masuk' : 'keluar'} berhasil dicatat`,
+  }
+}
+
 /** Ambil harga beli terakhir per product_id dari inventory_batches */
 export async function getLastPurchasePrices(productIds: string[]): Promise<Record<string, number>> {
   if (!productIds.length) return {}
