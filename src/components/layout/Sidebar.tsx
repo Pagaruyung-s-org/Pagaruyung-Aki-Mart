@@ -24,6 +24,7 @@ import {
   Lock,
   Vault,
   ClipboardCheck,
+  Landmark,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState, useEffect, useRef } from 'react'
@@ -75,6 +76,7 @@ const navItems: NavItem[] = [
     icon: <Wallet className="h-4 w-4" />,
     children: [
       { label: 'Hutang Supplier', href: '/hutang', icon: <CreditCard className="h-4 w-4" /> },
+      { label: 'Piutang Toko Pusat', href: '/piutang', icon: <Landmark className="h-4 w-4" /> },
       { label: 'Kas/Bank', href: '/kas', icon: <Wallet className="h-4 w-4" /> },
       { label: 'Daftar Akun', href: '/kas/akun', icon: <CreditCard className="h-4 w-4" /> },
       { label: 'Closing Harian', href: '/closing', icon: <Lock className="h-4 w-4" /> },
@@ -257,7 +259,7 @@ export function Sidebar({ role }: { role: 'SUPER_ADMIN' | 'ADMIN' | 'OWNER' | nu
     }
     if (item.label === 'Keuangan') {
       const filteredChildren = item.children?.filter(child => {
-        if (role === 'ADMIN' && (child.label === 'Hutang Supplier' || child.label === 'Kas/Bank' || child.label === 'Daftar Akun')) return false
+        if (role === 'ADMIN' && (child.label === 'Hutang Supplier' || child.label === 'Piutang Toko Pusat' || child.label === 'Kas/Bank' || child.label === 'Daftar Akun')) return false
         return true
       })
       return { ...item, children: filteredChildren }

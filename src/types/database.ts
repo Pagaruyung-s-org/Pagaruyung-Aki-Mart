@@ -153,6 +153,8 @@ export interface Sale {
   dp_amount: number
   payment_method: PaymentMethod
   status_transaksi: StatusPenjualan
+  status_pembayaran: 'PAID' | 'PIUTANG' | 'LUNAS'
+  is_toko_pusat: boolean
   keterangan: string | null
   created_by: string | null
   created_at: string
@@ -308,7 +310,47 @@ export interface CreateSaleInput {
   keterangan?: string
   is_indent?: boolean
   dp_amount?: number
+  is_toko_pusat?: boolean
   items: SaleItemInput[]
+}
+
+export interface CustomerReceivable {
+  id: string
+  kode_piutang: string
+  sale_id: string
+  tanggal: string
+  customer_name: string
+  total: number
+  total_dibayar: number
+  sisa_piutang: number
+  status_pembayaran: 'BELUM_LUNAS' | 'LUNAS' | 'PARSIAL'
+  created_by: string | null
+  created_at: string
+  // Joined
+  sales?: Sale
+  customer_payments?: CustomerPayment[]
+}
+
+export interface CustomerPayment {
+  id: string
+  kode_pembayaran: string
+  receivable_id: string
+  tanggal: string
+  nominal: number
+  payment_method: PaymentMethod
+  account_id: string | null
+  keterangan: string | null
+  created_by: string | null
+  created_at: string
+}
+
+export interface CreateCustomerPaymentInput {
+  receivable_id: string
+  tanggal: string
+  nominal: number
+  payment_method: PaymentMethod
+  account_id: string
+  keterangan?: string
 }
 
 export interface CreateExpenseInput {

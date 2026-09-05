@@ -56,6 +56,7 @@ const CreateSaleSchema = z.object({
   keterangan: z.string().optional(),
   is_indent: z.boolean().optional(),
   dp_amount: z.number().min(0).optional(),
+  is_toko_pusat: z.boolean().optional(),
   items: z.array(CreateSaleItemSchema).optional().default([]),
 })
 
@@ -420,6 +421,8 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
       dp_amount: dpAmount,
       payment_method: data.payment_method,
       status_transaksi: data.is_indent ? 'INDENT' : 'PAID',
+      status_pembayaran: data.is_toko_pusat ? 'PIUTANG' : 'PAID',
+      is_toko_pusat: data.is_toko_pusat ?? false,
       keterangan: finalKeterangan,
       created_by: user.id,
       include_air_aki: false, // legacy compat
@@ -499,9 +502,9 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
   }
 
 
-  // Catat kas masuk dari penjualan
+  // Catat kas masuk dari penjualan (hanya jika bukan toko pusat)
   const cashIn = data.is_indent ? dpAmount : total
-  if (cashIn > 0 && data.account_id) {
+  if (cashIn > 0 && data.account_id && !data.is_toko_pusat) {
     await supabase.from('cash_transactions').insert({
       tanggal: data.tanggal,
       account_id: data.account_id,
@@ -515,6 +518,22 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
     })
   }
 
+  // Jika toko pusat, catat sebagai piutang
+  if (data.is_toko_pusat) {
+    const { data: kodePiutang } = await supabase.rpc('generate_kode_piutang')
+    await supabase.from('customer_receivables').insert({
+      kode_piutang: kodePiutang as string,
+      sale_id: sale.id,
+      tanggal: data.tanggal,
+      customer_name: data.customer_name || 'Toko Pusat',
+      total,
+      total_dibayar: 0,
+      status_pembayaran: 'BELUM_LUNAS',
+      created_by: user.id,
+    })
+    revalidatePath('/piutang')
+  }
+
   revalidatePath('/penjualan')
   revalidatePath('/stok')
   revalidatePath('/stok/air-aki')
@@ -524,6 +543,112 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
     success: true,
     data: { id: sale.id, kode: kode_penjualan },
     message: data.is_indent ? `Inden ${kode_penjualan} berhasil disimpan` : `Penjualan ${kode_penjualan} berhasil disimpan`,
+  }
+}
+
+// ============================================================
+// SERVER ACTION: BAYAR PIUTANG TOKO PUSAT
+// ============================================================
+const CreateCustomerPaymentSchema = z.object({
+  receivable_id: z.string().uuid(),
+  tanggal: z.string().min(1),
+  nominal: z.number().positive(),
+  payment_method: z.enum(['CASH', 'TRANSFER', 'QRIS']),
+  account_id: z.string().uuid(),
+  keterangan: z.string().optional(),
+})
+
+export async function createCustomerPayment(
+  input: import('@/types/database').CreateCustomerPaymentInput
+): Promise<ActionResult<{ id: string; kode: string }>> {
+  const parsed = CreateCustomerPaymentSchema.safeParse(input)
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message }
+  }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Tidak terautentikasi' }
+
+  const d = parsed.data
+
+  // Cek piutang
+  const { data: receivable } = await supabase
+    .from('customer_receivables')
+    .select('*')
+    .eq('id', d.receivable_id)
+    .single()
+
+  if (!receivable) return { success: false, error: 'Piutang tidak ditemukan' }
+  if (receivable.status_pembayaran === 'LUNAS') return { success: false, error: 'Piutang sudah lunas' }
+  if (d.nominal > receivable.sisa_piutang) {
+    return { success: false, error: `Nominal melebihi sisa piutang (${receivable.sisa_piutang})` }
+  }
+
+  // Generate kode
+  const { data: kodeData } = await supabase.rpc('generate_kode_pembayaran_piutang')
+  const kode_pembayaran = kodeData as string
+
+  // Insert pembayaran
+  const { data: payment, error: payError } = await supabase
+    .from('customer_payments')
+    .insert({
+      kode_pembayaran,
+      receivable_id: d.receivable_id,
+      tanggal: d.tanggal,
+      nominal: d.nominal,
+      payment_method: d.payment_method,
+      account_id: d.account_id,
+      keterangan: d.keterangan,
+      created_by: user.id,
+    })
+    .select()
+    .single()
+
+  if (payError || !payment) return { success: false, error: payError?.message ?? 'Gagal menyimpan pembayaran' }
+
+  // Update total_dibayar & status piutang
+  const newTotalDibayar = receivable.total_dibayar + d.nominal
+  const isLunas = newTotalDibayar >= receivable.total
+  const newStatus = isLunas ? 'LUNAS' : 'PARSIAL'
+
+  await supabase
+    .from('customer_receivables')
+    .update({
+      total_dibayar: newTotalDibayar,
+      status_pembayaran: newStatus,
+    })
+    .eq('id', d.receivable_id)
+
+  // Jika lunas, update sales.status_pembayaran
+  if (isLunas) {
+    await supabase
+      .from('sales')
+      .update({ status_pembayaran: 'LUNAS' })
+      .eq('id', receivable.sale_id)
+  }
+
+  // Catat kas masuk
+  await supabase.from('cash_transactions').insert({
+    tanggal: d.tanggal,
+    account_id: d.account_id,
+    account_type: await getAccountType(supabase, d.account_id),
+    transaction_type: 'DEBIT',
+    reference_type: 'CUSTOMER_PAYMENT',
+    reference_id: payment.id,
+    debit: d.nominal,
+    credit: 0,
+    description: `Pelunasan Piutang ${receivable.kode_piutang} - ${kode_pembayaran}`,
+  })
+
+  revalidatePath('/piutang')
+  revalidatePath('/kas')
+  revalidatePath('/penjualan')
+
+  return {
+    success: true,
+    data: { id: payment.id, kode: kode_pembayaran },
+    message: `Pembayaran ${kode_pembayaran} berhasil. Piutang ${isLunas ? 'LUNAS' : 'tersisa ' + (receivable.total - newTotalDibayar)}`,
   }
 }
 

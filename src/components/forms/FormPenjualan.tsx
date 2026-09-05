@@ -154,6 +154,7 @@ export function FormPenjualan({
         keterangan: keterangan || undefined,
         is_indent: isIndent,
         dp_amount: isIndent ? (Number(dpAmount) || 0) : 0,
+        is_toko_pusat: jualKeTokoPusat,
         items: validItems.map(i => ({ product_id: i.product_id, qty: i.qty, harga_jual: i.harga_jual, discount: i.discount })),
       })
       if (!result.success) { showToast('error', result.error); return }
@@ -193,27 +194,37 @@ export function FormPenjualan({
             required
           />
           <Input label="Nama Customer (opsional)" id="customer_name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Nama customer jika perlu dicatat" />
-          <Select label="Metode Pembayaran" id="payment_method" value={paymentMethod} onChange={(e) => {
-            const val = e.target.value as 'CASH' | 'TRANSFER' | 'QRIS';
-            setPaymentMethod(val);
-            if (val === 'CASH') {
-              setAccountId(accounts?.find(a => a.type === 'KAS')?.id || '');
-            } else {
-              setAccountId(accounts?.find(a => a.type === 'BANK')?.id || '');
-            }
-          }} options={[{ value: 'CASH', label: 'Tunai' }, { value: 'TRANSFER', label: 'Transfer Bank' }, { value: 'QRIS', label: 'QRIS' }]} />
-          <Select
-            label="Simpan Ke Akun"
-            id="account_id"
-            value={accountId}
-            onChange={(e) => setAccountId(e.target.value)}
-            options={[
-              { value: '', label: '-- Pilih Akun --' },
-              ...(accounts || [])
-                .filter(a => paymentMethod === 'CASH' ? a.type === 'KAS' : a.type === 'BANK')
-                .map(a => ({ value: a.id, label: a.name }))
-            ]}
-          />
+          {!jualKeTokoPusat && (
+            <Select label="Metode Pembayaran" id="payment_method" value={paymentMethod} onChange={(e) => {
+              const val = e.target.value as 'CASH' | 'TRANSFER' | 'QRIS';
+              setPaymentMethod(val);
+              if (val === 'CASH') {
+                setAccountId(accounts?.find(a => a.type === 'KAS')?.id || '');
+              } else {
+                setAccountId(accounts?.find(a => a.type === 'BANK')?.id || '');
+              }
+            }} options={[{ value: 'CASH', label: 'Tunai' }, { value: 'TRANSFER', label: 'Transfer Bank' }, { value: 'QRIS', label: 'QRIS' }]} />
+          )}
+          {!jualKeTokoPusat && (
+            <Select
+              label="Simpan Ke Akun"
+              id="account_id"
+              value={accountId}
+              onChange={(e) => setAccountId(e.target.value)}
+              options={[
+                { value: '', label: '-- Pilih Akun --' },
+                ...(accounts || [])
+                  .filter(a => paymentMethod === 'CASH' ? a.type === 'KAS' : a.type === 'BANK')
+                  .map(a => ({ value: a.id, label: a.name }))
+              ]}
+            />
+          )}
+          {jualKeTokoPusat && (
+            <div className="col-span-1 md:col-span-2 flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-lg px-4 py-3 text-sm text-orange-700">
+              <span className="font-semibold">⚠ Piutang:</span>
+              Transaksi ini dicatat sebagai piutang. Kas masuk saat dilunaskan di halaman Piutang.
+            </div>
+          )}
           {isIndent && (
             <div className="col-span-1 md:col-span-2 lg:col-span-4">
               <InputCurrency label="Nominal DP (Opsional, ketik 0 jika tanpa DP)" id="dp_amount" min="0" value={dpAmount} onChange={(val) => setDpAmount(val === '' ? '' : Number(val))} placeholder="0" required={isIndent} />
