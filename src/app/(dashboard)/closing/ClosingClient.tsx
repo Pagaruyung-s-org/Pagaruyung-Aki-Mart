@@ -279,84 +279,83 @@ export function ClosingClient({ closings, accounts = [], saldoBrankas = 0 }: Clo
               <tbody>
                 {closings.map((c) => (
                   <Fragment key={c.id}>
-                    <tr 
+                    <tr
                       className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
                       onClick={() => setExpandedRowId(expandedRowId === c.id ? null : c.id)}
                     >
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        {expandedRowId === c.id ? (
-                          <ChevronDown className="h-4 w-4 text-gray-400 shrink-0" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />
-                        )}
-                        <div>
-                          <div className="font-medium text-gray-900">{formatDateTime(c.created_at)}</div>
-                          {c.is_late && (
-                            <span className="inline-flex items-center gap-1 text-xs text-amber-600 mt-0.5">
-                              <AlertTriangle className="h-3 w-3" />
-                              Terlambat
-                            </span>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          {expandedRowId === c.id ? (
+                            <ChevronDown className="h-4 w-4 text-gray-400 shrink-0" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 text-gray-400 shrink-0" />
                           )}
+                          <div>
+                            <div className="font-medium text-gray-900">{formatDateTime(c.created_at)}</div>
+                            {c.is_late && (
+                              <span className="inline-flex items-center gap-1 text-xs text-amber-600 mt-0.5">
+                                <AlertTriangle className="h-3 w-3" />
+                                Terlambat
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right text-gray-900 whitespace-nowrap">{formatRupiah(c.total_penjualan_tunai)}</td>
-                    <td className="px-4 py-3 text-right text-gray-900 whitespace-nowrap">{formatRupiah(c.total_penjualan_transfer)}</td>
-                    <td className="px-4 py-3 text-right text-red-600 whitespace-nowrap">{formatRupiah(c.total_pengeluaran_tunai)}</td>
-                    <td className="px-4 py-3 text-right text-red-600 whitespace-nowrap">{formatRupiah(c.total_bayar_hutang)}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-blue-600 whitespace-nowrap">{formatRupiah(c.total_cash_drop)}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-gray-900 whitespace-nowrap">{formatRupiah(c.estimasi_sisa_laci)}</td>
-                    <td className="px-4 py-3 text-center whitespace-nowrap">
-                      {c.status === 'SUBMITTED' ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                          <CheckCircle className="h-3 w-3" />
-                          Diajukan
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
-                          <Clock className="h-3 w-3" />
-                          Draft
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-center whitespace-nowrap">
-                      {c.status === 'DRAFT' ? (
-                        <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
-                          <button
-                            onClick={() => setSubmitConfirmId(c.id)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-                            title="Ajukan Closing"
-                          >
-                            <Send className="h-3 w-3" />
-                            Ajukan
-                          </button>
-                          <button
-                            onClick={() => openEditForm(c)}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-                            title="Edit"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirmId(c.id)}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                            title="Hapus"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      ) : (
-                        <span className="text-xs text-gray-400">Terkunci</span>
-                      )}
-                    </td>
+                      </td>
+                      <td className="px-4 py-3 text-right text-gray-900 whitespace-nowrap">{formatRupiah(c.total_penjualan_tunai)}</td>
+                      <td className="px-4 py-3 text-right text-gray-900 whitespace-nowrap">{formatRupiah(c.total_penjualan_transfer)}</td>
+                      <td className="px-4 py-3 text-right text-red-600 whitespace-nowrap">{formatRupiah(c.total_pengeluaran_tunai)}</td>
+                      <td className="px-4 py-3 text-right text-red-600 whitespace-nowrap">{formatRupiah(c.total_bayar_hutang)}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-blue-600 whitespace-nowrap">{formatRupiah(c.total_cash_drop)}</td>
+                      <td className="px-4 py-3 text-right font-semibold text-gray-900 whitespace-nowrap">{formatRupiah(c.estimasi_sisa_laci)}</td>
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
+                        {c.status === 'SUBMITTED' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                            <CheckCircle className="h-3 w-3" />
+                            Diajukan
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                            <Clock className="h-3 w-3" />
+                            Draft
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
+                        {c.status === 'DRAFT' ? (
+                          <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            <button
+                              onClick={() => setSubmitConfirmId(c.id)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+                              title="Ajukan Closing"
+                            >
+                              <Send className="h-3 w-3" />
+                              Ajukan
+                            </button>
+                            <button
+                              onClick={() => openEditForm(c)}
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+                              title="Edit"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              onClick={() => setDeleteConfirmId(c.id)}
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                              title="Hapus"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400">Terkunci</span>
+                        )}
+                      </td>
                     </tr>
                     <tr className="bg-blue-50/30 border-b border-gray-100">
                       <td colSpan={9} className="p-0 border-0">
-                        <div 
-                          className={`grid transition-all duration-300 ease-in-out ${
-                            expandedRowId === c.id ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
-                          }`}
+                        <div
+                          className={`grid transition-all duration-300 ease-in-out ${expandedRowId === c.id ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'
+                            }`}
                         >
                           <div className="overflow-hidden">
                             <div className="px-6 py-5">
@@ -457,7 +456,7 @@ export function ClosingClient({ closings, accounts = [], saldoBrankas = 0 }: Clo
           {loadingSummary ? (
             <div className="text-center text-sm text-gray-400 py-4">Menghitung rangkuman...</div>
           ) : summary && (
-              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+            <div className="bg-gray-50 rounded-lg p-4 space-y-2">
               <h4 className="text-sm font-semibold text-gray-700 mb-2">Rangkuman Transaksi</h4>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="text-gray-600">Penjualan Tunai</div>
@@ -549,7 +548,7 @@ export function ClosingClient({ closings, accounts = [], saldoBrankas = 0 }: Clo
             <div>
               <p className="text-sm font-medium text-amber-800">Peringatan!</p>
               <p className="text-xs text-amber-700 mt-1">
-                Setelah diajukan, data closing ini <strong>tidak dapat diedit atau dihapus kembali</strong>. 
+                Setelah diajukan, data closing ini <strong>tidak dapat diedit atau dihapus kembali</strong>.
                 Semua transaksi pada tanggal tersebut juga akan <strong>dikunci</strong> (tidak bisa di-VOID).
               </p>
               <p className="text-xs text-amber-700 mt-1">
