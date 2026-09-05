@@ -41,7 +41,7 @@ export default async function MutasiStokPage({ searchParams }: PageProps) {
     `)
     .gte('transaction_date', startDate)
     .lte('transaction_date', endDate)
-    .order('transaction_date', { ascending: false })
+    .order('created_at', { ascending: false })
 
   if (filterProduct) {
     query = query.eq('product_id', filterProduct)

@@ -56,12 +56,7 @@ export function PenjualanReportTable({ data }: { data: any[] }) {
                     {row.customer_name || '-'}
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${row.payment_method === 'CASH' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                        row.payment_method === 'TRANSFER' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                          'bg-purple-50 text-purple-700 border-purple-200'
-                      }`}>
-                      <PaymentBadge method={row.payment_method} keterangan={row.keterangan} />
-                    </span>
+                    <PaymentBadge method={row.payment_method} keterangan={row.keterangan} />
                   </td>
                   <td className="px-6 py-4 text-center font-medium">
                     {row.total_qty}
