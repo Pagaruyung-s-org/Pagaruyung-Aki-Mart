@@ -7,7 +7,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
 import { InputCurrency } from '@/components/ui/InputCurrency'
 import { StatusBadge } from '@/components/ui/Badge'
-import { createClosing, updateClosing, deleteClosing, submitClosing, getClosingSummary, createSetor } from '@/actions/closing'
+import { createClosing, updateClosing, deleteClosing, submitClosing, getClosingSummary } from '@/actions/closing'
 import type { DailyClosing } from '@/types/database'
 import { format } from 'date-fns'
 import { id as localeId } from 'date-fns/locale'
@@ -66,21 +66,7 @@ export function ClosingClient({ closings, accounts = [], saldoBrankas = 0 }: Clo
   // ==========================================
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null)
 
-  // ==========================================
-  // STATE — Setor Form
-  // ==========================================
-  const [isSetorOpen, setIsSetorOpen] = useState(false)
-  const [setorTanggal, setSetorTanggal] = useState(new Date().toISOString().split('T')[0])
-  const [setorNominal, setSetorNominal] = useState('')
-  const [setorKeterangan, setSetorKeterangan] = useState('')
-  const [setorAccountId, setSetorAccountId] = useState('')
-  const [setorLoading, setSetorLoading] = useState(false)
 
-  useEffect(() => {
-    if (accounts.length > 0 && !setorAccountId) {
-      setSetorAccountId(accounts[0].id)
-    }
-  }, [accounts])
 
   // ==========================================
   // EFFECT — Check if closing date is late
@@ -196,24 +182,7 @@ export function ClosingClient({ closings, accounts = [], saldoBrankas = 0 }: Clo
     }
   }
 
-  async function handleSetor(e: React.FormEvent) {
-    e.preventDefault()
-    setSetorLoading(true)
-    const nominal = parseFloat(setorNominal) || 0
-    const result = await createSetor({
-      tanggal: setorTanggal,
-      nominal,
-      keterangan: setorKeterangan || undefined,
-      account_id: setorAccountId,
-    })
-    setSetorLoading(false)
-    if (!result.success) {
-      alert(result.error)
-    } else {
-      setIsSetorOpen(false)
-      window.location.reload()
-    }
-  }
+
 
   // ==========================================
   // COMPUTED
@@ -241,15 +210,6 @@ export function ClosingClient({ closings, accounts = [], saldoBrankas = 0 }: Clo
         <Button onClick={openNewForm}>
           <Plus className="h-4 w-4 mr-2" />
           Buat Closing Harian
-        </Button>
-        <Button variant="secondary" onClick={() => {
-          setSetorTanggal(new Date().toISOString().split('T')[0])
-          setSetorNominal('')
-          setSetorKeterangan('')
-          setIsSetorOpen(true)
-        }}>
-          <ArrowRightLeft className="h-4 w-4 mr-2" />
-          Setor ke Bank
         </Button>
       </div>
 
@@ -587,77 +547,7 @@ export function ClosingClient({ closings, accounts = [], saldoBrankas = 0 }: Clo
         </div>
       </Modal>
 
-      {/* ====== MODAL: FORM SETOR UANG ====== */}
-      <Modal
-        isOpen={isSetorOpen}
-        onClose={() => setIsSetorOpen(false)}
-        title="Setor Uang ke Bank"
-        size="md"
-      >
-        <form onSubmit={handleSetor} className="space-y-4">
-          <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <Info className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
-            <p className="text-xs text-blue-700">
-              Fitur ini mencatat perpindahan uang dari <strong>Brankas Toko</strong> ke <strong>Rekening Bank</strong>.
-              Saldo Brankas akan berkurang dan saldo Bank akan bertambah.
-            </p>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal Setor</label>
-            <input
-              type="date"
-              value={setorTanggal}
-              onChange={(e) => setSetorTanggal(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Pilih Rekening Tujuan</label>
-            <select
-              value={setorAccountId}
-              onChange={(e) => setSetorAccountId(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              required
-            >
-              <option value="" disabled>-- Pilih Rekening Bank --</option>
-              {accounts.map(acc => (
-                <option key={acc.id} value={acc.id}>{acc.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <InputCurrency
-            label="Nominal Setoran"
-            id="setorNominal"
-            value={setorNominal === '' ? '' : Number(setorNominal)}
-            onChange={(val) => setSetorNominal(val.toString())}
-            placeholder="0"
-            min="1"
-            required
-          />
-
-          <Input
-            label="Keterangan"
-            id="setorKeterangan"
-            value={setorKeterangan}
-            onChange={(e) => setSetorKeterangan(e.target.value)}
-            placeholder="Contoh: Setor ke BCA..."
-            className="w-full"
-          />
-
-          <div className="flex justify-end gap-3 pt-2">
-            <Button type="button" variant="secondary" onClick={() => setIsSetorOpen(false)}>
-              Batal
-            </Button>
-            <Button type="submit" disabled={setorLoading}>
-              {setorLoading ? 'Menyimpan...' : 'Setor'}
-            </Button>
-          </div>
-        </form>
-      </Modal>
     </>
   )
 }

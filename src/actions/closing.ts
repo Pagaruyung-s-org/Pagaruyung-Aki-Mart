@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/server'
-import type { CreateClosingInput, CreateSetorInput } from '@/types/database'
+import type { CreateClosingInput } from '@/types/database'
 
 // ============================================================
 // SCHEMA VALIDASI ZOD
@@ -15,10 +15,11 @@ const CreateClosingSchema = z.object({
   catatan: z.string().optional(),
 })
 
-const CreateSetorSchema = z.object({
-  tanggal: z.string().min(1, 'Tanggal wajib diisi'),
+const CreateMutasiKasSchema = z.object({
+  jenis_aksi: z.enum(['MASUK', 'KELUAR', 'PINDAH']),
+  sumber_id: z.string().optional(),
+  tujuan_id: z.string().optional(),
   nominal: z.number().positive('Nominal harus lebih dari 0'),
-  account_id: z.string().uuid('Rekening tujuan tidak valid'),
   keterangan: z.string().optional(),
 })
 
@@ -358,10 +359,12 @@ export async function isDateClosed(tanggal: string): Promise<boolean> {
 }
 
 // ============================================================
-// SERVER ACTION: SETOR UANG (BRANKAS → BANK)
+// SERVER ACTION: MUTASI KAS (MASUK, KELUAR, PINDAH)
 // ============================================================
-export async function createSetor(input: CreateSetorInput): Promise<ActionResult<{ id: string }>> {
-  const parsed = CreateSetorSchema.safeParse(input)
+export async function createMutasiKas(
+  input: { jenis_aksi: 'MASUK' | 'KELUAR' | 'PINDAH'; sumber_id?: string; tujuan_id?: string; nominal: number; keterangan?: string }
+): Promise<ActionResult<{ id: string }>> {
+  const parsed = CreateMutasiKasSchema.safeParse(input)
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0].message }
   }
@@ -370,56 +373,117 @@ export async function createSetor(input: CreateSetorInput): Promise<ActionResult
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { success: false, error: 'Tidak terautentikasi' }
 
-  // Cek role — hanya Owner/Super Admin
   const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', user.id).single()
-  if (roleData?.role === 'ADMIN') {
-    return { success: false, error: 'Admin tidak memiliki akses untuk menyetor uang' }
-  }
+  const role = roleData?.role as string | undefined
 
   const data = parsed.data
-
-  // Generate ID referensi
   const refId = crypto.randomUUID()
 
-  // Ambil ID brankas
-  const { data: accounts } = await supabase.from('accounts').select('id, type').eq('type', 'BRANKAS')
-  const brankasId = accounts?.[0]?.id
+  // Validasi role dasar (ADMIN tidak boleh MASUK/KELUAR)
+  if (role === 'ADMIN' && data.jenis_aksi !== 'PINDAH') {
+    return { success: false, error: 'Admin hanya diizinkan memindahkan saldo (Pindah)' }
+  }
 
-  // Catat perpindahan: BRANKAS keluar → BANK masuk
-  const { error } = await supabase.from('cash_transactions').insert([
-    {
+  // 1. Aksi PINDAH
+  if (data.jenis_aksi === 'PINDAH') {
+    if (!data.sumber_id || !data.tujuan_id) return { success: false, error: 'Akun sumber dan tujuan wajib diisi' }
+    
+    const { data: accountRows } = await supabase.from('accounts').select('id, name, type').in('id', [data.sumber_id, data.tujuan_id])
+    const sumber = accountRows?.find(a => a.id === data.sumber_id)
+    const tujuan = accountRows?.find(a => a.id === data.tujuan_id)
+    if (!sumber || !tujuan) return { success: false, error: 'Akun tidak ditemukan' }
+
+    if (role === 'ADMIN') {
+      if (sumber.type !== 'BRANKAS' || tujuan.type !== 'OWNER') {
+        return { success: false, error: 'Admin hanya diizinkan memindahkan saldo dari Brankas ke Setoran Owner' }
+      }
+    }
+
+    const keterangan = data.keterangan || `Pindah saldo: ${sumber.name} → ${tujuan.name}`
+
+    const { error } = await supabase.from('cash_transactions').insert([
+      {
+        tanggal: new Date().toISOString(),
+        account_id: sumber.id,
+        account_type: sumber.type,
+        transaction_type: 'CREDIT',
+        reference_type: 'PINDAH_SALDO',
+        reference_id: refId,
+        debit: 0,
+        credit: data.nominal,
+        description: keterangan,
+      },
+      {
+        tanggal: new Date().toISOString(),
+        account_id: tujuan.id,
+        account_type: tujuan.type,
+        transaction_type: 'DEBIT',
+        reference_type: 'PINDAH_SALDO',
+        reference_id: refId,
+        debit: data.nominal,
+        credit: 0,
+        description: keterangan,
+      },
+    ])
+
+    if (error) return { success: false, error: error.message }
+    revalidatePath('/kas')
+    revalidatePath('/closing')
+    revalidatePath('/dashboard')
+    return { success: true, data: { id: refId }, message: `Pindah saldo Rp ${data.nominal.toLocaleString('id-ID')} berhasil dicatat` }
+  }
+
+  // 2. Aksi MASUK
+  if (data.jenis_aksi === 'MASUK') {
+    if (!data.tujuan_id) return { success: false, error: 'Akun tujuan wajib diisi untuk aksi masuk' }
+    
+    const { data: tujuan } = await supabase.from('accounts').select('id, name, type').eq('id', data.tujuan_id).single()
+    if (!tujuan) return { success: false, error: 'Akun tujuan tidak ditemukan' }
+
+    const keterangan = data.keterangan || `Pemasukan dana: ${tujuan.name}`
+    const { error } = await supabase.from('cash_transactions').insert({
       tanggal: new Date().toISOString(),
-      account_id: brankasId,
-      account_type: 'BRANKAS',
-      transaction_type: 'CREDIT',
-      reference_type: 'BANK_DEPOSIT',
-      reference_id: refId,
-      debit: 0,
-      credit: data.nominal,
-      description: `Setor ke bank — ${data.keterangan || 'Setoran'}`,
-    },
-    {
-      tanggal: new Date().toISOString(),
-      account_id: data.account_id,
-      account_type: 'BANK',
+      account_id: tujuan.id,
+      account_type: tujuan.type,
       transaction_type: 'DEBIT',
-      reference_type: 'BANK_DEPOSIT',
+      reference_type: 'MANUAL',
       reference_id: refId,
       debit: data.nominal,
       credit: 0,
-      description: `Setoran dari brankas — ${data.keterangan || 'Setoran'}`,
-    }
-  ])
+      description: keterangan,
+    })
 
-  if (error) return { success: false, error: error.message }
-
-  revalidatePath('/kas')
-  revalidatePath('/closing')
-  revalidatePath('/dashboard')
-
-  return {
-    success: true,
-    data: { id: refId },
-    message: `Setoran Rp ${data.nominal.toLocaleString('id-ID')} berhasil dicatat`,
+    if (error) return { success: false, error: error.message }
+    revalidatePath('/kas')
+    revalidatePath('/dashboard')
+    return { success: true, data: { id: refId }, message: `Pemasukan uang Rp ${data.nominal.toLocaleString('id-ID')} berhasil dicatat` }
   }
+
+  // 3. Aksi KELUAR
+  if (data.jenis_aksi === 'KELUAR') {
+    if (!data.sumber_id) return { success: false, error: 'Akun sumber wajib diisi untuk aksi keluar' }
+    
+    const { data: sumber } = await supabase.from('accounts').select('id, name, type').eq('id', data.sumber_id).single()
+    if (!sumber) return { success: false, error: 'Akun sumber tidak ditemukan' }
+
+    const keterangan = data.keterangan || `Pengeluaran dana: ${sumber.name}`
+    const { error } = await supabase.from('cash_transactions').insert({
+      tanggal: new Date().toISOString(),
+      account_id: sumber.id,
+      account_type: sumber.type,
+      transaction_type: 'CREDIT',
+      reference_type: 'MANUAL',
+      reference_id: refId,
+      debit: 0,
+      credit: data.nominal,
+      description: keterangan,
+    })
+
+    if (error) return { success: false, error: error.message }
+    revalidatePath('/kas')
+    revalidatePath('/dashboard')
+    return { success: true, data: { id: refId }, message: `Pengeluaran uang Rp ${data.nominal.toLocaleString('id-ID')} berhasil dicatat` }
+  }
+
+  return { success: false, error: 'Aksi tidak valid' }
 }

@@ -1,45 +1,69 @@
 'use client'
 
-import { useState, useTransition } from 'react'
-import { X, CheckCircle, AlertCircle } from 'lucide-react'
+import { useState, useTransition, useEffect } from 'react'
+import { createPortal } from 'react-dom'
+import { X, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { InputCurrency } from '@/components/ui/InputCurrency'
 import { Select } from '@/components/ui/Select'
-import { toInputDate } from '@/lib/utils'
-import { createMutasiKas } from '@/actions/transactions'
+import { createMutasiKas } from '@/actions/closing'
 
 interface Account { id: string; name: string; type: string }
 
-export function MutasiKasModal({
-  accounts,
-  onClose,
-  onSuccess,
-}: {
+interface Props {
   accounts: Account[]
+  role: string          // 'ADMIN' | 'OWNER' | 'SUPER_ADMIN'
   onClose: () => void
   onSuccess?: () => void
-}) {
+}
+
+export function MutasiKasModal({ accounts, role, onClose, onSuccess }: Props) {
   const [isPending, startTransition] = useTransition()
   const [toast, setToast] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
 
-  const defaultKas = accounts.find(a => a.type === 'KAS')?.id ?? ''
-  const [tanggal, setTanggal] = useState(toInputDate())
-  const [accountId, setAccountId] = useState(defaultKas)
-  const [jenis, setJenis] = useState<'MASUK' | 'KELUAR'>('MASUK')
+  const [jenisAksi, setJenisAksi] = useState<'MASUK' | 'KELUAR' | 'PINDAH'>('PINDAH')
+
+  // Build allowed accounts (Admin restricted, Owner/SuperAdmin can access all except KAS)
+  const allowedAccounts = accounts.filter(a => a.type !== 'KAS')
+
+  // For PINDAH (Admin: Brankas -> Owner)
+  const pindahSourceAccounts = role === 'ADMIN' 
+    ? accounts.filter(a => a.type === 'BRANKAS')
+    : allowedAccounts
+
+  function getPindahDestAccounts(sId: string) {
+    if (role === 'ADMIN') return accounts.filter(a => a.type === 'OWNER')
+    return allowedAccounts.filter(a => a.id !== sId)
+  }
+
+  const [sumberId, setSumberId] = useState(pindahSourceAccounts[0]?.id ?? '')
+  const [tujuanId, setTujuanId] = useState('')
   const [nominal, setNominal] = useState('')
   const [keterangan, setKeterangan] = useState('')
+
+  const destAccounts = getPindahDestAccounts(sumberId)
+
+  useEffect(() => {
+    if (jenisAksi === 'PINDAH') {
+      setTujuanId(destAccounts[0]?.id ?? '')
+    } else if (jenisAksi === 'MASUK') {
+      setTujuanId(allowedAccounts[0]?.id ?? '')
+    } else if (jenisAksi === 'KELUAR') {
+      setSumberId(allowedAccounts[0]?.id ?? '')
+    }
+  }, [sumberId, jenisAksi])
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setToast(null)
     startTransition(async () => {
       const result = await createMutasiKas({
-        tanggal,
-        account_id: accountId,
-        jenis,
+        jenis_aksi: jenisAksi,
+        sumber_id: (jenisAksi === 'PINDAH' || jenisAksi === 'KELUAR') ? sumberId : undefined,
+        tujuan_id: (jenisAksi === 'PINDAH' || jenisAksi === 'MASUK') ? tujuanId : undefined,
         nominal: Number(nominal),
-        keterangan,
+        keterangan: keterangan || undefined,
       })
       if (!result.success) {
         setToast({ type: 'error', msg: result.error })
@@ -50,12 +74,26 @@ export function MutasiKasModal({
     })
   }
 
-  return (
+  const sumberLabel = accounts.find(a => a.id === sumberId)?.name ?? '—'
+  const tujuanLabel = accounts.find(a => a.id === tujuanId)?.name ?? '—'
+
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    setMounted(true)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [])
+
+  if (!mounted) return null
+
+  const modalContent = (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="text-base font-semibold text-gray-900">Tambah Mutasi Kas</h2>
+          <h2 className="text-base font-semibold text-gray-900">Mutasi Kas</h2>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
             <X className="h-4 w-4 text-gray-500" />
           </button>
@@ -76,39 +114,56 @@ export function MutasiKasModal({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <Input
-              label="Tanggal"
-              id="mutasi_tanggal"
-              type="date"
-              value={tanggal}
-              onChange={e => setTanggal(e.target.value)}
-              required
-            />
+          {/* Aksi Dropdown (Admin hanya bisa PINDAH) */}
+          {role !== 'ADMIN' && (
             <Select
               label="Jenis Mutasi"
-              id="mutasi_jenis"
-              value={jenis}
-              onChange={e => setJenis(e.target.value as 'MASUK' | 'KELUAR')}
+              id="jenis_aksi"
+              value={jenisAksi}
+              onChange={e => setJenisAksi(e.target.value as any)}
+              required
               options={[
-                { value: 'MASUK', label: '⬆ Kas Masuk' },
-                { value: 'KELUAR', label: '⬇ Kas Keluar' },
+                { value: 'PINDAH', label: 'Pindah Saldo' },
+                { value: 'MASUK', label: 'Uang Masuk' },
+                { value: 'KELUAR', label: 'Uang Keluar' },
               ]}
             />
-          </div>
+          )}
 
-          <Select
-            label="Akun"
-            id="mutasi_account"
-            value={accountId}
-            onChange={e => setAccountId(e.target.value)}
-            required
-            options={accounts.map(a => ({ value: a.id, label: a.name }))}
-          />
+          {/* Preview Arah Dana */}
+          {jenisAksi === 'PINDAH' && (
+            <div className="flex items-center justify-center gap-2 py-2 px-4 bg-gray-50 rounded-xl text-sm font-medium text-gray-700">
+              <span className="truncate max-w-[140px]">{sumberLabel}</span>
+              <ArrowRight className="h-4 w-4 text-gray-400 shrink-0" />
+              <span className="truncate max-w-[140px]">{tujuanId ? tujuanLabel : '—'}</span>
+            </div>
+          )}
+
+          {(jenisAksi === 'PINDAH' || jenisAksi === 'KELUAR') && (
+            <Select
+              label={jenisAksi === 'PINDAH' ? "Dari Akun (Sumber)" : "Akun Sumber"}
+              id="pindah_sumber"
+              value={sumberId}
+              onChange={e => setSumberId(e.target.value)}
+              required
+              options={(jenisAksi === 'PINDAH' ? pindahSourceAccounts : allowedAccounts).map(a => ({ value: a.id, label: a.name }))}
+            />
+          )}
+
+          {(jenisAksi === 'PINDAH' || jenisAksi === 'MASUK') && (
+            <Select
+              label={jenisAksi === 'PINDAH' ? "Ke Akun (Tujuan)" : "Akun Tujuan"}
+              id="pindah_tujuan"
+              value={tujuanId}
+              onChange={e => setTujuanId(e.target.value)}
+              required
+              options={(jenisAksi === 'PINDAH' ? destAccounts : allowedAccounts).map(a => ({ value: a.id, label: a.name }))}
+            />
+          )}
 
           <InputCurrency
             label="Nominal (Rp)"
-            id="mutasi_nominal"
+            id="pindah_nominal"
             min="1"
             value={nominal === '' ? '' : Number(nominal)}
             onChange={val => setNominal(val.toString())}
@@ -117,12 +172,11 @@ export function MutasiKasModal({
           />
 
           <Input
-            label="Keterangan"
-            id="mutasi_keterangan"
+            label="Keterangan (opsional)"
+            id="pindah_keterangan"
             value={keterangan}
             onChange={e => setKeterangan(e.target.value)}
-            placeholder="Contoh: Modal kembalian dari sisa kemarin"
-            required
+            placeholder="Contoh: Setoran owner 5 Sept"
           />
 
           <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
@@ -132,10 +186,13 @@ export function MutasiKasModal({
             <Button
               type="submit"
               loading={isPending}
-              id="submit-mutasi-kas"
-              className={jenis === 'MASUK'
-                ? 'bg-emerald-600 hover:bg-emerald-700'
-                : 'bg-red-600 hover:bg-red-700'}
+              id="submit-pindah-saldo"
+              disabled={
+                !nominal ||
+                (jenisAksi === 'PINDAH' && (!sumberId || !tujuanId)) ||
+                (jenisAksi === 'MASUK' && !tujuanId) ||
+                (jenisAksi === 'KELUAR' && !sumberId)
+              }
             >
               Simpan Mutasi
             </Button>
@@ -144,4 +201,6 @@ export function MutasiKasModal({
       </div>
     </div>
   )
+
+  return createPortal(modalContent, document.body)
 }

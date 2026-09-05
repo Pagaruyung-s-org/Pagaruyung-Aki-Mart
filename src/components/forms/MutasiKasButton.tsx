@@ -1,31 +1,32 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus } from 'lucide-react'
+import { ArrowRightLeft } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { MutasiKasModal } from '@/components/forms/MutasiKasModal'
 import { useRouter } from 'next/navigation'
 
 interface Account { id: string; name: string; type: string }
 
-export function MutasiKasButton({ accounts }: { accounts: Account[] }) {
+export function MutasiKasButton({ accounts, role }: { accounts: Account[]; role: string }) {
   const [open, setOpen] = useState(false)
   const router = useRouter()
 
   return (
     <>
       <Button
-        id="btn-mutasi-kas"
+        id="btn-pindah-saldo"
         onClick={() => setOpen(true)}
         className="flex items-center gap-2"
       >
-        <Plus className="h-4 w-4" />
+        <ArrowRightLeft className="h-4 w-4" />
         Mutasi Kas
       </Button>
 
       {open && (
         <MutasiKasModal
           accounts={accounts}
+          role={role}
           onClose={() => setOpen(false)}
           onSuccess={() => {
             setOpen(false)
