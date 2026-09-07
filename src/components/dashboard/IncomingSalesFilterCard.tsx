@@ -54,7 +54,7 @@ export function IncomingSalesFilterCard() {
             <TrendingUp className="w-5 h-5 text-emerald-600" />
             Kalkulasi Penjualan Masuk
           </h3>
-          <p className="text-xs text-gray-500 mt-1">Total penjualan masuk per akun (net dari pembatalan)</p>
+          <p className="text-xs text-gray-500 mt-1">Total penjualan masuk per akun</p>
         </div>
         
         <div className="flex items-center gap-2 text-sm">
@@ -119,11 +119,6 @@ export function IncomingSalesFilterCard() {
                   <div key={item.accountId} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl border border-gray-100 hover:bg-gray-50/50 transition-colors">
                     <div className="mb-2 sm:mb-0">
                       <p className="font-semibold text-gray-800">{item.accountName}</p>
-                      {item.batal > 0 && (
-                        <p className="text-[11px] text-gray-500 mt-0.5">
-                          Masuk: {formatRupiah(item.masuk)} | Batal: <span className="text-red-500">-{formatRupiah(item.batal)}</span>
-                        </p>
-                      )}
                     </div>
                     <div className="text-right">
                       <p className="font-bold text-gray-900">{formatRupiah(item.net)}</p>
