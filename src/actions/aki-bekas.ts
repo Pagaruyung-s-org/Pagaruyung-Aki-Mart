@@ -316,3 +316,165 @@ export async function createAkiBekasSale(input: {
   revalidatePath('/aki-bekas')
   return { success: true, message: 'Penjualan aki bekas berhasil dicatat' }
 }
+
+const isSameDay = (d1: string, d2: string) => {
+  if (!d1 || !d2) return false
+  return new Date(d1).toISOString().split('T')[0] === new Date(d2).toISOString().split('T')[0]
+}
+
+export async function voidAkiBekasPurchase(id: string, reason: string): Promise<ActionResult> {
+  if (!reason || reason.trim() === '') {
+    return { success: false, error: 'Alasan pembatalan wajib diisi' }
+  }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Tidak terautentikasi' }
+
+  const { data: userData } = await supabase.from('user_roles').select('role').eq('user_id', user.id).single()
+  const role = userData?.role
+
+  // Fetch purchase
+  const { data: purchase } = await supabase
+    .from('aki_bekas_purchases')
+    .select('*')
+    .eq('id', id)
+    .single()
+  if (!purchase) return { success: false, error: 'Data pembelian tidak ditemukan' }
+  if (purchase.status === 'VOID') return { success: false, error: 'Transaksi sudah dibatalkan' }
+
+  // Admin: same-day only
+  if (role === 'ADMIN') {
+    const today = new Date().toISOString()
+    if (!isSameDay(purchase.tanggal, today)) {
+      return { success: false, error: 'Hanya dapat membatalkan transaksi pada hari yang sama (Hari H)' }
+    }
+  } else if (role !== 'SUPER_ADMIN' && role !== 'OWNER') {
+    return { success: false, error: 'Anda tidak memiliki akses untuk membatalkan transaksi' }
+  }
+
+  // Cek batch terkait — pastikan stok belum terjual
+  const { data: batch } = await supabase
+    .from('aki_bekas_batches')
+    .select('id, qty_awal, qty_tersedia')
+    .eq('purchase_id', id)
+    .single()
+
+  if (batch && Number(batch.qty_tersedia) < Number(batch.qty_awal)) {
+    const terjual = Number(batch.qty_awal) - Number(batch.qty_tersedia)
+    return {
+      success: false,
+      error: `Tidak bisa membatalkan pembelian ini karena stoknya sudah terjual sebagian (${terjual} dari ${batch.qty_awal} unit sudah keluar)`
+    }
+  }
+
+  // 1. Void purchase record
+  const { error: voidErr } = await supabase
+    .from('aki_bekas_purchases')
+    .update({ status: 'VOID' })
+    .eq('id', id)
+  if (voidErr) return { success: false, error: voidErr.message }
+
+  // 2. Kosongkan batch (stok kembali ke 0)
+  if (batch) {
+    await supabase
+      .from('aki_bekas_batches')
+      .update({ qty_tersedia: 0 })
+      .eq('id', batch.id)
+  }
+
+  // 3. Kembalikan uang ke bank aki bekas (MASUK = uang balik ke bank)
+  const { error: bankErr } = await supabase
+    .from('bank_aki_bekas_transactions')
+    .insert({
+      tanggal: new Date().toISOString().split('T')[0],
+      jenis: 'MASUK',
+      nominal: purchase.total,
+      keterangan: `Pembatalan pembelian ${purchase.kode} — ${reason}`,
+      reference_type: 'LAINNYA',
+      reference_id: purchase.id,
+      created_by: user.id
+    })
+  if (bankErr) return { success: false, error: 'Gagal mencatat pembalikan bank: ' + bankErr.message }
+
+  revalidatePath('/stok')
+  return { success: true, message: `Pembelian ${purchase.kode} berhasil dibatalkan` }
+}
+
+export async function voidAkiBekasSale(id: string, reason: string): Promise<ActionResult> {
+  if (!reason || reason.trim() === '') {
+    return { success: false, error: 'Alasan pembatalan wajib diisi' }
+  }
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Tidak terautentikasi' }
+
+  const { data: userData } = await supabase.from('user_roles').select('role').eq('user_id', user.id).single()
+  const role = userData?.role
+
+  // Fetch sale
+  const { data: sale } = await supabase
+    .from('aki_bekas_sales')
+    .select('*')
+    .eq('id', id)
+    .single()
+  if (!sale) return { success: false, error: 'Data penjualan tidak ditemukan' }
+  if (sale.status === 'VOID') return { success: false, error: 'Transaksi sudah dibatalkan' }
+
+  // Admin: same-day only
+  if (role === 'ADMIN') {
+    const today = new Date().toISOString()
+    if (!isSameDay(sale.tanggal, today)) {
+      return { success: false, error: 'Hanya dapat membatalkan transaksi pada hari yang sama (Hari H)' }
+    }
+  } else if (role !== 'SUPER_ADMIN' && role !== 'OWNER') {
+    return { success: false, error: 'Anda tidak memiliki akses untuk membatalkan transaksi' }
+  }
+
+  // 1. Void sale record
+  const { error: voidErr } = await supabase
+    .from('aki_bekas_sales')
+    .update({ status: 'VOID' })
+    .eq('id', id)
+  if (voidErr) return { success: false, error: voidErr.message }
+
+  // 2. Ambil semua alokasi FIFO lalu kembalikan qty ke batch masing-masing
+  const { data: allocations } = await supabase
+    .from('aki_bekas_sale_allocations')
+    .select('batch_id, qty_used')
+    .eq('sale_id', id)
+
+  if (allocations && allocations.length > 0) {
+    for (const alloc of allocations) {
+      const { data: batch } = await supabase
+        .from('aki_bekas_batches')
+        .select('qty_tersedia, qty_awal')
+        .eq('id', alloc.batch_id)
+        .single()
+      if (batch) {
+        await supabase
+          .from('aki_bekas_batches')
+          .update({ qty_tersedia: Math.min(Number(batch.qty_awal), Number(batch.qty_tersedia) + Number(alloc.qty_used)) })
+          .eq('id', alloc.batch_id)
+      }
+    }
+  }
+
+  // 3. Catat KELUAR dari bank (uang dikembalikan ke pembeli)
+  const { error: bankErr } = await supabase
+    .from('bank_aki_bekas_transactions')
+    .insert({
+      tanggal: new Date().toISOString().split('T')[0],
+      jenis: 'KELUAR',
+      nominal: sale.total,
+      keterangan: `Pembatalan penjualan ${sale.kode} — ${reason}`,
+      reference_type: 'LAINNYA',
+      reference_id: sale.id,
+      created_by: user.id
+    })
+  if (bankErr) return { success: false, error: 'Gagal mencatat pembalikan bank: ' + bankErr.message }
+
+  revalidatePath('/stok')
+  return { success: true, message: `Penjualan ${sale.kode} berhasil dibatalkan` }
+}

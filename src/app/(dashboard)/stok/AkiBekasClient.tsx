@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Plus, ArrowDown, ArrowUp, Wallet, Package, ArrowLeftRight } from 'lucide-react'
 import { Card, CardBody } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -9,6 +10,9 @@ import { formatRupiah, formatDate } from '@/lib/utils'
 import { FormAkiBekasIn } from '@/components/forms/FormAkiBekasIn'
 import { FormAkiBekasOut } from '@/components/forms/FormAkiBekasOut'
 import { StatusBadge } from '@/components/ui/Badge'
+import { XCircle } from 'lucide-react'
+import { useToast } from '@/components/ui/Toast'
+import { voidAkiBekasPurchase, voidAkiBekasSale } from '@/actions/aki-bekas'
 
 export function AkiBekasClient({
   initialBalance,
@@ -16,7 +20,8 @@ export function AkiBekasClient({
   summary,
   purchases,
   sales,
-  bankTransactions
+  bankTransactions,
+  role
 }: {
   initialBalance: number
   categories: any[]
@@ -24,10 +29,47 @@ export function AkiBekasClient({
   purchases: any[]
   sales: any[]
   bankTransactions: any[]
+  role?: string
 }) {
   const [activeTab, setActiveTab] = useState<'STOK' | 'BELI' | 'JUAL' | 'BANK'>('STOK')
+  const router = useRouter()
   const [isModalInOpen, setIsModalInOpen] = useState(false)
   const [isModalOutOpen, setIsModalOutOpen] = useState(false)
+  const [selectedVoid, setSelectedVoid] = useState<{ id: string, type: 'BELI' | 'JUAL' } | null>(null)
+  const [voidReason, setVoidReason] = useState('')
+  const [isVoiding, setIsVoiding] = useState(false)
+  const { showToast } = useToast()
+
+  const handleVoid = async () => {
+    if (!voidReason.trim()) {
+      showToast('error', 'Alasan pembatalan wajib diisi')
+      return
+    }
+    if (!selectedVoid) return
+
+    setIsVoiding(true)
+    try {
+      let res
+      if (selectedVoid.type === 'BELI') {
+        res = await voidAkiBekasPurchase(selectedVoid.id, voidReason)
+      } else {
+        res = await voidAkiBekasSale(selectedVoid.id, voidReason)
+      }
+
+      if (res.success) {
+        showToast('success', res.message || 'Pembatalan berhasil')
+        setSelectedVoid(null)
+        setVoidReason('')
+        router.refresh()
+      } else {
+        showToast('error', res.error || 'Terjadi kesalahan')
+      }
+    } catch (e: any) {
+      showToast('error', e.message)
+    } finally {
+      setIsVoiding(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -148,6 +190,7 @@ export function AkiBekasClient({
                     <th className="px-6 py-4">Total Harga</th>
                     <th className="px-6 py-4">Sumber</th>
                     <th className="px-6 py-4">Keterangan</th>
+                    <th className="px-6 py-4 text-center">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -159,13 +202,17 @@ export function AkiBekasClient({
                     </tr>
                   ) : (
                     purchases.map((p) => (
-                      <tr key={p.id} className="hover:bg-gray-50">
+                      <tr 
+                        key={p.id} 
+                        className={`hover:bg-gray-50 ${p.status === 'VOID' ? 'bg-red-50/30 opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
+                        onClick={() => p.status !== 'VOID' && setSelectedVoid({ id: p.id, type: 'BELI' })}
+                      >
                         <td className="px-6 py-4">
                           <div className="font-medium text-gray-900">{p.kode}</div>
                           <div className="text-gray-500">{formatDate(p.tanggal)}</div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="font-medium">{p.kapasitas_ah} AH</div>
+                          <div className="font-bold text-gray-900">{p.kapasitas_ah} AH</div>
                           <div className="text-gray-500">{p.qty} Unit @ {formatRupiah(p.harga_beli_unit)}</div>
                         </td>
                         <td className="px-6 py-4 font-medium text-red-600">
@@ -180,6 +227,9 @@ export function AkiBekasClient({
                         </td>
                         <td className="px-6 py-4 text-gray-600 max-w-[200px] truncate">
                           {p.keterangan || '-'}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <StatusBadge status={p.status || 'POSTED'} />
                         </td>
                       </tr>
                     ))
@@ -198,8 +248,9 @@ export function AkiBekasClient({
                     <th className="px-6 py-4">Tanggal & Kode</th>
                     <th className="px-6 py-4">Kapasitas & Qty</th>
                     <th className="px-6 py-4">Total Harga</th>
-                    <th className="px-6 py-4">Laba</th>
+                    {role !== 'ADMIN' && <th className="px-6 py-4">Laba</th>}
                     <th className="px-6 py-4">Keterangan</th>
+                    <th className="px-6 py-4 text-center">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -211,23 +262,32 @@ export function AkiBekasClient({
                     </tr>
                   ) : (
                     sales.map((s) => (
-                      <tr key={s.id} className="hover:bg-gray-50">
+                      <tr 
+                        key={s.id} 
+                        className={`hover:bg-gray-50 ${s.status === 'VOID' ? 'bg-red-50/30 opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
+                        onClick={() => s.status !== 'VOID' && setSelectedVoid({ id: s.id, type: 'JUAL' })}
+                      >
                         <td className="px-6 py-4">
                           <div className="font-medium text-gray-900">{s.kode}</div>
                           <div className="text-gray-500">{formatDate(s.tanggal)}</div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="font-medium">{s.kapasitas_ah} AH</div>
+                          <div className="font-bold text-gray-900">{s.kapasitas_ah} AH</div>
                           <div className="text-gray-500">{s.qty} Unit @ {formatRupiah(s.harga_jual_unit)}</div>
                         </td>
                         <td className="px-6 py-4 font-medium text-green-600">
                           {formatRupiah(s.total)}
                         </td>
-                        <td className="px-6 py-4 font-medium text-blue-600">
-                          {formatRupiah(s.laba)}
-                        </td>
+                        {role !== 'ADMIN' && (
+                          <td className="px-6 py-4 font-medium text-blue-600">
+                            {formatRupiah(s.laba)}
+                          </td>
+                        )}
                         <td className="px-6 py-4 text-gray-600 max-w-[200px] truncate">
                           {s.keterangan || '-'}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <StatusBadge status={s.status || 'POSTED'} />
                         </td>
                       </tr>
                     ))
@@ -263,10 +323,10 @@ export function AkiBekasClient({
                           {new Date(bt.created_at).toLocaleString('id-ID')}
                         </td>
                         <td className="px-6 py-4">
-                          {bt.jenis === 'MASUK' ? (
-                            <StatusBadge status="PAID" />
-                          ) : (
+                          {bt.keterangan?.includes('Pembatalan') ? (
                             <StatusBadge status="VOID" />
+                          ) : (
+                            <StatusBadge status={bt.jenis} />
                           )}
                         </td>
                         <td className={`px-6 py-4 font-medium ${bt.jenis === 'MASUK' ? 'text-green-600' : 'text-red-600'}`}>
@@ -311,6 +371,46 @@ export function AkiBekasClient({
           onSuccess={() => setIsModalOutOpen(false)}
           onCancel={() => setIsModalOutOpen(false)}
         />
+      </Modal>
+
+      <Modal
+        isOpen={!!selectedVoid}
+        onClose={() => {
+          setSelectedVoid(null)
+          setVoidReason('')
+        }}
+        title={`Konfirmasi Void ${selectedVoid?.type === 'BELI' ? 'Pembelian' : 'Penjualan'} Aki Bekas`}
+      >
+        <div className="space-y-4">
+          <div className="bg-red-50 p-4 rounded-lg text-red-800 text-sm">
+            <p className="font-semibold mb-1">Perhatian!</p>
+            <p>Tindakan ini akan membatalkan transaksi, {selectedVoid?.type === 'BELI' ? 'menghapus stok yang masuk,' : 'mengembalikan stok yang keluar,'} dan membalikkan mutasi pada kas bank aki bekas secara otomatis.</p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-900 mb-1">
+              Alasan Pembatalan <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-red-500 focus:border-red-500 outline-none text-base text-gray-900 min-h-[120px]"
+              placeholder="Masukkan alasan mengapa transaksi ini dibatalkan..."
+              value={voidReason}
+              onChange={e => setVoidReason(e.target.value)}
+            />
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+            <Button variant="secondary" onClick={() => { setSelectedVoid(null); setVoidReason('') }} disabled={isVoiding}>
+              Tutup
+            </Button>
+            <Button
+              className="bg-red-600 hover:bg-red-700 text-white font-bold"
+              onClick={handleVoid}
+              loading={isVoiding}
+              disabled={!voidReason.trim()}
+            >
+              Konfirmasi Void
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   )

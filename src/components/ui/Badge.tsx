@@ -42,7 +42,7 @@ export function StatusBadge({ status }: StatusBadgeProps) {
     DRAFT: { label: 'Draft', variant: 'default' },
     CANCELLED: { label: 'Dibatalkan', variant: 'danger' },
     PAID: { label: 'Lunas', variant: 'success' },
-    VOID: { label: 'KELUAR', variant: 'danger' },
+    VOID: { label: 'VOID', variant: 'danger' },
     MASUK: { label: 'MASUK', variant: 'success' },
     KELUAR: { label: 'KELUAR', variant: 'danger' },
   }

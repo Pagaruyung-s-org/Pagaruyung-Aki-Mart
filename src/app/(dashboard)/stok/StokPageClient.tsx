@@ -36,7 +36,7 @@ export function StokPageClient({ products, batchByProduct, role, akiBekasData }:
       contents={{
         'produk': <StokProdukTable products={productsAki} batchByProduct={batchByProduct} role={role} />,
         'air-aki': <StokProdukTable products={productsAirAki} batchByProduct={batchByProduct} role={role} isAirAki={true} />,
-        'aki-bekas': akiBekasData ? <AkiBekasClient {...akiBekasData} /> : <div className="p-4 text-center text-gray-500">Memuat data aki bekas...</div>
+        'aki-bekas': akiBekasData ? <AkiBekasClient {...akiBekasData} role={role} /> : <div className="p-4 text-center text-gray-500">Memuat data aki bekas...</div>
       }}
     />
   )
