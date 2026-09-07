@@ -105,11 +105,11 @@ export async function GET(req: NextRequest) {
   }
 
   const printDate = new Intl.DateTimeFormat('id-ID', { dateStyle: 'full', timeStyle: 'short', timeZone: 'Asia/Jakarta' }).format(now)
-  const periodeLabel = \`\${BULAN[m]} \${y}\`
+  const periodeLabel = `${BULAN[m]} ${y}`
 
-  const html = \`<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8">
-<title>Laporan Laba Rugi \${titleSuffix} — \${periodeLabel}</title>
-<style>\${baseStyle}</style></head><body>
+  const html = `<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8">
+<title>Laporan Laba Rugi ${titleSuffix} — ${periodeLabel}</title>
+<style>${baseStyle}</style></head><body>
 <div class="print-bar"><button class="btn-print" onclick="window.print()">🖨️ Cetak / Simpan sebagai PDF</button></div>
 <div class="page">
   <div class="header">
@@ -121,39 +121,39 @@ export async function GET(req: NextRequest) {
       </div>
     </div>
     <div>
-      <div class="report-title">LAPORAN LABA RUGI \${titleSuffix.toUpperCase()}</div>
-      <div class="report-period">Periode: \${periodeLabel}</div>
-      <div class="report-date">Dicetak: \${printDate}</div>
+      <div class="report-title">LAPORAN LABA RUGI ${titleSuffix.toUpperCase()}</div>
+      <div class="report-period">Periode: ${periodeLabel}</div>
+      <div class="report-date">Dicetak: ${printDate}</div>
     </div>
   </div>
-  <div class="period-badge">Periode: \${periodeLabel}</div>
+  <div class="period-badge">Periode: ${periodeLabel}</div>
   <table class="pl-table">
     <tr><td colspan="2" class="section-head">I. PENDAPATAN</td></tr>
-    <tr><td class="indent">Pendapatan Kotor (Penjualan Bruto)</td><td class="right">\${formatRp(pendapatanKotor)}</td></tr>
-    \${tab === 'utama' ? \`<tr><td class="indent">Potongan / Diskon</td><td class="right red">(\${formatRp(totalDiskon)})</td></tr>\` : ''}
-    <tr class="subtotal"><td style="padding-left:10px;font-weight:700">Total Pendapatan Bersih</td><td class="right pos">\${formatRp(pendapatanBersih)}</td></tr>
+    <tr><td class="indent">Pendapatan Kotor (Penjualan Bruto)</td><td class="right">${formatRp(pendapatanKotor)}</td></tr>
+    ${tab === 'utama' ? `<tr><td class="indent">Potongan / Diskon</td><td class="right red">(${formatRp(totalDiskon)})</td></tr>` : ''}
+    <tr class="subtotal"><td style="padding-left:10px;font-weight:700">Total Pendapatan Bersih</td><td class="right pos">${formatRp(pendapatanBersih)}</td></tr>
 
     <tr><td colspan="2" class="section-head" style="margin-top:8px">II. BEBAN POKOK PENJUALAN (HPP)</td></tr>
-    <tr><td class="indent">Harga Pokok Penjualan (HPP)</td><td class="right neg">(\${formatRp(totalHPP)})</td></tr>
-    <tr class="subtotal"><td style="padding-left:10px;font-weight:700">Laba Kotor</td><td class="right \${labaKotor >= 0 ? 'pos' : 'neg'}">\${formatRp(labaKotor)}</td></tr>
+    <tr><td class="indent">Harga Pokok Penjualan (HPP)</td><td class="right neg">(${formatRp(totalHPP)})</td></tr>
+    <tr class="subtotal"><td style="padding-left:10px;font-weight:700">Laba Kotor</td><td class="right ${labaKotor >= 0 ? 'pos' : 'neg'}">${formatRp(labaKotor)}</td></tr>
 
     <tr><td colspan="2" class="section-head">III. BEBAN OPERASIONAL</td></tr>
-    <tr><td class="indent">\${tab === 'utama' ? 'Biaya Operasional (Pengeluaran)' : '(Ditanggung Toko Utama)'}</td><td class="right \${tab === 'utama' ? 'neg' : ''}">(\${formatRp(bebanOperasional)})</td></tr>
-    <tr class="subtotal"><td style="padding-left:10px;font-weight:700">Total Beban Operasional</td><td class="right \${tab === 'utama' ? 'neg' : ''}">(\${formatRp(bebanOperasional)})</td></tr>
+    <tr><td class="indent">${tab === 'utama' ? 'Biaya Operasional (Pengeluaran)' : '(Ditanggung Toko Utama)'}</td><td class="right ${tab === 'utama' ? 'neg' : ''}">(${formatRp(bebanOperasional)})</td></tr>
+    <tr class="subtotal"><td style="padding-left:10px;font-weight:700">Total Beban Operasional</td><td class="right ${tab === 'utama' ? 'neg' : ''}">(${formatRp(bebanOperasional)})</td></tr>
 
     <tr class="grand-total">
       <td>LABA / RUGI BERSIH</td>
-      <td class="right">\${isProfit ? '' : '('}\${formatRp(Math.abs(labaBersih))}\${isProfit ? '' : ')'}</td>
+      <td class="right">${isProfit ? '' : '('}${formatRp(Math.abs(labaBersih))}${isProfit ? '' : ')'}</td>
     </tr>
   </table>
 
-  <div style="margin-top:20px; padding:12px 16px; border:1px solid \${isProfit ? '#bbf7d0' : '#fecaca'}; border-radius:6px; background:\${isProfit ? '#f0fdf4' : '#fff1f2'};">
-    <div style="font-weight:700; font-size:12px; color:\${isProfit ? '#166534' : '#991b1b'}; margin-bottom:4px;">
-      \${isProfit ? '✓ Usaha mengalami KEUNTUNGAN pada periode ini' : '✕ Usaha mengalami KERUGIAN pada periode ini'}
+  <div style="margin-top:20px; padding:12px 16px; border:1px solid ${isProfit ? '#bbf7d0' : '#fecaca'}; border-radius:6px; background:${isProfit ? '#f0fdf4' : '#fff1f2'};">
+    <div style="font-weight:700; font-size:12px; color:${isProfit ? '#166534' : '#991b1b'}; margin-bottom:4px;">
+      ${isProfit ? '✓ Usaha mengalami KEUNTUNGAN pada periode ini' : '✕ Usaha mengalami KERUGIAN pada periode ini'}
     </div>
     <div style="font-size:10px; color:#555;">
-      Margin laba bersih: \${pendapatanBersih > 0 ? ((labaBersih / pendapatanBersih) * 100).toFixed(2) : '0'}%
-      dari total pendapatan bersih \${formatRp(pendapatanBersih)}
+      Margin laba bersih: ${pendapatanBersih > 0 ? ((labaBersih / pendapatanBersih) * 100).toFixed(2) : '0'}%
+      dari total pendapatan bersih ${formatRp(pendapatanBersih)}
     </div>
   </div>
 
@@ -161,7 +161,7 @@ export async function GET(req: NextRequest) {
     <div class="footer-note">* Laporan digenerate otomatis oleh sistem PT. Pagaruyung Mitra Persada (Aki Mart)</div>
     <div class="footer-note">Halaman 1 dari 1</div>
   </div>
-</div></body></html>\`
+</div></body></html>`
 
   return new NextResponse(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
 }
