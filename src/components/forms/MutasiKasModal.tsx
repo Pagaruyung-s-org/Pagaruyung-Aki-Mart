@@ -25,16 +25,16 @@ export function MutasiKasModal({ accounts, role, onClose, onSuccess }: Props) {
   const [jenisAksi, setJenisAksi] = useState<'MASUK' | 'KELUAR' | 'PINDAH'>('PINDAH')
 
   const isPrivileged = role === 'OWNER' || role === 'SUPER_ADMIN'
-  // Build allowed accounts (Admin restricted, Owner/SuperAdmin can access all except KAS)
-  const allowedAccounts = accounts.filter(a => a.type !== 'KAS')
+  // Build allowed accounts (Now including KAS so store cash can be transferred)
+  const allowedAccounts = accounts
 
-  // For PINDAH (Admin/Kasir: Brankas -> Owner)
+  // For PINDAH (Admin/Kasir: Brankas/Kas -> Owner)
   const pindahSourceAccounts = !isPrivileged 
-    ? accounts.filter(a => a.type === 'BRANKAS')
+    ? accounts.filter(a => a.type === 'BRANKAS' || a.type === 'KAS')
     : allowedAccounts
 
   function getPindahDestAccounts(sId: string) {
-    if (!isPrivileged) return accounts.filter(a => a.type === 'OWNER')
+    if (!isPrivileged) return accounts.filter(a => a.type === 'OWNER' || a.type === 'BRANKAS' || a.type === 'KAS').filter(a => a.id !== sId)
     return allowedAccounts.filter(a => a.id !== sId)
   }
 

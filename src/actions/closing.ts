@@ -394,8 +394,8 @@ export async function createMutasiKas(
     if (!sumber || !tujuan) return { success: false, error: 'Akun tidak ditemukan' }
 
     if (role === 'ADMIN') {
-      if (sumber.type !== 'BRANKAS' || tujuan.type !== 'OWNER') {
-        return { success: false, error: 'Admin hanya diizinkan memindahkan saldo dari Brankas ke Setoran Owner' }
+      if (!['BRANKAS', 'KAS'].includes(sumber.type) || !['OWNER', 'BRANKAS'].includes(tujuan.type)) {
+        return { success: false, error: 'Admin hanya diizinkan memindahkan saldo dari Brankas/Kas ke Setoran Owner atau Brankas' }
       }
     }
 

@@ -21,6 +21,8 @@ export function IncomingSalesFilterCard() {
   const [data, setData] = useState<SalesData[]>([])
   const [error, setError] = useState('')
 
+  const [mounted, setMounted] = useState(false)
+
   const fetchData = async () => {
     setLoading(true)
     setError('')
@@ -40,8 +42,11 @@ export function IncomingSalesFilterCard() {
 
   // Load initially
   useEffect(() => {
+    setMounted(true)
     fetchData()
   }, []) // Empty dependency array ensures it runs once on mount
+
+  if (!mounted) return null
 
   const totalNet = data.reduce((sum, item) => sum + item.net, 0)
 
