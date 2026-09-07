@@ -25,6 +25,7 @@ import {
   Vault,
   ClipboardCheck,
   Landmark,
+  Battery,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useState, useEffect, useRef } from 'react'
@@ -80,6 +81,13 @@ const navItems: NavItem[] = [
       { label: 'Kas/Bank', href: '/kas', icon: <Wallet className="h-4 w-4" /> },
       { label: 'Daftar Akun', href: '/kas/akun', icon: <CreditCard className="h-4 w-4" /> },
       { label: 'Closing Harian', href: '/closing', icon: <Lock className="h-4 w-4" /> },
+    ],
+  },
+  {
+    label: 'Aki Bekas',
+    icon: <Battery className="h-4 w-4" />,
+    children: [
+      { label: 'Mutasi & Transaksi', href: '/aki-bekas', icon: <ArrowLeftRight className="h-4 w-4" /> },
     ],
   },
   {
