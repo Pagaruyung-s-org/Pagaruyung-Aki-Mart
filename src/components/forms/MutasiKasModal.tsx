@@ -24,16 +24,17 @@ export function MutasiKasModal({ accounts, role, onClose, onSuccess }: Props) {
 
   const [jenisAksi, setJenisAksi] = useState<'MASUK' | 'KELUAR' | 'PINDAH'>('PINDAH')
 
+  const isPrivileged = role === 'OWNER' || role === 'SUPER_ADMIN'
   // Build allowed accounts (Admin restricted, Owner/SuperAdmin can access all except KAS)
   const allowedAccounts = accounts.filter(a => a.type !== 'KAS')
 
-  // For PINDAH (Admin: Brankas -> Owner)
-  const pindahSourceAccounts = role === 'ADMIN' 
+  // For PINDAH (Admin/Kasir: Brankas -> Owner)
+  const pindahSourceAccounts = !isPrivileged 
     ? accounts.filter(a => a.type === 'BRANKAS')
     : allowedAccounts
 
   function getPindahDestAccounts(sId: string) {
-    if (role === 'ADMIN') return accounts.filter(a => a.type === 'OWNER')
+    if (!isPrivileged) return accounts.filter(a => a.type === 'OWNER')
     return allowedAccounts.filter(a => a.id !== sId)
   }
 
@@ -114,8 +115,8 @@ export function MutasiKasModal({ accounts, role, onClose, onSuccess }: Props) {
             </div>
           )}
 
-          {/* Aksi Dropdown (Admin hanya bisa PINDAH) */}
-          {role !== 'ADMIN' && (
+          {/* Aksi Dropdown (Admin/Kasir hanya bisa PINDAH) */}
+          {isPrivileged && (
             <Select
               label="Jenis Mutasi"
               id="jenis_aksi"
@@ -146,6 +147,7 @@ export function MutasiKasModal({ accounts, role, onClose, onSuccess }: Props) {
               value={sumberId}
               onChange={e => setSumberId(e.target.value)}
               required
+              disabled={!isPrivileged}
               options={(jenisAksi === 'PINDAH' ? pindahSourceAccounts : allowedAccounts).map(a => ({ value: a.id, label: a.name }))}
             />
           )}
@@ -157,6 +159,7 @@ export function MutasiKasModal({ accounts, role, onClose, onSuccess }: Props) {
               value={tujuanId}
               onChange={e => setTujuanId(e.target.value)}
               required
+              disabled={!isPrivileged}
               options={(jenisAksi === 'PINDAH' ? destAccounts : allowedAccounts).map(a => ({ value: a.id, label: a.name }))}
             />
           )}

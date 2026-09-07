@@ -259,7 +259,7 @@ export function Sidebar({ role }: { role: 'SUPER_ADMIN' | 'ADMIN' | 'OWNER' | nu
     }
     if (item.label === 'Keuangan') {
       const filteredChildren = item.children?.filter(child => {
-        if (role === 'ADMIN' && (child.label === 'Hutang Supplier' || child.label === 'Piutang Toko Pusat' || child.label === 'Kas/Bank' || child.label === 'Daftar Akun')) return false
+        if (role === 'ADMIN' && (child.label === 'Hutang Supplier' || child.label === 'Piutang Toko Pusat' || child.label === 'Daftar Akun')) return false
         return true
       })
       return { ...item, children: filteredChildren }

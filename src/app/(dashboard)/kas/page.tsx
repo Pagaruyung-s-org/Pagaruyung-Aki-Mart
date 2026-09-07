@@ -53,10 +53,10 @@ export default async function KasBankPage() {
     .order('sort_order')
 
   // 3. Filter visible accounts per role
-  // Admin: hanya KAS, BRANKAS, OWNER
+  // Admin: hanya BRANKAS, OWNER
   const visibleAccounts = isPrivileged
     ? allAccounts ?? []
-    : (allAccounts ?? []).filter(a => a.type !== 'BANK')
+    : (allAccounts ?? []).filter(a => a.type === 'BRANKAS' || a.type === 'OWNER')
 
   // 4. Fetch all cash_transactions for saldo calc
   const { data: allCash } = await supabase
