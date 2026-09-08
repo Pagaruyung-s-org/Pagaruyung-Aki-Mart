@@ -169,6 +169,16 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
                 <p className="text-sm font-medium text-gray-900">
                   <PaymentBadge method={selectedSale.payment_method} keterangan={selectedSale.keterangan} />
                 </p>
+                {selectedSale.payment_method === 'SPLIT' && selectedSale.split_payments && (
+                  <div className="mt-2 space-y-1">
+                    {(selectedSale.split_payments as any[]).map((sp: any, i: number) => (
+                      <div key={i} className="flex justify-between text-xs bg-purple-50 px-2 py-1 rounded">
+                        <span className="text-purple-700 font-medium">{sp.method}</span>
+                        <span className="text-purple-900 font-semibold">{formatRupiah(sp.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 

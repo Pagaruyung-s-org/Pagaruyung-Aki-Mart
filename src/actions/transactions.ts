@@ -50,8 +50,13 @@ const CreateSaleItemSchema = z.object({
 const CreateSaleSchema = z.object({
   tanggal: z.string().min(1, 'Tanggal wajib diisi'),
   customer_name: z.string().optional(),
-  payment_method: z.enum(['CASH', 'TRANSFER', 'QRIS']),
+  payment_method: z.enum(['CASH', 'TRANSFER', 'QRIS', 'SPLIT']),
   account_id: z.string().uuid().optional(),
+  split_payments: z.array(z.object({
+    method: z.enum(['CASH', 'TRANSFER', 'QRIS']),
+    account_id: z.string().uuid(),
+    amount: z.number().positive(),
+  })).optional(),
   discount: z.number().optional(),
   keterangan: z.string().optional(),
   is_indent: z.boolean().optional(),
@@ -420,6 +425,7 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
       total,
       dp_amount: dpAmount,
       payment_method: data.payment_method,
+      split_payments: data.payment_method === 'SPLIT' ? data.split_payments : null,
       status_transaksi: data.is_indent ? 'INDENT' : 'PAID',
       status_pembayaran: data.is_toko_pusat ? 'PIUTANG' : 'PAID',
       is_toko_pusat: data.is_toko_pusat ?? false,
@@ -503,19 +509,43 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
 
 
   // Catat kas masuk dari penjualan (hanya jika bukan toko pusat)
-  const cashIn = data.is_indent ? dpAmount : total
-  if (cashIn > 0 && data.account_id && !data.is_toko_pusat) {
-    await supabase.from('cash_transactions').insert({
-      tanggal: data.tanggal,
-      account_id: data.account_id,
-      account_type: await getAccountType(supabase, data.account_id),
-      transaction_type: 'DEBIT',
-      reference_type: 'SALE',
-      reference_id: sale.id,
-      debit: cashIn,
-      credit: 0,
-      description: data.is_indent ? `DP Inden ${kode_penjualan}` : `Penjualan ${kode_penjualan}`,
-    })
+  if (!data.is_toko_pusat) {
+    if (data.payment_method === 'SPLIT' && data.split_payments && data.split_payments.length > 0) {
+      // Split payment: catat satu cash_transaction per metode pembayaran
+      for (const sp of data.split_payments) {
+        const spAccountType = await getAccountType(supabase, sp.account_id)
+        const spAmount = data.is_indent ? Math.min(sp.amount, dpAmount) : sp.amount
+        if (spAmount > 0) {
+          await supabase.from('cash_transactions').insert({
+            tanggal: data.tanggal,
+            account_id: sp.account_id,
+            account_type: spAccountType,
+            transaction_type: 'DEBIT',
+            reference_type: 'SALE',
+            reference_id: sale.id,
+            debit: spAmount,
+            credit: 0,
+            description: data.is_indent ? `DP Inden ${kode_penjualan} (${sp.method})` : `Penjualan ${kode_penjualan} (${sp.method})`,
+          })
+        }
+      }
+    } else {
+      // Single payment method
+      const cashIn = data.is_indent ? dpAmount : total
+      if (cashIn > 0 && data.account_id) {
+        await supabase.from('cash_transactions').insert({
+          tanggal: data.tanggal,
+          account_id: data.account_id,
+          account_type: await getAccountType(supabase, data.account_id),
+          transaction_type: 'DEBIT',
+          reference_type: 'SALE',
+          reference_id: sale.id,
+          debit: cashIn,
+          credit: 0,
+          description: data.is_indent ? `DP Inden ${kode_penjualan}` : `Penjualan ${kode_penjualan}`,
+        })
+      }
+    }
   }
 
   // Jika toko pusat, catat sebagai piutang

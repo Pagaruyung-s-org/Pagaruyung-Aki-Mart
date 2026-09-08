@@ -37,7 +37,7 @@ async function getTransactionSummary(supabase: any, tanggal: string) {
   const startOfDay = `${tanggal}T00:00:00+07:00`
   const endOfDay = `${tanggal}T23:59:59+07:00`
 
-  // Penjualan tunai
+  // Penjualan tunai (non-split)
   const { data: salesCash } = await supabase
     .from('sales')
     .select('total')
@@ -46,9 +46,9 @@ async function getTransactionSummary(supabase: any, tanggal: string) {
     .gte('tanggal', startOfDay)
     .lte('tanggal', endOfDay)
 
-  const totalPenjualanTunai = salesCash?.reduce((sum: number, s: any) => sum + Number(s.total), 0) ?? 0
+  let totalPenjualanTunai = salesCash?.reduce((sum: number, s: any) => sum + Number(s.total), 0) ?? 0
 
-  // Penjualan transfer/qris — hitung per bank
+  // Penjualan transfer/qris — hitung per bank (non-split)
   const { data: salesTransfer } = await supabase
     .from('sales')
     .select('total, payment_method, keterangan')
@@ -70,6 +70,29 @@ async function getTransactionSummary(supabase: any, tanggal: string) {
       key = match ? `Transfer ${match[1].toUpperCase()}` : 'Transfer (Lainnya)'
     }
     transferDetails[key] = (transferDetails[key] ?? 0) + amount
+  }
+
+  // Penjualan SPLIT — distribusi dari split_payments JSONB
+  const { data: salesSplit } = await supabase
+    .from('sales')
+    .select('split_payments')
+    .eq('payment_method', 'SPLIT')
+    .in('status_transaksi', ['PAID'])
+    .gte('tanggal', startOfDay)
+    .lte('tanggal', endOfDay)
+
+  for (const s of salesSplit ?? []) {
+    if (!s.split_payments || !Array.isArray(s.split_payments)) continue
+    for (const sp of s.split_payments) {
+      const amount = Number(sp.amount) || 0
+      if (sp.method === 'CASH') {
+        totalPenjualanTunai += amount
+      } else {
+        totalPenjualanTransfer += amount
+        const key = sp.method === 'QRIS' ? 'QRIS' : 'Transfer (Split)'
+        transferDetails[key] = (transferDetails[key] ?? 0) + amount
+      }
+    }
   }
 
   // Pengeluaran operasional (tunai)

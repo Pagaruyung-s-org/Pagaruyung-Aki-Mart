@@ -59,6 +59,10 @@ interface PaymentBadgeProps {
 }
 
 export function PaymentBadge({ method, keterangan }: PaymentBadgeProps) {
+  if (method === 'SPLIT') {
+    return <Badge className="bg-purple-100 text-purple-700">SPLIT</Badge>
+  }
+
   let display = method
   if (keterangan) {
     const match = keterangan.match(/(?:Bank|Akun):\s*([^|]+)/i)

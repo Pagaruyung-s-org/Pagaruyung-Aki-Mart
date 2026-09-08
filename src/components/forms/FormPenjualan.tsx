@@ -30,6 +30,12 @@ interface Account {
   is_active: boolean
 }
 
+interface SplitRow {
+  method: 'CASH' | 'TRANSFER' | 'QRIS'
+  account_id: string
+  amount: number | ''
+}
+
 export function FormPenjualan({
   products,
   airAkiProducts = [],
@@ -51,15 +57,22 @@ export function FormPenjualan({
   const [isPending, startTransition] = useTransition()
 
   const defaultKas = accounts?.find(a => a.type === 'KAS')?.id || ''
+  const defaultBank = accounts?.find(a => a.type === 'BANK')?.id || ''
 
   const [tanggal, setTanggal] = useState(toInputDate())
   const [customerName, setCustomerName] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'TRANSFER' | 'QRIS'>('CASH')
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'TRANSFER' | 'QRIS' | 'SPLIT'>('CASH')
   const [accountId, setAccountId] = useState(defaultKas)
   const [keterangan, setKeterangan] = useState('')
   const [items, setItems] = useState<SaleItem[]>([{ product_id: '', qty: 1, harga_jual: 0, discount: 0 }])
   const [isIndent, setIsIndent] = useState(false)
   const [dpAmount, setDpAmount] = useState<number | ''>('')
+
+  // Split payment state
+  const [splitRows, setSplitRows] = useState<SplitRow[]>([
+    { method: 'CASH', account_id: defaultKas, amount: '' },
+    { method: 'TRANSFER', account_id: defaultBank, amount: '' },
+  ])
 
   // State khusus Sertakan Air Aki
   const [includeAirAki, setIncludeAirAki] = useState(false)
@@ -103,8 +116,27 @@ export function FormPenjualan({
   function addItem() { setItems([...items, { product_id: '', qty: 1, harga_jual: 0, discount: 0 }]) }
   function removeItem(idx: number) { setItems(items.filter((_, i) => i !== idx)) }
 
+  // Split payment helpers
+  function updateSplitRow(idx: number, field: keyof SplitRow, value: any) {
+    const updated = [...splitRows]
+    if (field === 'method') {
+      const m = value as 'CASH' | 'TRANSFER' | 'QRIS'
+      const defaultAcc = m === 'CASH'
+        ? accounts?.find(a => a.type === 'KAS')?.id || ''
+        : accounts?.find(a => a.type === 'BANK')?.id || ''
+      updated[idx] = { ...updated[idx], method: m, account_id: defaultAcc }
+    } else {
+      updated[idx] = { ...updated[idx], [field]: value }
+    }
+    setSplitRows(updated)
+  }
+  function addSplitRow() { setSplitRows([...splitRows, { method: 'TRANSFER', account_id: defaultBank, amount: '' }]) }
+  function removeSplitRow(idx: number) { setSplitRows(splitRows.filter((_, i) => i !== idx)) }
+
   const subtotalAll = items.reduce((s, i) => s + (i.qty * i.harga_jual) - i.discount, 0)
   const total = subtotalAll
+  const totalSplit = splitRows.reduce((s, r) => s + (Number(r.amount) || 0), 0)
+  const targetAmount = isIndent ? (Number(dpAmount) || 0) : total
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -144,12 +176,32 @@ export function FormPenjualan({
       return
     }
 
+    // Validasi split payment
+    if (paymentMethod === 'SPLIT') {
+      const validSplits = splitRows.filter(r => r.account_id && Number(r.amount) > 0)
+      if (validSplits.length < 2) {
+        showToast('error', 'Split payment harus memiliki minimal 2 metode pembayaran')
+        return
+      }
+      if (totalSplit !== targetAmount) {
+        showToast('error', `Total split (${formatRupiah(totalSplit)}) harus sama dengan ${isIndent ? 'DP' : 'total'} (${formatRupiah(targetAmount)})`)
+        return
+      }
+    }
+
     startTransition(async () => {
       const result = await createSale({
         tanggal,
         customer_name: customerName || undefined,
         payment_method: paymentMethod,
-        account_id: accountId,
+        account_id: paymentMethod === 'SPLIT' ? undefined : accountId,
+        split_payments: paymentMethod === 'SPLIT'
+          ? splitRows.filter(r => r.account_id && Number(r.amount) > 0).map(r => ({
+            method: r.method,
+            account_id: r.account_id,
+            amount: Number(r.amount),
+          }))
+          : undefined,
         discount: 0,
         keterangan: keterangan || undefined,
         is_indent: isIndent,
@@ -196,16 +248,21 @@ export function FormPenjualan({
           <Input label="Nama Customer (opsional)" id="customer_name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Nama customer jika perlu dicatat" />
           {!jualKeTokoPusat && (
             <Select label="Metode Pembayaran" id="payment_method" value={paymentMethod} onChange={(e) => {
-              const val = e.target.value as 'CASH' | 'TRANSFER' | 'QRIS';
+              const val = e.target.value as 'CASH' | 'TRANSFER' | 'QRIS' | 'SPLIT';
               setPaymentMethod(val);
               if (val === 'CASH') {
                 setAccountId(accounts?.find(a => a.type === 'KAS')?.id || '');
-              } else {
+              } else if (val !== 'SPLIT') {
                 setAccountId(accounts?.find(a => a.type === 'BANK')?.id || '');
               }
-            }} options={[{ value: 'CASH', label: 'Tunai' }, { value: 'TRANSFER', label: 'Transfer Bank' }, { value: 'QRIS', label: 'QRIS' }]} />
+            }} options={[
+              { value: 'CASH', label: 'Tunai' },
+              { value: 'TRANSFER', label: 'Transfer Bank' },
+              { value: 'QRIS', label: 'QRIS' },
+              { value: 'SPLIT', label: 'Split Payment' },
+            ]} />
           )}
-          {!jualKeTokoPusat && (
+          {!jualKeTokoPusat && paymentMethod !== 'SPLIT' && (
             <Select
               label="Simpan Ke Akun"
               id="account_id"
@@ -232,6 +289,7 @@ export function FormPenjualan({
           )}
         </CardBody>
       </Card>
+
 
       <Card>
         <CardHeader className="flex items-center justify-between">
@@ -341,6 +399,71 @@ export function FormPenjualan({
                   </div>
                 </div>
               )}
+            </div>
+          </CardBody>
+        </Card>
+      )}
+
+      {/* Split Payment Detail */}
+      {paymentMethod === 'SPLIT' && !jualKeTokoPusat && (
+        <Card>
+          <CardHeader className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-900">Detail Pembayaran Split</h2>
+            <Button type="button" size="sm" variant="outline" onClick={addSplitRow}><Plus className="h-3.5 w-3.5" /> Tambah Metode</Button>
+          </CardHeader>
+          <CardBody className="space-y-3">
+            {splitRows.map((row, idx) => (
+              <div key={idx} className="p-3 bg-purple-50 rounded-xl border border-purple-200 grid grid-cols-12 gap-3 items-end">
+                <div className="col-span-3">
+                  <Select
+                    label="Metode"
+                    id={`split-method-${idx}`}
+                    value={row.method}
+                    onChange={(e) => updateSplitRow(idx, 'method', e.target.value)}
+                    options={[
+                      { value: 'CASH', label: 'Tunai' },
+                      { value: 'TRANSFER', label: 'Transfer' },
+                      { value: 'QRIS', label: 'QRIS' },
+                    ]}
+                  />
+                </div>
+                <div className="col-span-4">
+                  <Select
+                    label="Akun"
+                    id={`split-account-${idx}`}
+                    value={row.account_id}
+                    onChange={(e) => updateSplitRow(idx, 'account_id', e.target.value)}
+                    options={[
+                      { value: '', label: '-- Pilih Akun --' },
+                      ...(accounts || [])
+                        .filter(a => row.method === 'CASH' ? a.type === 'KAS' : a.type === 'BANK')
+                        .map(a => ({ value: a.id, label: a.name }))
+                    ]}
+                  />
+                </div>
+                <div className="col-span-4">
+                  <InputCurrency
+                    label="Nominal"
+                    id={`split-amount-${idx}`}
+                    min="0"
+                    value={row.amount}
+                    onChange={(val) => updateSplitRow(idx, 'amount', val === '' ? '' : Number(val))}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="col-span-1 flex justify-center pb-1">
+                  {splitRows.length > 2 && (
+                    <button type="button" onClick={() => removeSplitRow(idx)} className="p-1.5 rounded hover:bg-red-50 text-gray-400 hover:text-red-500">
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+            <div className={`flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium ${totalSplit === targetAmount ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
+              <span>Total Split: {formatRupiah(totalSplit)}</span>
+              <span>{isIndent ? 'Target DP' : 'Target Total'}: {formatRupiah(targetAmount)}</span>
+              {totalSplit === targetAmount ? <span>✓ Sesuai</span> : <span>✗ Selisih {formatRupiah(Math.abs(targetAmount - totalSplit))}</span>}
             </div>
           </CardBody>
         </Card>

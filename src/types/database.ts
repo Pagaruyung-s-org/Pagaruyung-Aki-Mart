@@ -64,7 +64,13 @@ export interface ExpenseCategory {
 export type StatusPembayaran = 'LUNAS' | 'HUTANG' | 'PARSIAL'
 export type StatusTransaksi = 'DRAFT' | 'POSTED' | 'CANCELLED'
 export type StatusPenjualan = 'DRAFT' | 'PAID' | 'CANCELLED' | 'INDENT' | 'VOID' | 'REVERSAL' | 'VOID INDENT'
-export type PaymentMethod = 'CASH' | 'TRANSFER' | 'QRIS' | 'BRANKAS'
+export type PaymentMethod = 'CASH' | 'TRANSFER' | 'QRIS' | 'BRANKAS' | 'SPLIT'
+
+export interface SplitPaymentDetail {
+  method: 'CASH' | 'TRANSFER' | 'QRIS'
+  account_id: string
+  amount: number
+}
 
 export interface PurchaseTransaction {
   id: string
@@ -152,6 +158,7 @@ export interface Sale {
   total: number
   dp_amount: number
   payment_method: PaymentMethod
+  split_payments?: SplitPaymentDetail[] | null
   status_transaksi: StatusPenjualan
   status_pembayaran: 'PAID' | 'PIUTANG' | 'LUNAS'
   is_toko_pusat: boolean
@@ -305,7 +312,8 @@ export interface CreateSaleInput {
   tanggal: string
   customer_name?: string
   payment_method: PaymentMethod
-  account_id: string          // akun penerima pembayaran
+  split_payments?: SplitPaymentDetail[]
+  account_id?: string          // akun penerima pembayaran (tidak wajib untuk SPLIT)
   discount?: number
   keterangan?: string
   is_indent?: boolean
