@@ -345,9 +345,11 @@ export async function submitClosing(id: string): Promise<ActionResult<null>> {
     const kasId = accounts?.find(a => a.type === 'KAS')?.id
     const brankasId = accounts?.find(a => a.type === 'BRANKAS')?.id
 
+    const cashDropDate = `${closing.tanggal}T23:59:59+07:00`
+
     await supabase.from('cash_transactions').insert([
       {
-        tanggal: new Date().toISOString(),
+        tanggal: cashDropDate,
         account_id: kasId,
         account_type: 'KAS',
         transaction_type: 'CREDIT',
@@ -358,7 +360,7 @@ export async function submitClosing(id: string): Promise<ActionResult<null>> {
         description: `Closing harian ${closing.tanggal} — uang ditarik ke brankas`,
       },
       {
-        tanggal: new Date().toISOString(),
+        tanggal: cashDropDate,
         account_id: brankasId,
         account_type: 'BRANKAS',
         transaction_type: 'DEBIT',
