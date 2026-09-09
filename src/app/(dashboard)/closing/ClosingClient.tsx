@@ -41,6 +41,7 @@ export function ClosingClient({ closings, accounts = [], saldoBrankas = 0 }: Clo
 
   // Summary state
   const [summary, setSummary] = useState<{
+    saldo_awal_kas?: number
     total_penjualan_tunai: number
     total_penjualan_transfer: number
     transfer_details?: Record<string, number>
@@ -112,6 +113,7 @@ export function ClosingClient({ closings, accounts = [], saldoBrankas = 0 }: Clo
     setCatatan(closing.catatan || '')
     setError('')
     setSummary({
+      saldo_awal_kas: closing.estimasi_sisa_laci + closing.total_cash_drop + closing.total_bayar_hutang + closing.total_pengeluaran_tunai - closing.total_penjualan_tunai,
       total_penjualan_tunai: closing.total_penjualan_tunai,
       total_penjualan_transfer: closing.total_penjualan_transfer,
       total_pengeluaran_tunai: closing.total_pengeluaran_tunai,
@@ -189,7 +191,7 @@ export function ClosingClient({ closings, accounts = [], saldoBrankas = 0 }: Clo
   // ==========================================
   const cashDrop = parseFloat(totalCashDrop) || 0
   const estimasiSisa = summary
-    ? summary.total_penjualan_tunai - summary.total_pengeluaran_tunai - summary.total_bayar_hutang - cashDrop
+    ? (summary.saldo_awal_kas || 0) + summary.total_penjualan_tunai - summary.total_pengeluaran_tunai - summary.total_bayar_hutang - cashDrop
     : 0
 
   return (

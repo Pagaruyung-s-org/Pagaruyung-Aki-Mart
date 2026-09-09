@@ -37,6 +37,21 @@ async function getTransactionSummary(supabase: any, tanggal: string) {
   const startOfDay = `${tanggal}T00:00:00+07:00`
   const endOfDay = `${tanggal}T23:59:59+07:00`
 
+  // Saldo awal kas (saldo di KAS sebelum hari ini)
+  const { data: kasAccount } = await supabase.from('accounts').select('id').eq('type', 'KAS').single()
+  const kasAccountId = kasAccount?.id
+  
+  let saldoAwalKas = 0
+  if (kasAccountId) {
+    const { data: previousLedger } = await supabase
+      .from('cash_transactions')
+      .select('debit, credit')
+      .eq('account_id', kasAccountId)
+      .lt('tanggal', startOfDay)
+
+    saldoAwalKas = (previousLedger || []).reduce((sum: number, r: any) => sum + (r.debit || 0) - (r.credit || 0), 0)
+  }
+
   // Penjualan tunai (non-split)
   const { data: salesCash } = await supabase
     .from('sales')
@@ -116,6 +131,7 @@ async function getTransactionSummary(supabase: any, tanggal: string) {
   const totalBayarHutang = payments?.reduce((sum: number, p: any) => sum + Number(p.nominal), 0) ?? 0
 
   return {
+    saldo_awal_kas: saldoAwalKas,
     total_penjualan_tunai: totalPenjualanTunai,
     total_penjualan_transfer: totalPenjualanTransfer,
     transfer_details: transferDetails,
@@ -171,8 +187,8 @@ export async function createClosing(input: CreateClosingInput): Promise<ActionRe
   // Hitung rangkuman transaksi
   const summary = await getTransactionSummary(supabase, data.tanggal)
 
-  // Hitung estimasi sisa laci: Penjualan Tunai - Pengeluaran Tunai - Bayar Hutang - Cash Drop
-  const estimasiSisaLaci = summary.total_penjualan_tunai - summary.total_pengeluaran_tunai - summary.total_bayar_hutang - data.total_cash_drop
+  // Hitung estimasi sisa laci: Saldo Awal + Penjualan Tunai - Pengeluaran Tunai - Bayar Hutang - Cash Drop
+  const estimasiSisaLaci = summary.saldo_awal_kas + summary.total_penjualan_tunai - summary.total_pengeluaran_tunai - summary.total_bayar_hutang - data.total_cash_drop
 
   const { data: closing, error } = await supabase
     .from('daily_closings')
@@ -232,7 +248,7 @@ export async function updateClosing(id: string, input: CreateClosingInput): Prom
 
   const data = parsed.data
   const summary = await getTransactionSummary(supabase, data.tanggal)
-  const estimasiSisaLaci = summary.total_penjualan_tunai - summary.total_pengeluaran_tunai - summary.total_bayar_hutang - data.total_cash_drop
+  const estimasiSisaLaci = summary.saldo_awal_kas + summary.total_penjualan_tunai - summary.total_pengeluaran_tunai - summary.total_bayar_hutang - data.total_cash_drop
 
   // Cek apakah ini closing terlambat
   const today = new Date()
