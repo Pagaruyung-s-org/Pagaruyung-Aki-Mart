@@ -15,7 +15,7 @@ export async function getIncomingSalesFiltered(startDate: string, endDate: strin
       .select('account_id, reference_type, debit, credit, accounts(name)')
       .gte('tanggal', start)
       .lte('tanggal', end)
-      .in('reference_type', ['SALE'])
+      .in('reference_type', ['SALE', 'SALE_REVERSAL'])
 
     if (error) {
       return { success: false, error: error.message }
@@ -38,9 +38,11 @@ export async function getIncomingSalesFiltered(startDate: string, endDate: strin
 
       if (tx.reference_type === 'SALE' && tx.debit > 0) {
         grouped[accId].masuk += tx.debit
+      } else if (tx.reference_type === 'SALE_REVERSAL' && tx.credit > 0) {
+        grouped[accId].batal += tx.credit
       }
 
-      grouped[accId].net = grouped[accId].masuk
+      grouped[accId].net = grouped[accId].masuk - grouped[accId].batal
     })
 
     return {

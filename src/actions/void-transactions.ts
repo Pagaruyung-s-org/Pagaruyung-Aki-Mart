@@ -83,7 +83,7 @@ export async function voidSale(id: string, reason: string): Promise<ActionResult
       if (originalCashes && originalCashes.length > 0) {
         for (const cash of originalCashes) {
           await supabase.from('cash_transactions').insert({
-            tanggal: new Date().toISOString(),
+            tanggal: sale.tanggal,
             account_id: cash.account_id,
             account_type: cash.account_type,
             transaction_type: 'CREDIT',
@@ -184,7 +184,7 @@ export async function voidSale(id: string, reason: string): Promise<ActionResult
   if (originalCashes && originalCashes.length > 0) {
     for (const cash of originalCashes) {
       await supabase.from('cash_transactions').insert({
-        tanggal: new Date().toISOString(),
+        tanggal: sale.tanggal,
         account_id: cash.account_id,
         account_type: cash.account_type,
         reference_id: reversalSale.id,
@@ -384,7 +384,7 @@ export async function voidPurchase(id: string, reason: string): Promise<ActionRe
   if (originalCashes && originalCashes.length > 0) {
     for (const cash of originalCashes) {
       await supabase.from('cash_transactions').insert({
-        tanggal: new Date().toISOString(),
+        tanggal: purchase.tanggal,
         account_id: cash.account_id,
         account_type: cash.account_type,
         reference_id: reversalPurchase.id,
@@ -482,7 +482,7 @@ export async function voidExpense(id: string, reason: string): Promise<ActionRes
   if (originalCashes && originalCashes.length > 0) {
     for (const cash of originalCashes) {
       await supabase.from('cash_transactions').insert({
-        tanggal: new Date().toISOString(),
+        tanggal: expense.tanggal,
         account_id: cash.account_id,
         account_type: cash.account_type,
         reference_id: reversalExpense.id,
@@ -625,7 +625,7 @@ export async function voidSupplierPayment(id: string, reason: string): Promise<{
   if (originalCashes && originalCashes.length > 0) {
     for (const cash of originalCashes) {
       await supabase.from('cash_transactions').insert({
-        tanggal: new Date().toISOString(),
+        tanggal: payment.tanggal,
         account_id: cash.account_id,
         account_type: cash.account_type,
         transaction_type: 'DEBIT',
