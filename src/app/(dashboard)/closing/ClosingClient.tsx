@@ -227,7 +227,7 @@ export function ClosingClient({ closings, accounts = [], saldoBrankas = 0 }: Clo
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 text-gray-600 border-b border-gray-200">
-                  <th className="text-left px-4 py-3 font-medium whitespace-nowrap">Tanggal</th>
+                  <th className="text-left px-4 py-3 font-medium whitespace-nowrap">Waktu Dibuat</th>
                   <th className="text-right px-4 py-3 font-medium whitespace-nowrap">Jual Tunai</th>
                   <th className="text-right px-4 py-3 font-medium whitespace-nowrap">Jual Transfer</th>
                   <th className="text-right px-4 py-3 font-medium whitespace-nowrap">Pengeluaran</th>
@@ -356,6 +356,10 @@ export function ClosingClient({ closings, accounts = [], saldoBrankas = 0 }: Clo
                                   </div>
                                 </div>
                                 <div className="flex-1 space-y-5 py-2">
+                                  <div>
+                                    <p className="text-gray-500 font-medium mb-1.5">Data Transaksi Tanggal</p>
+                                    <p className="text-gray-900 font-semibold">{format(new Date(c.tanggal + 'T00:00:00'), 'dd MMMM yyyy', { locale: localeId })}</p>
+                                  </div>
                                   <div>
                                     <p className="text-gray-500 font-medium mb-1.5">Catatan</p>
                                     <p className="text-gray-900 whitespace-pre-wrap">{c.catatan || '-'}</p>
