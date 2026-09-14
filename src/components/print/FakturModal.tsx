@@ -49,7 +49,7 @@ export function FakturModal({ isOpen, onClose, sale, autoPrint = false }: Faktur
     if (isOpen && sale && autoPrint) {
       const timer = setTimeout(() => {
         window.print()
-      }, 300)
+      }, 800) // Naikkan delay agar logo sempat ter-load sempurna
 
       const handleAfterPrint = () => {
         onClose()
@@ -118,12 +118,12 @@ export function FakturModal({ isOpen, onClose, sale, autoPrint = false }: Faktur
               {/* Header Toko: logo kiri, info toko kanan */}
               <div className="flex items-center gap-3 mb-4 pb-3 border-b-2 border-black border-dashed">
                 {/* Logo */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/logo.png"
                   alt="PT Pagaruyung Mitra Persada"
                   width={60}
                   height={60}
+                  fetchPriority="high"
                   style={{ objectFit: 'contain', width: 60, height: 60 }}
                 />
                 {/* Info toko di kanan logo */}
