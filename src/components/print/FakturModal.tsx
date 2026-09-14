@@ -85,12 +85,17 @@ export function FakturModal({ isOpen, onClose, sale, autoPrint = false }: Faktur
       <style>{`
         @media print {
           @page {
-            size: 9.5in 11in;
-            margin: 0.4in 0.5in;
+            size: 9.5in 5.5in;
+            margin: 0.2in 0.5in;
           }
           body * { visibility: hidden; }
           #faktur-print-area, #faktur-print-area * { visibility: visible; }
-          #faktur-print-area { position: absolute; left: 0; top: 0; width: 100%; }
+          #faktur-print-area { 
+            position: absolute; 
+            left: 0; 
+            top: 0; 
+            width: 100%; 
+          }
         }
       `}</style>
 
