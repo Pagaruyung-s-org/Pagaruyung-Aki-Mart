@@ -90,7 +90,7 @@ export function FakturModal({ isOpen, onClose, sale, autoPrint = false }: Faktur
           }
           body * { visibility: hidden; }
           #faktur-print-area, #faktur-print-area * { visibility: visible; }
-          #faktur-print-area { position: fixed; left: 0; top: 0; width: 100%; }
+          #faktur-print-area { position: absolute; left: 0; top: 0; width: 100%; }
         }
       `}</style>
 
