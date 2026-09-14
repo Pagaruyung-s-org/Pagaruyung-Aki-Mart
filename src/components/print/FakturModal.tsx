@@ -1,8 +1,7 @@
 'use client'
 
 import { useRef, useEffect } from 'react'
-import { X, Printer } from 'lucide-react'
-import { formatRupiah, formatDateTime, getBestDateForDisplay } from '@/lib/utils'
+import { formatRupiah, getBestDateForDisplay } from '@/lib/utils'
 
 interface FakturSaleItem {
   qty: number
@@ -44,20 +43,18 @@ interface FakturModalProps {
 }
 
 export function FakturModal({ isOpen, onClose, sale, autoPrint = false }: FakturModalProps) {
-  const printRef = useRef<HTMLDivElement>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (isOpen && sale && autoPrint) {
-      // Small delay to ensure DOM is fully rendered before printing
       const timer = setTimeout(() => {
         window.print()
-      }, 100)
-      
+      }, 300)
+
       const handleAfterPrint = () => {
         onClose()
       }
-      
+
       window.addEventListener('afterprint', handleAfterPrint)
       return () => {
         clearTimeout(timer)
@@ -68,162 +65,178 @@ export function FakturModal({ isOpen, onClose, sale, autoPrint = false }: Faktur
 
   if (!isOpen || !sale) return null
 
-  const handlePrint = () => {
-    window.print()
-  }
+  const tanggalTransaksi = getBestDateForDisplay(sale.tanggal, sale.created_at)
 
-  const formatTanggal = () => {
-    return getBestDateForDisplay(sale.tanggal, sale.created_at)
-  }
+  const tanggalCetak = new Intl.DateTimeFormat('id-ID', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'Asia/Jakarta',
+  }).format(new Date())
 
   const containerClass = autoPrint
-    ? "fixed left-[-9999px] top-0"
-    : "fixed inset-0 z-[100] flex items-center justify-center p-4 print:p-0 print:items-start"
+    ? 'fixed left-[-9999px] top-0'
+    : 'fixed inset-0 z-[100] flex items-center justify-center p-4 print:p-0 print:items-start'
 
   return (
-    <div
-      ref={overlayRef}
-      className={containerClass}
-      onClick={(e) => {
-        if (!autoPrint && e.target === overlayRef.current) onClose()
-      }}
-    >
-      {/* Backdrop - hidden on print, and completely hidden on autoPrint */}
-      {!autoPrint && <div className="absolute inset-0 bg-black/40 backdrop-blur-sm print:hidden" />}
+    <>
+      <style>{`
+        @media print {
+          @page {
+            size: 9.5in 11in;
+            margin: 0.4in 0.5in;
+          }
+          body * { visibility: hidden; }
+          #faktur-print-area, #faktur-print-area * { visibility: visible; }
+          #faktur-print-area { position: fixed; left: 0; top: 0; width: 100%; }
+        }
+      `}</style>
 
-      {/* Modal Container */}
-      <div className={`relative w-full max-w-2xl bg-white rounded-2xl print:rounded-none print:shadow-none print:max-w-none print:w-full ${!autoPrint ? 'shadow-2xl' : ''}`}>
-        
-        {/* Modal Header - hidden on print and autoPrint */}
-        {!autoPrint && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 print:hidden">
-            <h2 className="text-base font-semibold text-gray-900">Preview Faktur</h2>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handlePrint}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors cursor-pointer"
-              >
-                <Printer className="h-4 w-4" />
-                Cetak Sekarang
-              </button>
-              <button
-                onClick={onClose}
-                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        )}
+      <div
+        ref={overlayRef}
+        className={containerClass}
+        onClick={(e) => {
+          if (!autoPrint && e.target === overlayRef.current) onClose()
+        }}
+      >
+        {/* Backdrop */}
+        {!autoPrint && <div className="absolute inset-0 bg-black/40 backdrop-blur-sm print:hidden" />}
 
-        {/* Faktur Content - this is what gets printed */}
-        <div ref={printRef} id="faktur-print-area" className={`px-6 py-5 overflow-y-auto print:max-h-none print:overflow-visible print:px-0 print:py-0 ${!autoPrint ? 'max-h-[80vh]' : ''}`}>
-          <div className="font-mono text-sm print:text-[10pt] text-black">
-            
-            {/* Header Toko */}
-            <div className="text-center mb-4 pb-3 border-b-2 border-black border-dashed print:border-dashed">
-              <h1 className="text-lg font-bold tracking-wide print:text-[14pt]">PAGARUYUNG AKI MART</h1>
-              <p className="text-xs text-black mt-1">Jalan Raya Pagaruyung</p>
-              <p className="text-xs text-black">Telp: 0812-XXXX-XXXX</p>
-            </div>
+        {/* Modal Container */}
+        <div className={`relative w-full max-w-2xl bg-white rounded-2xl print:rounded-none print:shadow-none print:max-w-none print:w-full ${!autoPrint ? 'shadow-2xl' : ''}`}>
 
-            {/* Info Transaksi */}
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs mb-4 print:text-[9pt]">
-              <div>
-                <span className="text-black">No. Bon:</span>
-                <span className="ml-2 font-semibold">{sale.kode_penjualan}</span>
+          {/* Faktur Content */}
+          <div id="faktur-print-area" className={`px-6 py-5 overflow-y-auto print:max-h-none print:overflow-visible print:px-0 print:py-0 ${!autoPrint ? 'max-h-[85vh]' : ''}`}>
+            <div className="font-mono text-sm print:text-[10pt] text-black">
+
+              {/* Header Toko: logo kiri, info toko kanan */}
+              <div className="flex items-center gap-3 mb-4 pb-3 border-b-2 border-black border-dashed">
+                {/* Logo */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logo.png"
+                  alt="PT Pagaruyung Mitra Persada"
+                  width={60}
+                  height={60}
+                  style={{ objectFit: 'contain', width: 60, height: 60 }}
+                />
+                {/* Info toko di kanan logo */}
+                <div>
+                  <h1 className="text-xl font-bold tracking-wide leading-tight print:text-[14pt]">AKI MART</h1>
+                  <p className="text-[10px] text-black leading-tight">PT Pagaruyung Mitra Persada</p>
+                  <p className="text-[10px] text-black leading-tight mt-0.5">Balik Alam, Mandau, Bengkalis, Riau — Jl. Hangtuah</p>
+                  <p className="text-[10px] text-black leading-tight">Telp: 082172140997</p>
+                </div>
               </div>
-              <div className="text-right">
-                <span className="text-black">Tanggal:</span>
-                <span className="ml-2">{formatTanggal()}</span>
-              </div>
-              <div>
-                <span className="text-black">Customer:</span>
-                <span className="ml-2">{sale.customer_name || 'Umum'}</span>
-              </div>
-              <div className="text-right">
-                <span className="text-black">Bayar:</span>
-                <span className="ml-2">{sale.payment_method}</span>
-              </div>
-            </div>
 
-            {/* Separator */}
-            <div className="border-t border-black border-dashed mb-3 print:border-dashed" />
+              {/* Info Transaksi */}
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs mb-4 print:text-[9pt]">
+                <div>
+                  <span className="text-black">No. Bon:</span>
+                  <span className="ml-2 font-semibold">{sale.kode_penjualan}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-black">Tgl. Transaksi:</span>
+                  <span className="ml-2">{tanggalTransaksi}</span>
+                </div>
+                <div className="col-span-2 text-right">
+                  <span className="text-black">Tgl. Cetak:</span>
+                  <span className="ml-2">{tanggalCetak}</span>
+                </div>
+                <div>
+                  <span className="text-black">Customer:</span>
+                  <span className="ml-2">{sale.customer_name || 'Umum'}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-black">Bayar:</span>
+                  <span className="ml-2">{sale.payment_method}</span>
+                </div>
 
-            {/* Tabel Item */}
-            <table className="w-full text-xs print:text-[9pt]">
-              <thead>
-                <tr className="border-b border-black">
-                  <th className="text-left py-1 font-semibold">Produk</th>
-                  <th className="text-center py-1 font-semibold w-12">Qty</th>
-                  <th className="text-right py-1 font-semibold">Harga</th>
-                  <th className="text-right py-1 font-semibold">Subtotal</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sale.sale_items?.map((item, idx) => {
-                  const product = item.products
-                  const name = product
-                    ? product.kategori === 'Air Aki'
-                      ? product.merk
-                      : [product.merk, product.kategori, product.type, product.kode_baterai, `${product.kapasitas_ah}AH`].filter(Boolean).join(' ')
-                    : 'Produk'
-                  return (
-                    <tr key={idx} className="border-b border-gray-300 print:border-black">
-                      <td className="py-1.5 pr-2 max-w-[200px] truncate">{name}</td>
-                      <td className="py-1.5 text-center">{item.qty}</td>
-                      <td className="py-1.5 text-right">{formatRupiah(item.harga_jual)}</td>
-                      <td className="py-1.5 text-right font-medium">{formatRupiah(item.subtotal)}</td>
-                    </tr>
-                  )
-                })}
-                {sale.include_air_aki && (sale.jumlah_air_aki ?? 0) > 0 && (
-                  <tr className="border-b border-gray-300 print:border-black">
-                    <td className="py-1.5 pr-2">Air Aki (Tambahan)</td>
-                    <td className="py-1.5 text-center">{sale.jumlah_air_aki}</td>
-                    <td className="py-1.5 text-right">{formatRupiah(sale.harga_jual_air_aki ?? sale.harga_air_aki ?? 0)}</td>
-                    <td className="py-1.5 text-right font-medium">{formatRupiah((sale.jumlah_air_aki ?? 0) * (sale.harga_jual_air_aki ?? sale.harga_air_aki ?? 0))}</td>
+              </div>
+
+              {/* Separator */}
+              <div className="border-t border-black border-dashed mb-3" />
+
+              {/* Tabel Item */}
+              <table className="w-full text-xs print:text-[9pt]">
+                <thead>
+                  <tr className="border-b border-black">
+                    <th className="text-left py-1 font-semibold">Produk</th>
+                    <th className="text-center py-1 font-semibold w-10">Qty</th>
+                    <th className="text-right py-1 font-semibold">Harga Satuan</th>
+                    <th className="text-right py-1 font-semibold">Subtotal</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {sale.sale_items?.map((item, idx) => {
+                    const product = item.products
+                    const name = product
+                      ? product.kategori === 'Air Aki'
+                        ? product.merk
+                        : [product.merk, product.kategori, product.type, product.kode_baterai, `${product.kapasitas_ah}AH`].filter(Boolean).join(' ')
+                      : 'Produk'
+                    const hargaSatuan = item.qty > 0 ? item.subtotal / item.qty : 0
+                    return (
+                      <tr key={idx}>
+                        <td className="py-1.5 pr-2 max-w-[160px] truncate">{name}</td>
+                        <td className="py-1.5 text-center">{item.qty}</td>
+                        <td className="py-1.5 text-right">{formatRupiah(hargaSatuan)}</td>
+                        <td className="py-1.5 text-right font-medium">{formatRupiah(item.subtotal)}</td>
+                      </tr>
+                    )
+                  })}
+                  {sale.include_air_aki && (sale.jumlah_air_aki ?? 0) > 0 && (() => {
+                    const qtyAir = sale.jumlah_air_aki ?? 0
+                    const subtotalAir = qtyAir * (sale.harga_jual_air_aki ?? sale.harga_air_aki ?? 0)
+                    const hargaSatuanAir = qtyAir > 0 ? subtotalAir / qtyAir : 0
+                    return (
+                      <tr>
+                        <td className="py-1.5 pr-2">Air Aki (Tambahan)</td>
+                        <td className="py-1.5 text-center">{qtyAir}</td>
+                        <td className="py-1.5 text-right">{formatRupiah(hargaSatuanAir)}</td>
+                        <td className="py-1.5 text-right font-medium">{formatRupiah(subtotalAir)}</td>
+                      </tr>
+                    )
+                  })()}
+                </tbody>
+              </table>
 
-            {/* Separator */}
-            <div className="border-t border-black border-dashed my-3 print:border-dashed" />
+              {/* Separator */}
+              <div className="border-t border-black border-dashed my-3" />
 
-            {/* Totals */}
-            <div className="space-y-1 text-xs print:text-[9pt]">
-              <div className="flex justify-between">
-                <span>Subtotal</span>
-                <span>{formatRupiah(sale.subtotal)}</span>
-              </div>
-              {sale.discount > 0 && (
+              {/* Totals */}
+              <div className="space-y-1 text-xs print:text-[9pt]">
                 <div className="flex justify-between">
-                  <span>Diskon</span>
-                  <span>- {formatRupiah(sale.discount)}</span>
+                  <span>Subtotal</span>
+                  <span>{formatRupiah(sale.subtotal)}</span>
+                </div>
+                {sale.discount > 0 && (
+                  <div className="flex justify-between">
+                    <span>Diskon</span>
+                    <span>- {formatRupiah(sale.discount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold text-sm pt-1 border-t border-black print:text-[11pt]">
+                  <span>TOTAL</span>
+                  <span>{formatRupiah(sale.total)}</span>
+                </div>
+              </div>
+              {/* Note pajak */}
+              <p className="text-[9px] text-gray-500 mt-1 print:text-[8pt]">*harga sudah termasuk pajak</p>
+
+              {/* Keterangan */}
+              {sale.keterangan && (
+                <div className="mt-3 text-xs text-black">
+                  <span className="font-semibold">Catatan:</span> {sale.keterangan}
                 </div>
               )}
-              <div className="flex justify-between font-bold text-sm pt-1 border-t border-black print:text-[11pt]">
-                <span>TOTAL</span>
-                <span>{formatRupiah(sale.total)}</span>
-              </div>
-            </div>
 
-            {/* Keterangan */}
-            {sale.keterangan && (
-              <div className="mt-3 text-xs text-black">
-                <span className="font-semibold">Catatan:</span> {sale.keterangan}
-              </div>
-            )}
-
-            {/* Footer */}
-            <div className="mt-6 pt-3 border-t border-dashed border-gray-400 text-center text-xs text-black">
-              <p>Terima kasih atas pembelian Anda!</p>
-              <p className="mt-1">Barang yang sudah dibeli tidak dapat dikembalikan.</p>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   )
 }

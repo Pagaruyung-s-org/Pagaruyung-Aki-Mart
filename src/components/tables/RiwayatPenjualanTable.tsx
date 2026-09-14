@@ -193,7 +193,7 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
                       <div key={index} className="flex justify-between items-center bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
                         <div className="flex-1">
                           <p className="font-medium text-gray-900">{name}</p>
-                          <p className="text-sm text-gray-500">{item.qty} x {formatRupiah(item.harga_jual)}</p>
+                          <p className="text-sm text-gray-500">{item.qty} x {formatRupiah(item.qty > 0 ? item.subtotal / item.qty : 0)}</p>
                         </div>
                         <div className="text-right">
                           <p className="font-semibold text-gray-900">{formatRupiah(item.subtotal)}</p>

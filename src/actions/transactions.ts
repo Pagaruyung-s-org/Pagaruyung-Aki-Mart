@@ -404,14 +404,7 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
   const { data: kodeData } = await supabase.rpc('generate_kode_penjualan')
   const kode_penjualan = kodeData as string
 
-  // Cari nama akun
-  let accountName = ''
-  if (data.account_id) {
-    const { data: acc } = await supabase.from('accounts').select('name').eq('id', data.account_id).single()
-    if (acc) accountName = acc.name
-  }
-  const tag = accountName ? `Akun: ${accountName}` : ''
-  const finalKeterangan = [data.keterangan, tag].filter(Boolean).join(' | ')
+  const finalKeterangan = data.keterangan ?? null
 
   // Insert sale header
   const { data: sale, error: saleError } = await supabase
