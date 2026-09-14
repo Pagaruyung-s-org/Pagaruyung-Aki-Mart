@@ -38,7 +38,12 @@ export function MutasiKasModal({ accounts, role, onClose, onSuccess }: Props) {
     return allowedAccounts.filter(a => a.id !== sId)
   }
 
-  const [sumberId, setSumberId] = useState(pindahSourceAccounts[0]?.id ?? '')
+  // Default sumber = BRANKAS, tujuan = OWNER untuk admin
+  const defaultSumber = !isPrivileged
+    ? (pindahSourceAccounts.find(a => a.type === 'BRANKAS') ?? pindahSourceAccounts[0])
+    : pindahSourceAccounts[0]
+
+  const [sumberId, setSumberId] = useState(defaultSumber?.id ?? '')
   const [tujuanId, setTujuanId] = useState('')
   const [nominal, setNominal] = useState('')
   const [keterangan, setKeterangan] = useState('')
@@ -47,7 +52,12 @@ export function MutasiKasModal({ accounts, role, onClose, onSuccess }: Props) {
 
   useEffect(() => {
     if (jenisAksi === 'PINDAH') {
-      setTujuanId(destAccounts[0]?.id ?? '')
+      const dest = getPindahDestAccounts(sumberId)
+      // Default tujuan = OWNER untuk admin
+      const defaultDest = !isPrivileged
+        ? (dest.find(a => a.type === 'OWNER') ?? dest[0])
+        : dest[0]
+      setTujuanId(defaultDest?.id ?? '')
     } else if (jenisAksi === 'MASUK') {
       setTujuanId(allowedAccounts[0]?.id ?? '')
     } else if (jenisAksi === 'KELUAR') {
