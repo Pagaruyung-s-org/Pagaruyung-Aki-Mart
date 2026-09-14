@@ -233,10 +233,24 @@ export function FakturModal({ isOpen, onClose, sale, autoPrint = false }: Faktur
 
               {/* Keterangan */}
               {sale.keterangan && (
-                <div className="mt-3 text-xs text-black">
+                <div className="mt-3 text-xs text-black print:hidden">
                   <span className="font-semibold">Catatan:</span> {sale.keterangan}
                 </div>
               )}
+
+              {/* Tanda Tangan */}
+              <div className="mt-8 flex justify-around text-xs text-black print:text-[9pt]">
+                <div className="text-center w-32">
+                  <p>Diterima oleh,</p>
+                  <div className="h-16"></div>
+                  <p>(...................)</p>
+                </div>
+                <div className="text-center w-32">
+                  <p>Hormat kami,</p>
+                  <div className="h-16"></div>
+                  <p>(...................)</p>
+                </div>
+              </div>
 
             </div>
           </div>
