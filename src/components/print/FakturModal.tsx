@@ -243,12 +243,12 @@ export function FakturModal({ isOpen, onClose, sale, autoPrint = false }: Faktur
                 <div className="text-center w-32">
                   <p>Diterima oleh,</p>
                   <div className="h-16"></div>
-                  <p>(...................)</p>
+                  <p>(......................................)</p>
                 </div>
                 <div className="text-center w-32">
                   <p>Hormat kami,</p>
                   <div className="h-16"></div>
-                  <p>(...................)</p>
+                  <p>(......................................)</p>
                 </div>
               </div>
 
