@@ -85,6 +85,7 @@ export function FakturModal({ isOpen, onClose, sale, autoPrint = false }: Faktur
       <style>{`
         @media print {
           @page {
+            size: portrait;
             margin: 0.2in 0.5in;
           }
           body * { visibility: hidden; }
