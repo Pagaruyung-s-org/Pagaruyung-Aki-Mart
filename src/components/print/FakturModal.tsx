@@ -184,7 +184,7 @@ export function FakturModal({ isOpen, onClose, sale, autoPrint = false }: Faktur
                     const hargaSatuan = item.qty > 0 ? item.subtotal / item.qty : 0
                     return (
                       <tr key={idx}>
-                        <td className="py-1.5 pr-2 max-w-[160px] truncate">{name}</td>
+                        <td className="py-1.5 pr-2">{name}</td>
                         <td className="py-1.5 text-center">{item.qty}</td>
                         <td className="py-1.5 text-right">{formatRupiah(hargaSatuan)}</td>
                         <td className="py-1.5 text-right font-medium">{formatRupiah(item.subtotal)}</td>
