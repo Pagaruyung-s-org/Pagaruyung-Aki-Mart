@@ -94,18 +94,18 @@ export default async function KasBankPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           
           {/* Total Saldo */}
-          <div className="md:col-span-2 lg:col-span-3 bg-gradient-to-br from-blue-600 to-indigo-700 p-5 rounded-2xl shadow-lg text-white flex flex-col justify-between relative overflow-hidden">
+          <div className="md:col-span-2 lg:col-span-3 bg-blue-600 bg-gradient-to-br from-blue-600 to-indigo-700 p-5 rounded-2xl shadow-lg text-white flex flex-col justify-between relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-20">
-              <WalletCards className="h-24 w-24" />
+              <WalletCards className="h-24 w-24 text-white" />
             </div>
             <div className="relative z-10 min-w-0">
               <p className="text-blue-100 font-medium mb-1 truncate">
                 Total Saldo {!isPrivileged && '(Kas, Brankas & Setoran)'}
               </p>
-              <h2 className="text-2xl lg:text-3xl font-bold tracking-tight truncate" title={formatRupiah(totalSaldo)}>{formatRupiah(totalSaldo)}</h2>
+              <h2 className="text-2xl lg:text-3xl font-bold tracking-tight text-white truncate" title={formatRupiah(totalSaldo)}>{formatRupiah(totalSaldo)}</h2>
             </div>
-            <div className="relative z-10 mt-6 pt-4 border-t border-blue-500/30 flex items-center justify-between text-sm">
-              <span>Diperbarui secara real-time</span>
+            <div className="relative z-10 mt-6 pt-4 border-t border-blue-400 flex items-center justify-between text-sm">
+              <span className="text-blue-100">Diperbarui secara real-time</span>
               {isPrivileged && (
                 <Link href="/laporan/arus-kas" className="flex items-center gap-1 hover:text-blue-200 transition-colors">
                   Lihat Arus Kas <ArrowRightLeft className="h-4 w-4" />
