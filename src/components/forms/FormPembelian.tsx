@@ -291,7 +291,7 @@ export function FormPembelian({
               >
                 <FileImage className="h-6 w-6 text-gray-400 mb-1" />
                 <span className="text-xs text-gray-500">Klik untuk upload foto faktur</span>
-                <span className="text-xs text-gray-400">JPG, PNG, WEBP — maks 5MB</span>
+                <span className="text-xs text-gray-400">JPG, PNG, WEBP — maks 2MB</span>
               </label>
             )}
             <input
@@ -303,8 +303,8 @@ export function FormPembelian({
               onChange={(e) => {
                 const file = e.target.files?.[0]
                 if (!file) return
-                if (file.size > 5 * 1024 * 1024) {
-                  showToast('error', 'Ukuran foto maksimal 5MB')
+                if (file.size > 2 * 1024 * 1024) {
+                  showToast('error', 'Ukuran foto maksimal 2MB')
                   return
                 }
                 setFotoFile(file)
