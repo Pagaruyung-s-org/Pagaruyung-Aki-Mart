@@ -17,6 +17,7 @@ export default async function PenjualanPage() {
       .from('sales')
       .select(`
         *,
+        accounts(name),
         sale_items(
           qty,
           harga_jual,

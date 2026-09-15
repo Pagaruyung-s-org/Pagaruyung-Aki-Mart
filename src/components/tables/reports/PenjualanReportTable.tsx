@@ -56,7 +56,7 @@ export function PenjualanReportTable({ data }: { data: any[] }) {
                     {row.customer_name || '-'}
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <PaymentBadge method={row.payment_method} keterangan={row.keterangan} />
+                    <PaymentBadge method={row.payment_method} accountName={row.accounts?.name ?? null} keterangan={row.keterangan} />
                   </td>
                   <td className="px-6 py-4 text-center font-medium">
                     {row.total_qty}

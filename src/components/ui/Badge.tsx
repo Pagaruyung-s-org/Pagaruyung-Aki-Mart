@@ -55,16 +55,20 @@ export function StatusBadge({ status }: StatusBadgeProps) {
 // Payment badge
 interface PaymentBadgeProps {
   method: string
+  accountName?: string | null
   keterangan?: string | null
 }
 
-export function PaymentBadge({ method, keterangan }: PaymentBadgeProps) {
+export function PaymentBadge({ method, accountName, keterangan }: PaymentBadgeProps) {
   if (method === 'SPLIT') {
     return <Badge className="bg-purple-100 text-purple-700">SPLIT</Badge>
   }
 
   let display = method
-  if (keterangan) {
+  if (accountName) {
+    display = `${method} - ${accountName.toUpperCase()}`
+  } else if (keterangan) {
+    // fallback: parse data lama yang menyimpan "Akun: xxx" di keterangan
     const match = keterangan.match(/(?:Bank|Akun):\s*([^|]+)/i)
     if (match) {
       display = `${method} - ${match[1].trim().toUpperCase()}`

@@ -164,8 +164,9 @@ CREATE TABLE IF NOT EXISTS sales (
     subtotal         NUMERIC(15,2) NOT NULL DEFAULT 0,
     discount         NUMERIC(15,2) NOT NULL DEFAULT 0,
     total            NUMERIC(15,2) NOT NULL DEFAULT 0,
-    payment_method   TEXT NOT NULL DEFAULT 'CASH' CHECK (payment_method IN ('CASH','TRANSFER','QRIS')),
-    status_transaksi TEXT NOT NULL DEFAULT 'PAID' CHECK (status_transaksi IN ('DRAFT','PAID','CANCELLED','VOID','REVERSAL')),
+    payment_method   TEXT NOT NULL DEFAULT 'CASH' CHECK (payment_method IN ('CASH','TRANSFER','QRIS','SPLIT')),
+    account_id       UUID REFERENCES accounts(id) ON DELETE SET NULL,
+    status_transaksi TEXT NOT NULL DEFAULT 'PAID' CHECK (status_transaksi IN ('DRAFT','PAID','CANCELLED','VOID','REVERSAL','INDENT','VOID INDENT')),
     keterangan       TEXT,
     created_by       UUID REFERENCES auth.users(id),
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -181,6 +182,7 @@ CREATE TABLE IF NOT EXISTS sales (
 
 CREATE INDEX idx_sales_tanggal ON sales(tanggal);
 CREATE INDEX idx_sales_status ON sales(status_transaksi);
+CREATE INDEX idx_sales_account ON sales(account_id);
 
 -- ============================================================
 -- 10. SALE_ITEMS — Detail Item Penjualan

@@ -419,6 +419,7 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
       dp_amount: dpAmount,
       payment_method: data.payment_method,
       split_payments: data.payment_method === 'SPLIT' ? data.split_payments : null,
+      account_id: data.account_id ?? null,
       status_transaksi: data.is_indent ? 'INDENT' : 'PAID',
       status_pembayaran: data.is_toko_pusat ? 'PIUTANG' : 'PAID',
       is_toko_pusat: data.is_toko_pusat ?? false,

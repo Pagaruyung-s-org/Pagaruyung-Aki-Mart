@@ -39,6 +39,8 @@ export default async function LaporanPenjualanPage({ searchParams }: PageProps) 
       total, 
       discount, 
       payment_method,
+      account_id,
+      accounts ( name ),
       keterangan,
       sale_items ( qty, laba_kotor )
     `)

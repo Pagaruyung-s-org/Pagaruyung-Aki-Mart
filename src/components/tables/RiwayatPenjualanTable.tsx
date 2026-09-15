@@ -100,6 +100,8 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
               const labaKotor = (s.sale_items?.reduce((sum: number, i: any) => sum + i.laba_kotor, 0) ?? 0) + (s.laba_air_aki ?? 0)
               // @ts-ignore
               const qtyItems = (s.sale_items?.reduce((sum: number, i: any) => sum + (i.qty || 0), 0) ?? 0) + (s.include_air_aki ? s.jumlah_air_aki : 0)
+              // @ts-ignore
+              const accountName: string | null = s.accounts?.name ?? null
 
               return (
                 <tr
@@ -126,7 +128,7 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
                     <td className="px-4 py-3 text-right font-semibold text-green-600">{formatRupiah(labaKotor)}</td>
                   )}
                   <td className="px-4 py-3 text-center text-xs text-gray-600 font-medium">
-                    <PaymentBadge method={s.payment_method} keterangan={s.keterangan} />
+                    <PaymentBadge method={s.payment_method} accountName={accountName} keterangan={s.keterangan} />
                   </td>
                 </tr>
               )
@@ -167,7 +169,7 @@ export function RiwayatPenjualanTable({ sales, role }: { sales: any[], role?: st
               <div>
                 <p className="text-xs text-gray-500 mb-1">Metode Bayar</p>
                 <p className="text-sm font-medium text-gray-900">
-                  <PaymentBadge method={selectedSale.payment_method} keterangan={selectedSale.keterangan} />
+                  <PaymentBadge method={selectedSale.payment_method} accountName={selectedSale.accounts?.name ?? null} keterangan={selectedSale.keterangan} />
                 </p>
                 {selectedSale.payment_method === 'SPLIT' && selectedSale.split_payments && (
                   <div className="mt-2 space-y-1">
