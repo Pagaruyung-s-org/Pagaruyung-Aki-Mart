@@ -333,6 +333,7 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
     product_id: string
     qty: number
     harga_jual: number
+    discount: number
     subtotal: number
     hpp_fifo: number
     laba_kotor: number
@@ -383,6 +384,7 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
       product_id: item.product_id,
       qty: item.qty,
       harga_jual: item.harga_jual,
+      discount: itemDiscount,
       subtotal,
       hpp_fifo,
       laba_kotor,
@@ -391,8 +393,8 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
   }
 
   // Hitung total penjualan
-  const subtotalAll = itemsWithFifo.reduce((sum, i) => sum + i.subtotal, 0)
-  const discount = data.discount ?? 0
+  const subtotalAll = itemsWithFifo.reduce((sum, i) => sum + (i.qty * i.harga_jual), 0)
+  const discount = itemsWithFifo.reduce((sum, i) => sum + i.discount, 0) + (data.discount ?? 0)
   const total = subtotalAll - discount
 
   const dpAmount = data.is_indent ? (data.dp_amount ?? 0) : 0
