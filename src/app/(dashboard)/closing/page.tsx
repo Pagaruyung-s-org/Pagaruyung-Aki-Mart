@@ -6,12 +6,13 @@ import { ClosingClient } from './ClosingClient'
 
 export default async function ClosingPage() {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
   const [
     { data: closings },
     { data: bankAccounts },
-    { data: brankasAccount },
     { data: brankasLedger },
+    { data: roleData },
   ] = await Promise.all([
     supabase
       .from('daily_closings')
@@ -25,16 +26,14 @@ export default async function ClosingPage() {
       .eq('type', 'BANK')
       .order('sort_order', { ascending: true }),
     supabase
-      .from('accounts')
-      .select('id')
-      .eq('type', 'BRANKAS')
-      .eq('is_active', true)
-      .limit(1)
-      .maybeSingle(),
-    supabase
       .from('cash_transactions')
       .select('debit, credit')
       .eq('account_type', 'BRANKAS'),
+    supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user?.id ?? '')
+      .maybeSingle(),
   ])
 
   const saldoBrankas = (brankasLedger ?? []).reduce(
@@ -53,6 +52,7 @@ export default async function ClosingPage() {
           closings={closings ?? []} 
           accounts={bankAccounts ?? []} 
           saldoBrankas={saldoBrankas}
+          role={roleData?.role ?? null}
         />
       </div>
     </div>

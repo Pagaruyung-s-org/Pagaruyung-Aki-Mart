@@ -174,6 +174,22 @@ export async function voidSale(id: string, reason: string): Promise<ActionResult
     }
   }
 
+  // Void piutang toko pusat jika ada
+  if (sale.is_toko_pusat) {
+    const { data: receivable } = await supabase
+      .from('customer_receivables')
+      .select('id, status_pembayaran, total_dibayar')
+      .eq('sale_id', sale.id)
+      .maybeSingle()
+
+    if (receivable) {
+      if (receivable.total_dibayar > 0) {
+        return { success: false, error: 'Penjualan toko pusat ini sudah ada pembayaran piutang. Batalkan pembayaran piutangnya terlebih dahulu.' }
+      }
+      await supabase.from('customer_receivables').delete().eq('id', receivable.id)
+    }
+  }
+
   // Create Reversal Cash transaction
   const { data: originalCashes } = await supabase
     .from('cash_transactions')
@@ -216,6 +232,7 @@ export async function voidSale(id: string, reason: string): Promise<ActionResult
   revalidatePath('/stok')
   revalidatePath('/stok/air-aki')
   revalidatePath('/dashboard')
+  revalidatePath('/piutang')
 
   // Log activity
   await supabase.from('activity_log').insert({

@@ -385,6 +385,59 @@ export async function submitClosing(id: string): Promise<ActionResult<null>> {
 }
 
 // ============================================================
+// SERVER ACTION: HITUNG ULANG SNAPSHOT CLOSING (SUPER_ADMIN)
+// ============================================================
+export async function recalculateClosing(id: string): Promise<ActionResult<null>> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Tidak terautentikasi' }
+
+  const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', user.id).single()
+  if (roleData?.role !== 'SUPER_ADMIN') {
+    return { success: false, error: 'Hanya Super Admin yang dapat menghitung ulang closing' }
+  }
+
+  const { data: closing } = await supabase
+    .from('daily_closings')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (!closing) return { success: false, error: 'Data closing tidak ditemukan' }
+
+  const summary = await getTransactionSummary(supabase, closing.tanggal)
+  const estimasiSisaLaci =
+    summary.saldo_awal_kas +
+    summary.total_penjualan_tunai -
+    summary.total_pengeluaran_tunai -
+    summary.total_bayar_hutang -
+    closing.total_cash_drop
+
+  const { error } = await supabase
+    .from('daily_closings')
+    .update({
+      total_penjualan_tunai: summary.total_penjualan_tunai,
+      total_penjualan_transfer: summary.total_penjualan_transfer,
+      transfer_details: summary.transfer_details,
+      total_pengeluaran_tunai: summary.total_pengeluaran_tunai,
+      total_bayar_hutang: summary.total_bayar_hutang,
+      estimasi_sisa_laci: estimasiSisaLaci,
+    })
+    .eq('id', id)
+
+  if (error) return { success: false, error: error.message }
+
+  revalidatePath('/closing')
+  revalidatePath('/dashboard')
+
+  return {
+    success: true,
+    data: null,
+    message: `Closing tanggal ${closing.tanggal} berhasil dihitung ulang.`,
+  }
+}
+
+// ============================================================
 // SERVER ACTION: CEK APAKAH TANGGAL SUDAH DI-CLOSING
 // ============================================================
 export async function isDateClosed(tanggal: string): Promise<boolean> {
@@ -527,4 +580,58 @@ export async function createMutasiKas(
   }
 
   return { success: false, error: 'Aksi tidak valid' }
+}
+
+// ============================================================
+// SERVER ACTION: BATALKAN PENGAJUAN CLOSING (SUPER_ADMIN only)
+// ============================================================
+export async function cancelSubmittedClosing(id: string): Promise<ActionResult<null>> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { success: false, error: 'Tidak terautentikasi' }
+
+  const { data: roleData } = await supabase.from('user_roles').select('role').eq('user_id', user.id).single()
+  if (roleData?.role !== 'SUPER_ADMIN') {
+    return { success: false, error: 'Hanya Super Admin yang dapat membatalkan pengajuan closing' }
+  }
+
+  const { data: closing } = await supabase
+    .from('daily_closings')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (!closing) return { success: false, error: 'Data closing tidak ditemukan' }
+  if (closing.status !== 'SUBMITTED') {
+    return { success: false, error: 'Closing ini belum diajukan' }
+  }
+
+  // Hapus cash_transactions CASH_DROP yang dibuat saat submit
+  await supabase
+    .from('cash_transactions')
+    .delete()
+    .eq('reference_type', 'CASH_DROP')
+    .eq('reference_id', closing.id)
+
+  // Revert status ke DRAFT
+  const { error } = await supabase
+    .from('daily_closings')
+    .update({
+      status: 'DRAFT',
+      submitted_by: null,
+      submitted_at: null,
+    })
+    .eq('id', id)
+
+  if (error) return { success: false, error: error.message }
+
+  revalidatePath('/closing')
+  revalidatePath('/kas')
+  revalidatePath('/dashboard')
+
+  return {
+    success: true,
+    data: null,
+    message: `Pengajuan closing tanggal ${closing.tanggal} berhasil dibatalkan. Status kembali ke Draft.`,
+  }
 }

@@ -60,18 +60,33 @@ interface PaymentBadgeProps {
 }
 
 export function PaymentBadge({ method, accountName, keterangan }: PaymentBadgeProps) {
-  if (method === 'SPLIT') {
-    return <Badge className="bg-purple-100 text-purple-700">SPLIT</Badge>
+  const methodLabels: Record<string, string> = {
+    CASH: 'Tunai',
+    TRANSFER: 'Transfer Bank',
+    QRIS: 'QRIS',
+    BRANKAS: 'Brankas',
+    SPLIT: 'Split Payment',
+    HUTANG_PUSAT: 'Hutang Pusat',
   }
 
-  let display = method
+  if (method === 'SPLIT') {
+    return <Badge className="bg-purple-100 text-purple-700">Split Payment</Badge>
+  }
+
+  if (method === 'HUTANG_PUSAT') {
+    return <Badge className="bg-orange-100 text-orange-700">Hutang Pusat</Badge>
+  }
+
+  const baseLabel = methodLabels[method] ?? method
+
+  let display = baseLabel
   if (accountName) {
-    display = `${method} - ${accountName.toUpperCase()}`
+    display = `${baseLabel} - ${accountName.toUpperCase()}`
   } else if (keterangan) {
     // fallback: parse data lama yang menyimpan "Akun: xxx" di keterangan
     const match = keterangan.match(/(?:Bank|Akun):\s*([^|]+)/i)
     if (match) {
-      display = `${method} - ${match[1].trim().toUpperCase()}`
+      display = `${baseLabel} - ${match[1].trim().toUpperCase()}`
     }
   }
 
@@ -81,7 +96,7 @@ export function PaymentBadge({ method, accountName, keterangan }: PaymentBadgePr
     variant = 'info'
   } else if (textLower.includes('bni') || textLower.includes('qris')) {
     variant = 'warning'
-  } else if (textLower.includes('cash') || textLower.includes('kas')) {
+  } else if (textLower.includes('tunai') || textLower.includes('kas')) {
     variant = 'success'
   }
 

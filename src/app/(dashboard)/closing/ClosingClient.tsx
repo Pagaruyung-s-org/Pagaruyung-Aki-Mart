@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useEffect, Fragment } from 'react'
-import { Plus, Send, Pencil, Trash2, AlertTriangle, CheckCircle, Clock, ArrowRightLeft, Info, ChevronDown, ChevronRight, Vault } from 'lucide-react'
+import { Plus, Send, Pencil, Trash2, AlertTriangle, CheckCircle, Clock, ArrowRightLeft, Info, ChevronDown, ChevronRight, Vault, RotateCcw, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { Input } from '@/components/ui/Input'
 import { InputCurrency } from '@/components/ui/InputCurrency'
 import { StatusBadge } from '@/components/ui/Badge'
-import { createClosing, updateClosing, deleteClosing, submitClosing, getClosingSummary } from '@/actions/closing'
+import { createClosing, updateClosing, deleteClosing, submitClosing, getClosingSummary, cancelSubmittedClosing, recalculateClosing } from '@/actions/closing'
 import type { DailyClosing } from '@/types/database'
 import { format } from 'date-fns'
 import { id as localeId } from 'date-fns/locale'
@@ -24,9 +24,10 @@ interface ClosingClientProps {
   closings: DailyClosing[]
   accounts?: { id: string; name: string; type: string; is_active: boolean }[]
   saldoBrankas?: number
+  role?: string | null
 }
 
-export function ClosingClient({ closings, accounts = [], saldoBrankas = 0 }: ClosingClientProps) {
+export function ClosingClient({ closings, accounts = [], saldoBrankas = 0, role }: ClosingClientProps) {
   // ==========================================
   // STATE — Form Closing
   // ==========================================
@@ -61,6 +62,17 @@ export function ClosingClient({ closings, accounts = [], saldoBrankas = 0 }: Clo
   // ==========================================
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
+
+  // ==========================================
+  // STATE — Cancel Submit Confirmation
+  // ==========================================
+  const [cancelConfirmId, setCancelConfirmId] = useState<string | null>(null)
+  const [cancelLoading, setCancelLoading] = useState(false)
+
+  // ==========================================
+  // STATE — Recalculate
+  // ==========================================
+  const [recalcLoadingId, setRecalcLoadingId] = useState<string | null>(null)
 
   // ==========================================
   // STATE — Table Row Expand
@@ -177,6 +189,30 @@ export function ClosingClient({ closings, accounts = [], saldoBrankas = 0 }: Clo
     const result = await deleteClosing(deleteConfirmId)
     setDeleteLoading(false)
     setDeleteConfirmId(null)
+    if (!result.success) {
+      alert(result.error)
+    } else {
+      window.location.reload()
+    }
+  }
+
+  async function handleCancelSubmit() {
+    if (!cancelConfirmId) return
+    setCancelLoading(true)
+    const result = await cancelSubmittedClosing(cancelConfirmId)
+    setCancelLoading(false)
+    setCancelConfirmId(null)
+    if (!result.success) {
+      alert(result.error)
+    } else {
+      window.location.reload()
+    }
+  }
+
+  async function handleRecalculate(id: string) {
+    setRecalcLoadingId(id)
+    const result = await recalculateClosing(id)
+    setRecalcLoadingId(null)
     if (!result.success) {
       alert(result.error)
     } else {
@@ -307,9 +343,40 @@ export function ClosingClient({ closings, accounts = [], saldoBrankas = 0 }: Clo
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </button>
+                            {role === 'SUPER_ADMIN' && (
+                              <button
+                                onClick={() => handleRecalculate(c.id)}
+                                className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                                title="Hitung Ulang Data Closing"
+                                disabled={recalcLoadingId === c.id}
+                              >
+                                <RefreshCw className={`h-3.5 w-3.5 ${recalcLoadingId === c.id ? 'animate-spin text-emerald-500' : ''}`} />
+                              </button>
+                            )}
                           </div>
                         ) : (
-                          <span className="text-xs text-gray-400">Terkunci</span>
+                          <div className="flex items-center justify-center gap-1" onClick={(e) => e.stopPropagation()}>
+                            <span className="text-xs text-gray-400">Terkunci</span>
+                            {role === 'SUPER_ADMIN' && (
+                              <>
+                                <button
+                                  onClick={() => handleRecalculate(c.id)}
+                                  className="p-1.5 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                                  title="Hitung Ulang Data Closing"
+                                  disabled={recalcLoadingId === c.id}
+                                >
+                                  <RefreshCw className={`h-3.5 w-3.5 ${recalcLoadingId === c.id ? 'animate-spin text-emerald-500' : ''}`} />
+                                </button>
+                                <button
+                                  onClick={() => setCancelConfirmId(c.id)}
+                                  className="p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                                  title="Batalkan Pengajuan Closing"
+                                >
+                                  <RotateCcw className="h-3.5 w-3.5" />
+                                </button>
+                              </>
+                            )}
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -553,6 +620,37 @@ export function ClosingClient({ closings, accounts = [], saldoBrankas = 0 }: Clo
         </div>
       </Modal>
 
+      {/* ====== MODAL: KONFIRMASI BATAL PENGAJUAN ====== */}
+      <Modal
+        isOpen={!!cancelConfirmId}
+        onClose={() => setCancelConfirmId(null)}
+        title="Batalkan Pengajuan Closing"
+        size="md"
+      >
+        <div className="space-y-4">
+          <div className="flex items-start gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-red-800">Konfirmasi Pembatalan Pengajuan</p>
+              <p className="text-xs text-red-700 mt-1">
+                Pengajuan closing ini akan dikembalikan ke status <strong>Draft</strong>.
+                Cash drop ke brankas yang terkait akan <strong>dibatalkan</strong> (saldo brankas berkurang kembali).
+              </p>
+              <p className="text-xs text-red-700 mt-1">
+                Transaksi pada tanggal tersebut juga akan <strong>terbuka kembali</strong> (bisa di-void).
+              </p>
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button variant="secondary" onClick={() => setCancelConfirmId(null)}>
+              Batal
+            </Button>
+            <Button variant="danger" onClick={handleCancelSubmit} disabled={cancelLoading}>
+              {cancelLoading ? 'Membatalkan...' : 'Ya, Batalkan Pengajuan'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
     </>
   )

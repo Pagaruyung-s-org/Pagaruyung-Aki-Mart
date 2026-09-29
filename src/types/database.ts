@@ -64,7 +64,7 @@ export interface ExpenseCategory {
 export type StatusPembayaran = 'LUNAS' | 'HUTANG' | 'PARSIAL'
 export type StatusTransaksi = 'DRAFT' | 'POSTED' | 'CANCELLED'
 export type StatusPenjualan = 'DRAFT' | 'PAID' | 'CANCELLED' | 'INDENT' | 'VOID' | 'REVERSAL' | 'VOID INDENT'
-export type PaymentMethod = 'CASH' | 'TRANSFER' | 'QRIS' | 'BRANKAS' | 'SPLIT'
+export type PaymentMethod = 'CASH' | 'TRANSFER' | 'QRIS' | 'BRANKAS' | 'SPLIT' | 'HUTANG_PUSAT'
 
 export interface SplitPaymentDetail {
   method: 'CASH' | 'TRANSFER' | 'QRIS'

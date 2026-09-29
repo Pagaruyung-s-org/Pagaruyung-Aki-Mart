@@ -130,6 +130,9 @@ export function getPaymentMethodLabel(method: string): string {
     CASH: 'Tunai',
     TRANSFER: 'Transfer Bank',
     QRIS: 'QRIS',
+    HUTANG_PUSAT: 'Hutang Pusat',
+    BRANKAS: 'Brankas',
+    SPLIT: 'Split Payment',
   }
   return labels[method] ?? method
 }

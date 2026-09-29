@@ -50,7 +50,7 @@ const CreateSaleItemSchema = z.object({
 const CreateSaleSchema = z.object({
   tanggal: z.string().min(1, 'Tanggal wajib diisi'),
   customer_name: z.string().optional(),
-  payment_method: z.enum(['CASH', 'TRANSFER', 'QRIS', 'SPLIT']),
+  payment_method: z.enum(['CASH', 'TRANSFER', 'QRIS', 'SPLIT', 'HUTANG_PUSAT']),
   account_id: z.string().uuid().optional(),
   split_payments: z.array(z.object({
     method: z.enum(['CASH', 'TRANSFER', 'QRIS']),
@@ -419,9 +419,9 @@ export async function createSale(input: CreateSaleInput): Promise<ActionResult<{
       discount,
       total,
       dp_amount: dpAmount,
-      payment_method: data.payment_method,
+      payment_method: data.is_toko_pusat ? 'HUTANG_PUSAT' : data.payment_method,
       split_payments: data.payment_method === 'SPLIT' ? data.split_payments : null,
-      account_id: data.account_id ?? null,
+      account_id: data.is_toko_pusat ? null : (data.account_id ?? null),
       status_transaksi: data.is_indent ? 'INDENT' : 'PAID',
       status_pembayaran: data.is_toko_pusat ? 'PIUTANG' : 'PAID',
       is_toko_pusat: data.is_toko_pusat ?? false,
